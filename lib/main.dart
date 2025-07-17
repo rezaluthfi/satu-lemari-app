@@ -1,125 +1,180 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
+import 'core/constants/app_theme.dart';
+import 'core/di/injection.dart' as di;
+import 'features/auth/presentation/pages/auth_page.dart';
+import 'features/onboarding/presentation/pages/onboarding_page.dart';
+import 'features/splash/presentation/pages/splash_page.dart';
+import 'shared/widgets/connectivity_wrapper.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+// Widget for the home page dummy implementation
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+    // Listen for authentication state changes and handle navigation
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        print('HomePage - Auth state changed to: ${state.runtimeType}');
+
+        if (state is Unauthenticated) {
+          print('HomePage - User logged out, navigating to auth');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/auth',
+              (route) => false,
+            );
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Home Page'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () {
+                print('HomePage - Logout button pressed');
+                context.read<AuthBloc>().add(LogoutButtonPressed());
+              },
+            )
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Welcome to SatuLemari!'),
+              const SizedBox(height: 20),
+              // Build UI based on authentication state
+              BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  print('HomePage - Building with state: ${state.runtimeType}');
+
+                  if (state is Authenticated) {
+                    return Column(
+                      children: [
+                        Text('You are logged in as: ${state.user.username}'),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(LogoutButtonPressed());
+                          },
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (state is AuthLoading) {
+                    return const CircularProgressIndicator();
+                  }
+
+                  return const Text('Loading user data...');
+                },
+              ),
+            ],
+          ),
+        ),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+// Main entry point of the application
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  try {
+    await dotenv.load(fileName: ".env");
+    print(".env loaded successfully.");
+  } catch (e) {
+    print("Warning: .env file not found or failed to load. Error: $e");
+  }
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  await Firebase.initializeApp();
+  await di.init();
+  runApp(const MyApp());
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+// Root widget of the application
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+    return BlocProvider(
+      create: (context) => di.sl<AuthBloc>(),
+      child: MaterialApp(
+        title: 'SatuLemari',
+        theme: AppTheme.lightTheme,
+        debugShowCheckedModeBanner: false,
+        home: const AuthWrapper(),
+        routes: {
+          '/onboarding': (context) =>
+              const ConnectivityWrapper(child: OnboardingPage()),
+          '/auth': (context) => const ConnectivityWrapper(child: AuthPage()),
+          '/home': (context) => const ConnectivityWrapper(child: HomePage()),
+        },
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+// Widget to handle authentication state and navigation
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<AuthBloc, AuthState>(
+      listener: (context, state) {
+        print('AuthWrapper - State changed to: ${state.runtimeType}');
+
+        if (state is Unauthenticated) {
+          print('AuthWrapper - Navigating to auth page');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/auth',
+              (route) => false,
+            );
+          });
+        } else if (state is Authenticated) {
+          print('AuthWrapper - Navigating to home page');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/home',
+              (route) => false,
+            );
+          });
+        }
+      },
+      builder: (context, state) {
+        print('AuthWrapper - Building with state: ${state.runtimeType}');
+
+        // Show splash page during initial or loading states
+        if (state is AuthInitial || state is AuthLoading) {
+          return const ConnectivityWrapper(child: SplashPage());
+        }
+
+        // Show auth page for unauthenticated state
+        if (state is Unauthenticated) {
+          return const ConnectivityWrapper(child: AuthPage());
+        }
+
+        // Show home page for authenticated state
+        if (state is Authenticated) {
+          return const ConnectivityWrapper(child: HomePage());
+        }
+
+        // Default to splash page
+        return const ConnectivityWrapper(child: SplashPage());
+      },
     );
   }
 }
