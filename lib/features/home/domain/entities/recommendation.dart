@@ -1,0 +1,27 @@
+import 'package:equatable/equatable.dart';
+
+enum ItemType { donation, rental, unknown }
+
+class Recommendation extends Equatable {
+  final String itemId;
+  final String title;
+  final String description;
+  final String? imageUrl;
+  final String category;
+  final ItemType type;
+  final List<String> tags;
+
+  const Recommendation({
+    required this.itemId,
+    required this.title,
+    required this.description,
+    this.imageUrl,
+    required this.category,
+    required this.type,
+    required this.tags,
+  });
+
+  @override
+  List<Object?> get props =>
+      [itemId, title, description, imageUrl, category, type, tags];
+}
