@@ -50,7 +50,7 @@ class AppStrings {
   static const String continueWithGoogle = 'Lanjutkan dengan Google';
   static const String continueWithApple = 'Lanjutkan dengan Apple';
   static const String rememberMe = 'Ingat saya';
-  static const String agreeToTerms = 'Saya setuju dengan';
+  static const String agreeToTerms = 'Saya setuju dengan ';
   static const String termsOfService = 'Syarat & Ketentuan';
   static const String and = ' dan ';
   static const String privacyPolicy = 'Kebijakan Privasi';
