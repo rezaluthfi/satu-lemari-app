@@ -20,7 +20,6 @@ class _LoginFormState extends State<LoginForm> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -94,31 +93,16 @@ class _LoginFormState extends State<LoginForm> {
                 validator: Validators.validatePassword,
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _rememberMe,
-                        onChanged: (value) =>
-                            setState(() => _rememberMe = value ?? false),
-                        activeColor: AppColors.primary,
-                      ),
-                      const Text(AppStrings.rememberMe,
-                          style: TextStyle(
-                              fontSize: 14, color: AppColors.textSecondary)),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      // TODO: Navigate to forgot password page
-                    },
-                    child: const Text(AppStrings.forgotPassword,
-                        style:
-                            TextStyle(fontSize: 14, color: AppColors.primary)),
-                  ),
-                ],
+              // Forgot password button aligned to the right
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    // TODO: Navigate to forgot password page
+                  },
+                  child: const Text(AppStrings.forgotPassword,
+                      style: TextStyle(fontSize: 14, color: AppColors.primary)),
+                ),
               ),
               const SizedBox(height: 24),
               // Rebuild button based on BLoC state

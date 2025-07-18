@@ -48,6 +48,22 @@ class _AuthPageState extends State<AuthPage>
                   backgroundColor: AppColors.error,
                 ),
               );
+          } else if (state is Authenticated) {
+            print(
+                'AuthPage - Authenticated state received, navigating to main');
+            Navigator.of(context)
+                .pushNamedAndRemoveUntil('/main', (route) => false);
+          } else if (state is RegistrationSuccess) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Registrasi berhasil! Silakan login dengan akun Anda.'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            _switchToLoginTab();
           }
         },
         child: SafeArea(

@@ -1,8 +1,6 @@
 import 'package:bloc/bloc.dart';
-import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/errors/failures.dart';
 import '../../../../core/usecases/usecase.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
@@ -36,21 +34,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
   }
 
-  // Handle authentication result from use cases
-  void _handleAuthResult(
-      Either<Failure, User> result, Emitter<AuthState> emit) {
-    result.fold(
-      (failure) => emit(AuthFailure(message: failure.message)),
-      (user) => emit(Authenticated(user: user)),
-    );
-  }
-
   // Handle app startup to check for existing user
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
     print('AuthBloc - App started');
     emit(AuthLoading());
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    // PERBAIKAN: Kurangi delay untuk pengalaman yang lebih responsif
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final result = await getCurrentUserUseCase(NoParams());
     result.fold(
@@ -84,6 +74,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         print('AuthBloc - Registration successful: ${user.username}');
+        // PERBAIKAN: Emisi state RegistrationSuccess untuk menunjukkan bahwa registrasi berhasil
+        // tapi belum authenticated (user perlu login manual)
         emit(RegistrationSuccess(user: user));
       },
     );
@@ -100,7 +92,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       password: event.password,
     ));
 
-    await Future.delayed(const Duration(milliseconds: 300));
+    // PERBAIKAN: Kurangi delay untuk pengalaman yang lebih responsif
+    await Future.delayed(const Duration(milliseconds: 200));
 
     result.fold(
       (failure) {
@@ -109,6 +102,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         print('AuthBloc - Login successful: ${user.username}');
+        // PERBAIKAN: Pastikan emit Authenticated state dengan benar
         emit(Authenticated(user: user));
       },
     );
@@ -122,7 +116,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     final result = await loginWithGoogleUseCase(NoParams());
 
-    await Future.delayed(const Duration(milliseconds: 300));
+    // PERBAIKAN: Kurangi delay untuk pengalaman yang lebih responsif
+    await Future.delayed(const Duration(milliseconds: 200));
 
     result.fold(
       (failure) {
@@ -131,6 +126,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         print('AuthBloc - Google login successful: ${user.username}');
+        // PERBAIKAN: Pastikan emit Authenticated state dengan benar
         emit(Authenticated(user: user));
       },
     );
@@ -150,6 +146,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(Unauthenticated());
     } catch (e) {
       print('AuthBloc - Logout failed: $e');
+
       emit(Unauthenticated());
     }
   }

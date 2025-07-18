@@ -147,15 +147,29 @@ class _RegisterFormState extends State<RegisterForm> {
                     value, _passwordController.text),
               ),
               const SizedBox(height: 16),
+
+              // FIXED: Checkbox dengan alignment manual yang presisi
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Checkbox(
-                    value: _agreeToTerms,
-                    onChanged: (value) =>
-                        setState(() => _agreeToTerms = value ?? false),
-                    activeColor: AppColors.primary,
+                  // Checkbox dengan padding yang disesuaikan agar align dengan input field
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: 2.0), // Sesuaikan vertikal alignment
+                    child: SizedBox(
+                      width: 24, // Lebar tetap untuk checkbox
+                      height: 24, // Tinggi tetap untuk checkbox
+                      child: Checkbox(
+                        value: _agreeToTerms,
+                        onChanged: (value) =>
+                            setState(() => _agreeToTerms = value ?? false),
+                        activeColor: AppColors.primary,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: 12), // Jarak antara checkbox dan text
+                  // Expanded text yang bisa di-tap
                   Expanded(
                     child: GestureDetector(
                       onTap: () =>
@@ -184,6 +198,7 @@ class _RegisterFormState extends State<RegisterForm> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 24),
               BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
