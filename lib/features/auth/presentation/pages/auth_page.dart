@@ -39,13 +39,7 @@ class _AuthPageState extends State<AuthPage>
       backgroundColor: AppColors.background,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is Authenticated) {
-            // Navigasi ke home setelah login/register berhasil
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              Navigator.of(context).pushReplacementNamed('/home');
-            });
-          } else if (state is AuthFailure) {
-            // Tampilkan error message jika ada
+          if (state is AuthFailure) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
               ..showSnackBar(
