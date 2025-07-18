@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -9,6 +8,7 @@ import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
+import 'package:satulemari/shared/widgets/product_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -282,7 +282,6 @@ class _HomePageState extends State<HomePage>
       ),
       child: Stack(
         children: [
-          // Background pattern
           Positioned(
             right: -20,
             top: -20,
@@ -307,7 +306,6 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
-          // Content
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -483,7 +481,8 @@ class _HomePageState extends State<HomePage>
   Widget _buildCategoryCard(BuildContext context, Category category) {
     return InkWell(
       onTap: () {
-        // TODO: Navigate to category
+        // Navigate to category items page
+        Navigator.pushNamed(context, '/category-items', arguments: category);
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -551,9 +550,8 @@ class _HomePageState extends State<HomePage>
         itemBuilder: (context, index) {
           final item = items[index];
           return Container(
-            width: 200,
             margin: const EdgeInsets.only(right: 16),
-            child: _buildProductCard(context, item),
+            child: ProductCard(recommendation: item, isCarousel: true),
           );
         },
       ),
@@ -584,131 +582,8 @@ class _HomePageState extends State<HomePage>
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final item = items[index];
-        return _buildProductCard(context, item);
+        return ProductCard(recommendation: item);
       },
-    );
-  }
-
-  Widget _buildProductCard(BuildContext context, Recommendation item) {
-    final tagColor =
-        item.type == ItemType.donation ? AppColors.donation : AppColors.rental;
-    final tagText = item.type == ItemType.donation ? 'Donasi' : 'Sewa';
-
-    return InkWell(
-      onTap: () {
-        // TODO: Navigate to item detail
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider, width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
-                        ? CachedNetworkImage(
-                            imageUrl: item.imageUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (c, u) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.primary,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                            errorWidget: (c, u, e) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: const Center(
-                                child: Icon(
-                                  Icons.broken_image_rounded,
-                                  color: AppColors.disabled,
-                                  size: 32,
-                                ),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: AppColors.surfaceVariant,
-                            child: const Center(
-                              child: Icon(
-                                Icons.inventory_2_rounded,
-                                color: AppColors.disabled,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-                if (item.type != ItemType.unknown)
-                  Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: tagColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        tagText,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.category.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

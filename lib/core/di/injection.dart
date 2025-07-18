@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Auth Imports
 import '../../features/auth/data/datasources/auth_local_datasource.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -16,8 +17,12 @@ import '../../features/auth/domain/usecases/login_with_google_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+
+// Core Imports
 import '../network/auth_interceptor.dart';
 import '../network/network_info.dart';
+
+// Home Imports
 import '../../features/home/data/datasources/home_remote_datasource.dart';
 import '../../features/home/domain/repositories/home_repository.dart';
 import '../../features/home/domain/repositories/home_repository_impl.dart';
@@ -26,10 +31,40 @@ import '../../features/home/domain/usecases/get_trending_items_usecase.dart';
 import '../../features/home/domain/usecases/get_personalized_recommendations_usecase.dart';
 import '../../features/home/presentation/bloc/home_bloc.dart';
 
+// Item Detail Imports
+import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
+import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository.dart';
+import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository_impl.dart';
+import 'package:satulemari/features/item_detail/domain/usecases/get_item_by_id_usecase.dart';
+import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
+
+// Category Items Imports
+import 'package:satulemari/features/category_items/data/datasources/category_items_remote_datasource.dart';
+import 'package:satulemari/features/category_items/domain/repositories/category_items_repository.dart';
+import 'package:satulemari/features/category_items/domain/repositories/category_items_repository_impl.dart';
+import 'package:satulemari/features/category_items/domain/usecases/get_items_by_category_usecase.dart';
+import 'package:satulemari/features/category_items/presentation/bloc/category_items_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // --- FEATURES ---
+
+  // Category Items Feature
+  sl.registerFactory(() => CategoryItemsBloc(getItemsByCategory: sl()));
+  sl.registerLazySingleton(() => GetItemsByCategoryUseCase(sl()));
+  sl.registerLazySingleton<CategoryItemsRepository>(() =>
+      CategoryItemsRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<CategoryItemsRemoteDataSource>(
+      () => CategoryItemsRemoteDataSourceImpl(dio: sl()));
+
+  // Item Detail Feature
+  sl.registerFactory(() => ItemDetailBloc(getItemById: sl()));
+  sl.registerLazySingleton(() => GetItemByIdUseCase(sl()));
+  sl.registerLazySingleton<ItemDetailRepository>(() =>
+      ItemDetailRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<ItemDetailRemoteDataSource>(
+      () => ItemDetailRemoteDataSourceImpl(dio: sl()));
 
   // Home Feature
   sl.registerFactory(() => HomeBloc(
