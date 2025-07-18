@@ -14,4 +14,12 @@ class AppUrls {
   static const String trendingRecommendations = '/ai/recommendations/trending';
   static const String personalizedRecommendations =
       '/ai/recommendations/personalized';
+
+  // --- TAMBAHKAN URL INI ---
+  // User Profile & Dashboard
+  static const String userProfile = '/users/me';
+  static const String userDashboard = '/users/dashboard';
+  // Untuk public profile, ID akan ditambahkan secara dinamis
+  static const String publicUserProfileBase = '/users/';
+  // ---
 }

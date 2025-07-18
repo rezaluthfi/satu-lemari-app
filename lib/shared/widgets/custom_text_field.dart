@@ -13,6 +13,7 @@ class CustomTextField extends StatefulWidget {
   final void Function(String)? onChanged;
   final void Function()? onTap;
   final bool readOnly;
+  final int? minLines; // Tambahkan parameter minLines
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
@@ -30,6 +31,7 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.onTap,
     this.readOnly = false,
+    this.minLines, // Tambahkan ke konstruktor
     this.maxLines = 1,
     this.inputFormatters,
     this.enabled = true,
@@ -65,7 +67,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
           onChanged: widget.onChanged,
           onTap: widget.onTap,
           readOnly: widget.readOnly,
-          maxLines: widget.maxLines,
+          minLines: widget.minLines ?? 1, // Gunakan minLines, default ke 1
+          maxLines: widget.maxLines, // Gunakan maxLines seperti sebelumnya
           inputFormatters: widget.inputFormatters,
           enabled: widget.enabled,
           decoration: InputDecoration(

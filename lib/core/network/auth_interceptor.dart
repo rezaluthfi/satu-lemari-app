@@ -9,7 +9,9 @@ class AuthInterceptor extends Interceptor {
   @override
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
-    // Dapatkan token untuk setiap request
+    // Interceptor ini HANYA bertanggung jawab untuk menambahkan token.
+    // JANGAN mengatur Content-Type di sini.
+
     final token = await authLocalDataSource.getAccessToken();
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -21,8 +23,6 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    // Anda bisa menambahkan logika refresh token di sini jika nanti dibutuhkan
-    // Contoh: jika error 401, coba refresh token, lalu retry request.
     super.onError(err, handler);
   }
 }
