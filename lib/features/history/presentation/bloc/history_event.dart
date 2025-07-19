@@ -1,0 +1,14 @@
+part of 'history_bloc.dart';
+
+abstract class HistoryEvent extends Equatable {
+  const HistoryEvent();
+  @override
+  List<Object> get props => [];
+}
+
+class FetchHistory extends HistoryEvent {
+  final String type; // 'donation' or 'rental'
+  const FetchHistory({required this.type});
+  @override
+  List<Object> get props => [type];
+}

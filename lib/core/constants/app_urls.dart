@@ -22,4 +22,8 @@ class AppUrls {
   // Untuk public profile, ID akan ditambahkan secara dinamis
   static const String publicUserProfileBase = '/users/';
   // ---
+
+  // History
+  static const String myRequests = '/requests/my';
+  static const String requests = '/requests';
 }
