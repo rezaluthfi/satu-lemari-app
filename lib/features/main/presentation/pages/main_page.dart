@@ -11,6 +11,7 @@ import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/pages/home_page.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/profile/presentation/pages/profile_page.dart';
+import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -49,6 +50,7 @@ class _MainPageState extends State<MainPage> {
         BlocProvider(
           create: (context) => sl<BrowseBloc>(),
         ),
+        BlocProvider(create: (context) => sl<RequestBloc>()),
         // --- PERBAIKAN UTAMA DI SINI ---
         // Daftarkan HistoryBloc agar bisa diakses oleh HistoryPage
         BlocProvider(

@@ -62,7 +62,12 @@ class HistoryRepositoryImpl implements HistoryRepository {
             name: model.partner.fullName ?? model.partner.username,
             phone: model.partner.phone,
             address: model.partner.address,
+            latitude: model.partner.latitude,
+            longitude: model.partner.longitude,
           ),
+          reason: model.reason,
+          pickupDate: model.pickupDate,
+          returnDate: model.returnDate,
         );
         return Right(entity);
       } on ServerException catch (e) {

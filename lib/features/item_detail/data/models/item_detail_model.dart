@@ -41,12 +41,23 @@ class PartnerModel {
   final String username;
   final String? fullName;
   final String? photo;
+  // --- TAMBAHKAN FIELD-FIELD INI ---
+  final String? phone;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  // ---
 
   PartnerModel({
     required this.id,
     required this.username,
     this.fullName,
     this.photo,
+    // --- TAMBAHKAN KE CONSTRUCTOR ---
+    this.phone,
+    this.address,
+    this.latitude,
+    this.longitude,
   });
 
   factory PartnerModel.fromJson(Map<String, dynamic> json) =>

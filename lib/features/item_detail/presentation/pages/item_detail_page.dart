@@ -7,8 +7,12 @@ import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
 import 'package:satulemari/features/item_detail/presentation/widgets/item_detail_shimmer.dart';
+import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
+import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
+import 'package:satulemari/features/request/presentation/widgets/rental_request_sheet.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ItemDetailPage extends StatefulWidget {
   const ItemDetailPage({super.key});
@@ -31,8 +35,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   Widget build(BuildContext context) {
     final itemId = ModalRoute.of(context)!.settings.arguments as String;
 
-    return BlocProvider(
-      create: (context) => sl<ItemDetailBloc>()..add(FetchItemDetail(itemId)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) =>
+              sl<ItemDetailBloc>()..add(FetchItemDetail(itemId)),
+        ),
+        BlocProvider(
+          create: (context) => sl<RequestBloc>(),
+        ),
+      ],
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: BlocBuilder<ItemDetailBloc, ItemDetailState>(
@@ -54,56 +66,78 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   Widget _buildLoadedContent(BuildContext context, ItemDetail item) {
-    return Stack(
-      children: [
-        CustomScrollView(
-          slivers: [
-            SliverAppBar(
-              expandedHeight: 350.0,
-              pinned: true,
-              backgroundColor: AppColors.background,
-              elevation: 0.5,
-              leading: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    shape: BoxShape.circle,
+    return BlocListener<RequestBloc, RequestState>(
+      listener: (context, state) {
+        if (state is RequestFailure) {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(state.message), backgroundColor: AppColors.error));
+        }
+        if (state is RequestSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Permintaan berhasil dibuat!'),
+              backgroundColor: AppColors.success));
+
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/request-detail',
+            ModalRoute.withName('/main'),
+            arguments: state.requestDetail.id,
+          );
+        }
+      },
+      child: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 350.0,
+                pinned: true,
+                backgroundColor: AppColors.background,
+                elevation: 0.5,
+                leading: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const BackButton(color: Colors.white),
                   ),
-                  child: const BackButton(color: Colors.white),
+                ),
+                flexibleSpace: FlexibleSpaceBar(
+                  background: _buildImageCarousel(context, item.images),
                 ),
               ),
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildImageCarousel(context, item.images),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(item),
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildInfoSection(item),
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildDescription(item),
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildPartnerInfo(item.partner),
-                    const SizedBox(height: 120),
-                  ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(item),
+                      const Divider(height: 40, color: AppColors.divider),
+                      _buildInfoSection(item),
+                      const Divider(height: 40, color: AppColors.divider),
+                      _buildDescription(item),
+                      const Divider(height: 40, color: AppColors.divider),
+                      _buildPartnerInfo(context, item),
+                      const SizedBox(height: 120),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: _buildBottomBar(item),
-        )
-      ],
+            ],
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildBottomBar(context, item),
+          )
+        ],
+      ),
     );
   }
 
@@ -296,7 +330,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     );
   }
 
-  Widget _buildPartnerInfo(Partner partner) {
+  Widget _buildPartnerInfo(BuildContext context, ItemDetail item) {
+    final partner = item.partner;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,28 +350,64 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   : null,
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(partner.fullName ?? partner.username,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Text("Partner Terverifikasi",
-                    style: TextStyle(color: AppColors.success, fontSize: 12)),
-              ],
-            )
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(partner.fullName ?? partner.username,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const Text("Partner Terverifikasi",
+                      style: TextStyle(color: AppColors.success, fontSize: 12)),
+                ],
+              ),
+            ),
+            if (partner.phone != null && partner.phone!.isNotEmpty)
+              IconButton(
+                onPressed: () async {
+                  final phone = partner.phone!.startsWith('0')
+                      ? '62${partner.phone!.substring(1)}'
+                      : partner.phone;
+                  final waUrl = Uri.parse('https://wa.me/$phone');
+                  if (await canLaunchUrl(waUrl)) {
+                    await launchUrl(waUrl,
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Tidak dapat membuka WhatsApp.')));
+                  }
+                },
+                icon: const Icon(Icons.chat_bubble_outline,
+                    color: AppColors.primary),
+                tooltip: 'Chat via WhatsApp',
+              ),
+            // --- PERBAIKI LOGIKA PETA DI SINI ---
+            if (partner.latitude != null && partner.longitude != null)
+              IconButton(
+                onPressed: () async {
+                  final lat = partner.latitude;
+                  final lng = partner.longitude;
+                  final mapUrl = Uri.parse(
+                      'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                  if (await canLaunchUrl(mapUrl)) {
+                    await launchUrl(mapUrl);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Tidak dapat membuka peta.')));
+                  }
+                },
+                icon: const Icon(Icons.map_outlined, color: AppColors.primary),
+                tooltip: 'Lihat Lokasi',
+              ),
           ],
         )
       ],
     );
   }
 
-  Widget _buildBottomBar(ItemDetail item) {
-    final buttonText = item.type.toLowerCase() == 'donation'
-        ? "Ajukan Permintaan"
-        : "Sewa Sekarang";
-    final buttonColor = item.type.toLowerCase() == 'donation'
-        ? AppColors.donation
-        : AppColors.rental;
+  Widget _buildBottomBar(BuildContext context, ItemDetail item) {
+    final isDonation = item.type.toLowerCase() == 'donation';
+    final buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
+    final buttonColor = isDonation ? AppColors.donation : AppColors.rental;
 
     return Container(
       padding: const EdgeInsets.all(16).copyWith(top: 12),
@@ -353,7 +424,22 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       child: CustomButton(
         text: buttonText,
         onPressed: () {
-          // TODO: Implement action
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            // backgroundColor: Colors.transparent, // <-- Biarkan transparan, karena warna diatur di dalam sheet
+            shape: const RoundedRectangleBorder(
+              // <-- Tambahkan shape untuk border radius
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (_) => BlocProvider.value(
+              // Teruskan instance RequestBloc dari halaman ini ke bottom sheet
+              value: BlocProvider.of<RequestBloc>(context),
+              child: isDonation
+                  ? DonationRequestSheet(itemId: item.id)
+                  : RentalRequestSheet(itemId: item.id),
+            ),
+          );
         },
         backgroundColor: buttonColor,
       ),

@@ -30,12 +30,18 @@ class ItemDetailRepositoryImpl implements ItemDetailRepository {
           availableQuantity: model.availableQuantity,
           condition: model.condition,
           images: model.images,
+          // --- PERBAIKI MAPPING PARTNER DI SINI ---
           partner: Partner(
             id: model.partner.id,
             username: model.partner.username,
             fullName: model.partner.fullName,
             photo: model.partner.photo,
+            phone: model.partner.phone,
+            address: model.partner.address,
+            latitude: model.partner.latitude,
+            longitude: model.partner.longitude,
           ),
+          // ---
           category: CategoryInfo(
             id: model.category.id,
             name: model.category.name,
