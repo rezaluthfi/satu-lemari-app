@@ -77,4 +77,18 @@ class HistoryRepositoryImpl implements HistoryRepository {
       return Left(ConnectionFailure('No Internet Connection'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> deleteRequest(String id) async {
+    if (await networkInfo.isConnected) {
+      try {
+        await remoteDataSource.deleteRequest(id);
+        return const Right(null);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ConnectionFailure('No Internet Connection'));
+    }
+  }
 }

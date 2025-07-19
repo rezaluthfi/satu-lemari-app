@@ -12,3 +12,10 @@ class FetchRequestDetail extends RequestDetailEvent {
   @override
   List<Object> get props => [id];
 }
+
+class DeleteRequestButtonPressed extends RequestDetailEvent {
+  final String id;
+  const DeleteRequestButtonPressed(this.id);
+  @override
+  List<Object> get props => [id];
+}

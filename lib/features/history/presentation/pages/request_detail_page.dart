@@ -6,8 +6,7 @@ import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/presentation/bloc/request_detail_bloc.dart';
-import 'package:satulemari/shared/widgets/custom_button.dart';
-import 'package:satulemari/shared/widgets/loading_widget.dart';
+import 'package:satulemari/features/history/presentation/widgets/request_detail_shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RequestDetailPage extends StatelessWidget {
@@ -21,144 +20,383 @@ class RequestDetailPage extends StatelessWidget {
       create: (context) =>
           sl<RequestDetailBloc>()..add(FetchRequestDetail(requestId)),
       child: Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: const Text('Detail Permintaan'),
+          title: const Text(
+            'Detail Permintaan',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+            ),
+          ),
           backgroundColor: AppColors.primary,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            BlocBuilder<RequestDetailBloc, RequestDetailState>(
+              builder: (context, state) {
+                if (state is RequestDetailLoaded) {
+                  if (state.detail.status == 'pending' ||
+                      state.detail.status == 'rejected') {
+                    return Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      child: Material(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        child: InkWell(
+                          onTap: () => _showDeleteDialog(context, requestId),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
-        body: BlocBuilder<RequestDetailBloc, RequestDetailState>(
-          builder: (context, state) {
-            if (state is RequestDetailLoading ||
-                state is RequestDetailInitial) {
-              return const LoadingWidget();
+        body: BlocListener<RequestDetailBloc, RequestDetailState>(
+          listener: (context, state) {
+            if (state is RequestDeleteSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Permintaan berhasil dihapus'),
+                  backgroundColor: AppColors.success,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              );
+              Navigator.of(context).pop(true);
             }
             if (state is RequestDetailError) {
-              return Center(child: Text(state.message));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              );
             }
-            if (state is RequestDetailLoaded) {
-              return _buildContent(context, state.detail);
-            }
-            return const SizedBox.shrink();
           },
+          child: BlocBuilder<RequestDetailBloc, RequestDetailState>(
+            builder: (context, state) {
+              if (state is RequestDetailLoading ||
+                  state is RequestDetailInitial) {
+                return const RequestDetailShimmer();
+              }
+              if (state is RequestDetailError) {
+                return _buildErrorState(state.message);
+              }
+              if (state is RequestDetailLoaded) {
+                return _buildContent(context, state.detail);
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, RequestDetail detail) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              _buildItemInfo(context, detail.item),
-              const SizedBox(height: 24),
-              _buildRequestInfo(context, detail),
-              const SizedBox(height: 24),
-              _buildPartnerInfo(context, detail.partner),
-              const SizedBox(height: 24),
-              _buildStatusInfo(context, detail),
-            ],
+  void _showDeleteDialog(BuildContext context, String requestId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Hapus Permintaan',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
         ),
-        _buildBottomAction(context, detail),
-      ],
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus permintaan ini? Tindakan ini tidak dapat dibatalkan.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.textSecondary,
+            ),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              context
+                  .read<RequestDetailBloc>()
+                  .add(DeleteRequestButtonPressed(requestId));
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildItemInfo(BuildContext context, ItemInRequest item) {
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.error.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Terjadi kesalahan',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, RequestDetail detail) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildItemCard(context, detail.item),
+          const SizedBox(height: 24),
+          _buildRequestCard(context, detail),
+          const SizedBox(height: 24),
+          _buildPartnerCard(context, detail.partner),
+          const SizedBox(height: 24),
+          _buildStatusCard(context, detail),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+        letterSpacing: -0.3,
+      ),
+    );
+  }
+
+  Widget _buildItemCard(BuildContext context, ItemInRequest item) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Barang yang Diajukan',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        _buildSectionTitle('Barang yang Diajukan'),
         const SizedBox(height: 12),
-        Card(
-          elevation: 1,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: item.imageUrl ?? '',
-                width: 56,
-                height: 56,
-                fit: BoxFit.cover,
-                errorWidget: (c, u, e) => Container(
-                    color: AppColors.surfaceVariant,
-                    child: const Icon(Icons.inventory_2_outlined)),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.divider.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.pushNamed(context, '/item-detail',
+                    arguments: item.id);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: CachedNetworkImage(
+                          imageUrl: item.imageUrl ?? '',
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.surfaceVariant,
+                            child: const Icon(
+                              Icons.inventory_2_outlined,
+                              color: AppColors.textHint,
+                              size: 24,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surfaceVariant,
+                            child: const Icon(
+                              Icons.inventory_2_outlined,
+                              color: AppColors.textHint,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          const Row(
+                            children: [
+                              Text(
+                                'Lihat detail barang',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 12,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            title: Text(item.name,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('Lihat Detail Barang'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.pushNamed(context, '/item-detail', arguments: item.id);
-            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildRequestInfo(BuildContext context, RequestDetail detail) {
+  Widget _buildRequestCard(BuildContext context, RequestDetail detail) {
     final bool isDonation = detail.type == 'donation';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Detail Permintaan Anda',
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
+        _buildSectionTitle('Detail Permintaan'),
         const SizedBox(height: 12),
-        Card(
-          elevation: 1,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.divider.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 _buildInfoRow(
-                    context,
-                    Icons.calendar_today_outlined,
-                    'Tanggal Permintaan',
-                    DateFormat('dd MMMM yyyy, HH:mm').format(detail.createdAt)),
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Tanggal Permintaan',
+                  value: DateFormat('dd MMMM yyyy, HH:mm')
+                      .format(detail.createdAt),
+                ),
                 if (isDonation &&
                     detail.reason != null &&
                     detail.reason!.isNotEmpty) ...[
-                  const Divider(height: 24),
+                  const SizedBox(height: 20),
+                  _buildDivider(),
+                  const SizedBox(height: 20),
                   _buildInfoRow(
-                      context, Icons.notes_outlined, 'Alasan', detail.reason!),
+                    icon: Icons.notes_rounded,
+                    label: 'Alasan Permintaan',
+                    value: detail.reason!,
+                  ),
                 ],
                 if (!isDonation) ...[
-                  const Divider(height: 24),
+                  const SizedBox(height: 20),
+                  _buildDivider(),
+                  const SizedBox(height: 20),
                   _buildInfoRow(
-                      context,
-                      Icons.calendar_view_day_outlined,
-                      'Tanggal Ambil',
-                      detail.pickupDate != null
-                          ? DateFormat('dd MMMM yyyy')
-                              .format(detail.pickupDate!)
-                          : '-'),
-                  const SizedBox(height: 12),
+                    icon: Icons.event_available_rounded,
+                    label: 'Tanggal Ambil',
+                    value: detail.pickupDate != null
+                        ? DateFormat('dd MMMM yyyy').format(detail.pickupDate!)
+                        : 'Tidak ditentukan',
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDivider(),
+                  const SizedBox(height: 20),
                   _buildInfoRow(
-                      context,
-                      Icons.calendar_view_day_rounded,
-                      'Tanggal Kembali',
-                      detail.returnDate != null
-                          ? DateFormat('dd MMMM yyyy')
-                              .format(detail.returnDate!)
-                          : '-'),
+                    icon: Icons.event_busy_rounded,
+                    label: 'Tanggal Kembali',
+                    value: detail.returnDate != null
+                        ? DateFormat('dd MMMM yyyy').format(detail.returnDate!)
+                        : 'Tidak ditentukan',
+                  ),
                 ]
               ],
             ),
@@ -168,72 +406,159 @@ class RequestDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPartnerInfo(BuildContext context, PartnerInRequest partner) {
+  Widget _buildPartnerCard(BuildContext context, PartnerInRequest partner) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Informasi Pemilik',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
+        _buildSectionTitle('Pemilik Barang'),
         const SizedBox(height: 12),
-        Card(
-          elevation: 1,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.divider.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 _buildInfoRow(
-                    context, Icons.person_outline, 'Nama', partner.name),
-                const Divider(height: 24),
-                _buildInfoRow(context, Icons.location_on_outlined, 'Alamat',
-                    partner.address ?? 'Tidak ada alamat'),
-                const SizedBox(height: 16),
+                  icon: Icons.person_rounded,
+                  label: 'Nama Pemilik',
+                  value: partner.name,
+                ),
+                const SizedBox(height: 20),
+                _buildDivider(),
+                const SizedBox(height: 20),
+                _buildInfoRow(
+                  icon: Icons.location_on_rounded,
+                  label: 'Alamat',
+                  value: partner.address ?? 'Alamat tidak tersedia',
+                ),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
-                      child: CustomButton(
-                        text: 'Buka Peta',
-                        onPressed: (partner.address != null &&
-                                partner.address!.isNotEmpty)
-                            ? () async {
-                                final query =
-                                    Uri.encodeComponent(partner.address!);
-                                final mapUrl = Uri.parse(
-                                    'https://www.google.com/maps/search/?api=1&query=$query');
-                                if (await canLaunchUrl(mapUrl)) {
-                                  await launchUrl(mapUrl);
-                                }
-                              }
-                            : null,
-                        type: ButtonType.outline,
-                        height: 40,
-                        fontSize: 14,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: (partner.address != null &&
+                                    partner.address!.isNotEmpty)
+                                ? () async {
+                                    final query =
+                                        Uri.encodeComponent(partner.address!);
+                                    final mapUrl = Uri.parse(
+                                        'https://www.google.com/maps/search/?api=1&query=$query');
+                                    if (await canLaunchUrl(mapUrl)) {
+                                      await launchUrl(mapUrl);
+                                    }
+                                  }
+                                : null,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.map_rounded,
+                                    size: 18,
+                                    color: (partner.address != null &&
+                                            partner.address!.isNotEmpty)
+                                        ? AppColors.primary
+                                        : AppColors.disabled,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Buka Peta',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: (partner.address != null &&
+                                              partner.address!.isNotEmpty)
+                                          ? AppColors.primary
+                                          : AppColors.disabled,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: CustomButton(
-                        text: 'Chat (WA)',
-                        onPressed: (partner.phone != null &&
-                                partner.phone!.isNotEmpty)
-                            ? () async {
-                                final phone = partner.phone!.startsWith('0')
-                                    ? '62${partner.phone!.substring(1)}'
-                                    : partner.phone;
-                                final waUrl = Uri.parse('https://wa.me/$phone');
-                                if (await canLaunchUrl(waUrl)) {
-                                  await launchUrl(waUrl,
-                                      mode: LaunchMode.externalApplication);
-                                }
-                              }
-                            : null,
-                        backgroundColor: AppColors.donation,
-                        height: 40,
-                        fontSize: 14,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.donation,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: (partner.phone != null &&
+                                    partner.phone!.isNotEmpty)
+                                ? () async {
+                                    final phone = partner.phone!.startsWith('0')
+                                        ? '62${partner.phone!.substring(1)}'
+                                        : partner.phone;
+                                    final waUrl =
+                                        Uri.parse('https://wa.me/$phone');
+                                    if (await canLaunchUrl(waUrl)) {
+                                      await launchUrl(waUrl,
+                                          mode: LaunchMode.externalApplication);
+                                    }
+                                  }
+                                : null,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_rounded,
+                                    size: 18,
+                                    color: (partner.phone != null &&
+                                            partner.phone!.isNotEmpty)
+                                        ? AppColors.textLight
+                                        : AppColors.textLight.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Chat WA',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: (partner.phone != null &&
+                                              partner.phone!.isNotEmpty)
+                                          ? AppColors.textLight
+                                          : AppColors.textLight
+                                              .withOpacity(0.5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -246,25 +571,118 @@ class RequestDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(
-      BuildContext context, IconData icon, String label, String value) {
+  Widget _buildStatusCard(BuildContext context, RequestDetail detail) {
+    final statusInfo = _getStatusInfo(detail.status, detail.rejectionReason);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Status Permintaan'),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: statusInfo.backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: statusInfo.color.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: statusInfo.color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    statusInfo.icon,
+                    color: statusInfo.color,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        statusInfo.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: statusInfo.color,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        statusInfo.subtitle,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: statusInfo.color.withOpacity(0.8),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: AppColors.textSecondary, size: 20),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.primary,
+            size: 16,
+          ),
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                  height: 1.4,
+                ),
+              ),
             ],
           ),
         ),
@@ -272,114 +690,66 @@ class RequestDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusInfo(BuildContext context, RequestDetail detail) {
-    IconData icon;
-    Color color;
-    String title;
-    String subtitle;
-
-    switch (detail.status) {
-      case 'approved':
-      case 'completed':
-        icon = Icons.check_circle_outline;
-        color = AppColors.success;
-        title = 'Permintaan Diterima';
-        subtitle = 'Silakan ikuti panduan pengambilan barang di bawah ini.';
-        break;
-      case 'rejected':
-        icon = Icons.cancel_outlined;
-        color = AppColors.error;
-        title = 'Permintaan Ditolak';
-        subtitle =
-            'Alasan: ${(detail.rejectionReason != null && detail.rejectionReason!.isNotEmpty) ? detail.rejectionReason! : "Tidak ada alasan spesifik."}';
-        break;
-      default: // pending
-        icon = Icons.hourglass_empty;
-        color = AppColors.warning;
-        title = 'Menunggu Persetujuan';
-        subtitle = 'Pemilik barang sedang meninjau permintaan Anda.';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Status Permintaan',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        Card(
-          color: color.withOpacity(0.05),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: color.withOpacity(0.3))),
-          elevation: 0,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 32),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: color,
-                              fontSize: 16)),
-                      const SizedBox(height: 4),
-                      Text(subtitle,
-                          style: TextStyle(
-                              color: color.withOpacity(0.8), fontSize: 12)),
-                    ],
-                  ),
-                )
-              ],
-            ),
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildBottomAction(BuildContext context, RequestDetail detail) {
-    if (detail.status != 'approved') {
-      return const SizedBox.shrink();
-    }
-
-    final isDonation = detail.type == 'donation';
-    final buttonText =
-        isDonation ? 'Konfirmasi Barang Diterima' : 'Konfirmasi Pengembalian';
-
+  Widget _buildDivider() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surface, boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-      ]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isDonation) ...[
-            const Text('Panduan Pengambilan:',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text(
-                '1. Hubungi pemilik melalui WhatsApp untuk menyepakati waktu.\n2. Lakukan pengambilan di lokasi yang tertera.\n3. Setelah barang diterima, tekan tombol konfirmasi di bawah.',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-          ],
-          CustomButton(
-            text: buttonText,
-            onPressed: () {
-              // TODO: Implementasi konfirmasi
-            },
-            width: double.infinity,
-          )
-        ],
-      ),
+      height: 1,
+      width: double.infinity,
+      color: AppColors.divider.withOpacity(0.3),
     );
   }
+
+  StatusInfo _getStatusInfo(String status, String? rejectionReason) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return StatusInfo(
+          icon: Icons.check_circle_rounded,
+          color: AppColors.success,
+          title: 'Permintaan Diterima',
+          subtitle: 'Silakan hubungi pemilik untuk proses selanjutnya',
+          backgroundColor: AppColors.success.withOpacity(0.05),
+        );
+      case 'completed':
+        return StatusInfo(
+          icon: Icons.verified_rounded,
+          color: AppColors.success,
+          title: 'Permintaan Selesai',
+          subtitle: 'Transaksi ini telah berhasil diselesaikan',
+          backgroundColor: AppColors.success.withOpacity(0.05),
+        );
+      case 'rejected':
+        return StatusInfo(
+          icon: Icons.cancel_rounded,
+          color: AppColors.error,
+          title: 'Permintaan Ditolak',
+          subtitle: rejectionReason != null && rejectionReason.isNotEmpty
+              ? 'Alasan: $rejectionReason'
+              : 'Tidak ada alasan spesifik yang diberikan',
+          backgroundColor: AppColors.error.withOpacity(0.05),
+        );
+      default: // pending
+        return StatusInfo(
+          icon: Icons.schedule_rounded,
+          color: AppColors.warning,
+          title: 'Menunggu Persetujuan',
+          subtitle: 'Pemilik barang sedang meninjau permintaan Anda',
+          backgroundColor: AppColors.warning.withOpacity(0.05),
+        );
+    }
+  }
+}
+
+class StatusInfo {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final Color backgroundColor;
+
+  StatusInfo({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.backgroundColor,
+  });
 }

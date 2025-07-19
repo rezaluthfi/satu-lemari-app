@@ -7,6 +7,7 @@ import 'package:satulemari/features/history/data/models/request_item_model.dart'
 abstract class HistoryRemoteDataSource {
   Future<List<RequestItemModel>> getMyRequests({required String type});
   Future<RequestDetailModel> getRequestDetail(String id);
+  Future<void> deleteRequest(String id);
 }
 
 class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
@@ -36,6 +37,16 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
     } on DioException catch (e) {
       throw ServerException(
           message: e.response?.data['message'] ?? 'Gagal memuat detail');
+    }
+  }
+
+  @override
+  Future<void> deleteRequest(String id) async {
+    try {
+      await dio.delete('${AppUrls.requests}/$id');
+    } on DioException catch (e) {
+      throw ServerException(
+          message: e.response?.data['message'] ?? 'Gagal menghapus permintaan');
     }
   }
 }

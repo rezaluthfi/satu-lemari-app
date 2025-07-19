@@ -12,6 +12,7 @@ import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/history/data/datasources/history_remote_datasource.dart';
 import 'package:satulemari/features/history/domain/repositories/history_repository.dart';
 import 'package:satulemari/features/history/domain/repositories/history_repository_impl.dart';
+import 'package:satulemari/features/history/domain/usecases/delete_request_usecase.dart';
 import 'package:satulemari/features/history/domain/usecases/get_my_requests_usecase.dart';
 import 'package:satulemari/features/history/domain/usecases/get_request_detail_usecase.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
@@ -123,11 +124,11 @@ Future<void> init() async {
 
   // History Feature
   sl.registerFactory(() => HistoryBloc(getMyRequests: sl()));
-  sl.registerFactory(() =>
-      RequestDetailBloc(getRequestDetail: sl())); // <-- Daftarkan BLoC baru
+  sl.registerFactory(
+      () => RequestDetailBloc(getRequestDetail: sl(), deleteRequest: sl()));
   sl.registerLazySingleton(() => GetMyRequestsUseCase(sl()));
-  sl.registerLazySingleton(
-      () => GetRequestDetailUseCase(sl())); // <-- Daftarkan UseCase baru
+  sl.registerLazySingleton(() => GetRequestDetailUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteRequestUseCase(sl()));
   sl.registerLazySingleton<HistoryRepository>(
       () => HistoryRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<HistoryRemoteDataSource>(
