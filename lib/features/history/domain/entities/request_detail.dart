@@ -4,24 +4,41 @@ class RequestDetail extends Equatable {
   final String id;
   final String type;
   final String status;
-  final String rejectionReason;
+  final String? rejectionReason;
   final DateTime createdAt;
   final ItemInRequest item;
   final PartnerInRequest partner;
+
+  final String? reason;
+  final DateTime? pickupDate;
+  final DateTime? returnDate;
 
   const RequestDetail({
     required this.id,
     required this.type,
     required this.status,
-    required this.rejectionReason,
+    this.rejectionReason,
     required this.createdAt,
     required this.item,
     required this.partner,
+    this.reason,
+    this.pickupDate,
+    this.returnDate,
   });
 
   @override
-  List<Object?> get props =>
-      [id, type, status, rejectionReason, createdAt, item, partner];
+  List<Object?> get props => [
+        id,
+        type,
+        status,
+        rejectionReason,
+        createdAt,
+        item,
+        partner,
+        reason,
+        pickupDate,
+        returnDate
+      ];
 }
 
 class ItemInRequest extends Equatable {
@@ -37,17 +54,21 @@ class ItemInRequest extends Equatable {
 
 class PartnerInRequest extends Equatable {
   final String id;
-  final String name; // Kombinasi fullName atau username
+  final String name;
   final String? phone;
   final String? address;
+  final double? latitude;
+  final double? longitude;
 
   const PartnerInRequest({
     required this.id,
     required this.name,
     this.phone,
     this.address,
+    this.latitude,
+    this.longitude,
   });
 
   @override
-  List<Object?> get props => [id, name, phone, address];
+  List<Object?> get props => [id, name, phone, address, latitude, longitude];
 }

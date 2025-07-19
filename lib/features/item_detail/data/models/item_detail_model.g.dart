@@ -43,6 +43,10 @@ PartnerModel _$PartnerModelFromJson(Map<String, dynamic> json) => PartnerModel(
       username: json['username'] as String,
       fullName: json['full_name'] as String?,
       photo: json['photo'] as String?,
+      phone: json['phone'] as String?,
+      address: json['address'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$PartnerModelToJson(PartnerModel instance) =>
@@ -51,6 +55,10 @@ Map<String, dynamic> _$PartnerModelToJson(PartnerModel instance) =>
       'username': instance.username,
       'full_name': instance.fullName,
       'photo': instance.photo,
+      'phone': instance.phone,
+      'address': instance.address,
+      'latitude': instance.latitude,
+      'longitude': instance.longitude,
     };
 
 CategoryInfoModel _$CategoryInfoModelFromJson(Map<String, dynamic> json) =>

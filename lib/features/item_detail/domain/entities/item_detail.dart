@@ -48,16 +48,28 @@ class Partner extends Equatable {
   final String username;
   final String? fullName;
   final String? photo;
+  // --- TAMBAHKAN FIELD-FIELD INI ---
+  final String? phone;
+  final String? address;
+  final double? latitude;
+  final double? longitude;
+  // ---
 
   const Partner({
     required this.id,
     required this.username,
     this.fullName,
     this.photo,
+    // --- TAMBAHKAN KE CONSTRUCTOR ---
+    this.phone,
+    this.address,
+    this.latitude,
+    this.longitude,
   });
 
   @override
-  List<Object?> get props => [id, username, fullName, photo];
+  List<Object?> get props =>
+      [id, username, fullName, photo, phone, address, latitude, longitude];
 }
 
 class CategoryInfo extends Equatable {

@@ -24,6 +24,11 @@ import 'package:satulemari/features/profile/domain/usecases/get_dashboard_stats_
 import 'package:satulemari/features/profile/domain/usecases/get_profile_usecase.dart';
 import 'package:satulemari/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:satulemari/features/request/data/datasources/request_remote_datasource.dart';
+import 'package:satulemari/features/request/domain/repositories/request_repository.dart';
+import 'package:satulemari/features/request/domain/repositories/request_repository_impl.dart';
+import 'package:satulemari/features/request/domain/usecases/create_request_usecase.dart';
+import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Auth Imports
@@ -107,6 +112,14 @@ Future<void> init() async {
       () => BrowseRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<BrowseRemoteDataSource>(
       () => BrowseRemoteDataSourceImpl(dio: sl()));
+
+  // Request Feature
+  sl.registerFactory(() => RequestBloc(createRequest: sl()));
+  sl.registerLazySingleton(() => CreateRequestUseCase(sl()));
+  sl.registerLazySingleton<RequestRepository>(
+      () => RequestRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<RequestRemoteDataSource>(
+      () => RequestRemoteDataSourceImpl(dio: sl()));
 
   // History Feature
   sl.registerFactory(() => HistoryBloc(getMyRequests: sl()));

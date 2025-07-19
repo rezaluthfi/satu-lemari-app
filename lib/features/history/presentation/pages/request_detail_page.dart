@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
@@ -22,7 +23,7 @@ class RequestDetailPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Detail Permintaan'),
-          backgroundColor: AppColors.background,
+          backgroundColor: AppColors.primary,
         ),
         body: BlocBuilder<RequestDetailBloc, RequestDetailState>(
           builder: (context, state) {
@@ -51,6 +52,8 @@ class RequestDetailPage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             children: [
               _buildItemInfo(context, detail.item),
+              const SizedBox(height: 24),
+              _buildRequestInfo(context, detail),
               const SizedBox(height: 24),
               _buildPartnerInfo(context, detail.partner),
               const SizedBox(height: 24),
@@ -103,6 +106,68 @@ class RequestDetailPage extends StatelessWidget {
     );
   }
 
+  Widget _buildRequestInfo(BuildContext context, RequestDetail detail) {
+    final bool isDonation = detail.type == 'donation';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Detail Permintaan Anda',
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          elevation: 1,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                _buildInfoRow(
+                    context,
+                    Icons.calendar_today_outlined,
+                    'Tanggal Permintaan',
+                    DateFormat('dd MMMM yyyy, HH:mm').format(detail.createdAt)),
+                if (isDonation &&
+                    detail.reason != null &&
+                    detail.reason!.isNotEmpty) ...[
+                  const Divider(height: 24),
+                  _buildInfoRow(
+                      context, Icons.notes_outlined, 'Alasan', detail.reason!),
+                ],
+                if (!isDonation) ...[
+                  const Divider(height: 24),
+                  _buildInfoRow(
+                      context,
+                      Icons.calendar_view_day_outlined,
+                      'Tanggal Ambil',
+                      detail.pickupDate != null
+                          ? DateFormat('dd MMMM yyyy')
+                              .format(detail.pickupDate!)
+                          : '-'),
+                  const SizedBox(height: 12),
+                  _buildInfoRow(
+                      context,
+                      Icons.calendar_view_day_rounded,
+                      'Tanggal Kembali',
+                      detail.returnDate != null
+                          ? DateFormat('dd MMMM yyyy')
+                              .format(detail.returnDate!)
+                          : '-'),
+                ]
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPartnerInfo(BuildContext context, PartnerInRequest partner) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +197,8 @@ class RequestDetailPage extends StatelessWidget {
                     Expanded(
                       child: CustomButton(
                         text: 'Buka Peta',
-                        onPressed: (partner.address != null)
+                        onPressed: (partner.address != null &&
+                                partner.address!.isNotEmpty)
                             ? () async {
                                 final query =
                                     Uri.encodeComponent(partner.address!);
@@ -152,7 +218,8 @@ class RequestDetailPage extends StatelessWidget {
                     Expanded(
                       child: CustomButton(
                         text: 'Chat (WA)',
-                        onPressed: (partner.phone != null)
+                        onPressed: (partner.phone != null &&
+                                partner.phone!.isNotEmpty)
                             ? () async {
                                 final phone = partner.phone!.startsWith('0')
                                     ? '62${partner.phone!.substring(1)}'
@@ -213,6 +280,7 @@ class RequestDetailPage extends StatelessWidget {
 
     switch (detail.status) {
       case 'approved':
+      case 'completed':
         icon = Icons.check_circle_outline;
         color = AppColors.success;
         title = 'Permintaan Diterima';
@@ -223,7 +291,7 @@ class RequestDetailPage extends StatelessWidget {
         color = AppColors.error;
         title = 'Permintaan Ditolak';
         subtitle =
-            'Alasan: ${detail.rejectionReason.isNotEmpty ? detail.rejectionReason : "Tidak ada alasan spesifik."}';
+            'Alasan: ${(detail.rejectionReason != null && detail.rejectionReason!.isNotEmpty) ? detail.rejectionReason! : "Tidak ada alasan spesifik."}';
         break;
       default: // pending
         icon = Icons.hourglass_empty;
@@ -279,7 +347,7 @@ class RequestDetailPage extends StatelessWidget {
 
   Widget _buildBottomAction(BuildContext context, RequestDetail detail) {
     if (detail.status != 'approved') {
-      return const SizedBox.shrink(); // Hanya tampilkan jika status 'approved'
+      return const SizedBox.shrink();
     }
 
     final isDonation = detail.type == 'donation';

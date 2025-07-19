@@ -7,19 +7,26 @@ class RequestDetailModel {
   final String id;
   final String type;
   final String status;
-  final String rejectionReason;
+  final String? rejectionReason;
   final DateTime createdAt;
   final ItemInRequestModel item;
   final PartnerInRequestModel partner;
+
+  final String? reason;
+  final DateTime? pickupDate;
+  final DateTime? returnDate;
 
   RequestDetailModel({
     required this.id,
     required this.type,
     required this.status,
-    required this.rejectionReason,
+    this.rejectionReason,
     required this.createdAt,
     required this.item,
     required this.partner,
+    this.reason,
+    this.pickupDate,
+    this.returnDate,
   });
 
   factory RequestDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -48,6 +55,8 @@ class PartnerInRequestModel {
   final String username;
   final String? phone;
   final String? address;
+  final double? latitude;
+  final double? longitude;
 
   PartnerInRequestModel({
     required this.id,
@@ -55,6 +64,8 @@ class PartnerInRequestModel {
     required this.username,
     this.phone,
     this.address,
+    this.latitude,
+    this.longitude,
   });
 
   factory PartnerInRequestModel.fromJson(Map<String, dynamic> json) =>
