@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
-import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart'; // <-- Impor AuthBloc
+import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/pages/home_page.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/profile/presentation/pages/profile_page.dart';
+import 'package:satulemari/features/browse/presentation/pages/browse_page.dart';
+import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -20,7 +22,7 @@ class _MainPageState extends State<MainPage> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const Center(child: Text('Browse Page')),
+    const BrowsePage(),
     const Center(child: Text('Riwayat Page')),
     const ProfilePage(),
   ];
@@ -36,16 +38,17 @@ class _MainPageState extends State<MainPage> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-            create: (context) => sl<HomeBloc>()..add(FetchAllHomeData())),
+          create: (context) => sl<HomeBloc>()..add(FetchAllHomeData()),
+        ),
         BlocProvider(
-            create: (context) => sl<ProfileBloc>()..add(FetchProfileData())),
+          create: (context) => sl<BrowseBloc>(),
+        ),
+        BlocProvider(
+          create: (context) => sl<ProfileBloc>()..add(FetchProfileData()),
+        ),
       ],
-      // --- TAMBAHKAN BlocListener DI SINI ---
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          // Listener ini akan selalu aktif selama pengguna berada di MainPage.
-          // Saat state berubah menjadi Unauthenticated (misal, karena logout),
-          // ia akan menavigasi ke halaman auth.
           if (state is Unauthenticated) {
             Navigator.of(context)
                 .pushNamedAndRemoveUntil('/auth', (route) => false);
@@ -57,7 +60,6 @@ class _MainPageState extends State<MainPage> {
             children: _pages,
           ),
           bottomNavigationBar: BottomNavigationBar(
-            // ... (sisa kode BottomNavigationBar tetap sama)
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
                   icon: Icon(Icons.home_outlined),
@@ -81,7 +83,6 @@ class _MainPageState extends State<MainPage> {
             type: BottomNavigationBarType.fixed,
             backgroundColor: AppColors.surface,
             selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.textHint,
             showUnselectedLabels: true,
             elevation: 2.0,
           ),

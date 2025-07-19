@@ -63,6 +63,7 @@ dependencies:
   photo_view: ^0.15.0
   retrofit: ^4.5.0
   retrofit_generator: ^9.1.5
+  rxdart: ^0.28.0
   shared_preferences: ^2.5.3
   shimmer: ^3.0.0
   smooth_page_indicator: ^1.2.1
