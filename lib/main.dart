@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart'
     as auth_bloc;
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:satulemari/features/history/presentation/pages/request_detail_page.dart';
 import 'core/constants/app_theme.dart';
 import 'core/di/injection.dart' as di;
 import 'features/auth/presentation/pages/auth_page.dart';
@@ -54,6 +55,7 @@ class MyApp extends StatelessWidget {
           '/full-screen-image': (context) => const FullScreenImageViewer(),
           '/edit-profile': (context) =>
               const ConnectivityWrapper(child: EditProfilePage()),
+          '/request-detail': (context) => const RequestDetailPage(),
         },
       ),
     );

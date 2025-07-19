@@ -9,6 +9,13 @@ import 'package:satulemari/features/browse/domain/repositories/browse_repository
 import 'package:satulemari/features/browse/domain/repositories/browse_repository_impl.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
+import 'package:satulemari/features/history/data/datasources/history_remote_datasource.dart';
+import 'package:satulemari/features/history/domain/repositories/history_repository.dart';
+import 'package:satulemari/features/history/domain/repositories/history_repository_impl.dart';
+import 'package:satulemari/features/history/domain/usecases/get_my_requests_usecase.dart';
+import 'package:satulemari/features/history/domain/usecases/get_request_detail_usecase.dart';
+import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
+import 'package:satulemari/features/history/presentation/bloc/request_detail_bloc.dart';
 import 'package:satulemari/features/profile/data/datasources/profile_remote_datasource.dart';
 import 'package:satulemari/features/profile/domain/repositories/profile_repository.dart';
 import 'package:satulemari/features/profile/domain/repositories/profile_repository_impl.dart';
@@ -100,6 +107,18 @@ Future<void> init() async {
       () => BrowseRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<BrowseRemoteDataSource>(
       () => BrowseRemoteDataSourceImpl(dio: sl()));
+
+  // History Feature
+  sl.registerFactory(() => HistoryBloc(getMyRequests: sl()));
+  sl.registerFactory(() =>
+      RequestDetailBloc(getRequestDetail: sl())); // <-- Daftarkan BLoC baru
+  sl.registerLazySingleton(() => GetMyRequestsUseCase(sl()));
+  sl.registerLazySingleton(
+      () => GetRequestDetailUseCase(sl())); // <-- Daftarkan UseCase baru
+  sl.registerLazySingleton<HistoryRepository>(
+      () => HistoryRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<HistoryRemoteDataSource>(
+      () => HistoryRemoteDataSourceImpl(dio: sl()));
 
   // Auth Feature
   sl.registerFactory(() => AuthBloc(
