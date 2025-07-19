@@ -4,6 +4,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:satulemari/features/browse/data/datasources/browse_remote_datasource.dart';
+import 'package:satulemari/features/browse/domain/repositories/browse_repository.dart';
+import 'package:satulemari/features/browse/domain/repositories/browse_repository_impl.dart';
+import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
+import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/profile/data/datasources/profile_remote_datasource.dart';
 import 'package:satulemari/features/profile/domain/repositories/profile_repository.dart';
 import 'package:satulemari/features/profile/domain/repositories/profile_repository_impl.dart';
@@ -87,6 +92,14 @@ Future<void> init() async {
       () => HomeRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<HomeRemoteDataSource>(
       () => HomeRemoteDataSourceImpl(dio: sl()));
+
+  // Browse Feature
+  sl.registerFactory(() => BrowseBloc(searchItems: sl()));
+  sl.registerLazySingleton(() => SearchItemsUseCase(sl()));
+  sl.registerLazySingleton<BrowseRepository>(
+      () => BrowseRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<BrowseRemoteDataSource>(
+      () => BrowseRemoteDataSourceImpl(dio: sl()));
 
   // Auth Feature
   sl.registerFactory(() => AuthBloc(
