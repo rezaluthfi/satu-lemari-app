@@ -23,3 +23,5 @@ class RequestDetailError extends RequestDetailState {
   @override
   List<Object> get props => [message];
 }
+
+class RequestDeleteSuccess extends RequestDetailState {}
