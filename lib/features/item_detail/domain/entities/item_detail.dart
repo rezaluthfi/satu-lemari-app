@@ -1,3 +1,5 @@
+// lib/features/item_detail/domain/entities/item_detail.dart
+
 import 'package:equatable/equatable.dart';
 
 class ItemDetail extends Equatable {
@@ -12,6 +14,7 @@ class ItemDetail extends Equatable {
   final List<String> images;
   final Partner partner;
   final CategoryInfo category;
+  final double? price;
 
   const ItemDetail({
     required this.id,
@@ -25,6 +28,7 @@ class ItemDetail extends Equatable {
     required this.images,
     required this.partner,
     required this.category,
+    this.price,
   });
 
   @override
@@ -39,7 +43,8 @@ class ItemDetail extends Equatable {
         condition,
         images,
         partner,
-        category
+        category,
+        price,
       ];
 }
 
@@ -48,19 +53,16 @@ class Partner extends Equatable {
   final String username;
   final String? fullName;
   final String? photo;
-  // --- TAMBAHKAN FIELD-FIELD INI ---
   final String? phone;
   final String? address;
   final double? latitude;
   final double? longitude;
-  // ---
 
   const Partner({
     required this.id,
     required this.username,
     this.fullName,
     this.photo,
-    // --- TAMBAHKAN KE CONSTRUCTOR ---
     this.phone,
     this.address,
     this.latitude,
