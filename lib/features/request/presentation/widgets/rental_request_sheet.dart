@@ -121,8 +121,10 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('Ajukan Permintaan Sewa',
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
                 const Text('Isi detail penyewaan Anda di bawah ini.',
                     style: TextStyle(color: AppColors.textSecondary)),

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/core/utils/string_extensions.dart'; // <-- BARU: Import extension
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 
@@ -154,8 +155,10 @@ class ProductCard extends StatelessWidget {
                               const SizedBox(width: 8),
                             ],
                             if (condition != null)
-                              _buildInfoChip(
-                                  Icons.verified_outlined, condition),
+                              // --- MODIFIKASI DISINI: Memanggil extension toFormattedCondition() ---
+                              _buildInfoChip(Icons.verified_outlined,
+                                  condition.toFormattedCondition()),
+                            // --- AKHIR MODIFIKASI ---
                           ],
                         ),
                       ),

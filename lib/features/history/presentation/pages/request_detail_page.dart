@@ -39,8 +39,14 @@ class RequestDetailPage extends StatelessWidget {
             BlocBuilder<RequestDetailBloc, RequestDetailState>(
               builder: (context, state) {
                 if (state is RequestDetailLoaded) {
-                  if (state.detail.status == 'pending' ||
-                      state.detail.status == 'rejected') {
+                  final bool isDeletable = DateTime.now()
+                          .difference(state.detail.createdAt)
+                          .inHours >=
+                      6;
+
+                  if (isDeletable &&
+                      (state.detail.status == 'pending' ||
+                          state.detail.status == 'rejected')) {
                     return Container(
                       margin: const EdgeInsets.only(right: 16),
                       child: IconButton(
@@ -204,11 +210,17 @@ class RequestDetailPage extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, RequestDetail detail) {
+    // --- BARU: Cek apakah request masih baru (kurang dari 6 jam) ---
+    final bool isRecent =
+        DateTime.now().difference(detail.createdAt).inHours < 6;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // --- BARU: Panggil widget banner info ---
+          _buildInfoBanner(isRecent, detail.status),
           _buildItemCard(context, detail.item),
           const SizedBox(height: 24),
           _buildRequestCard(context, detail),
@@ -217,6 +229,38 @@ class RequestDetailPage extends StatelessWidget {
           const SizedBox(height: 24),
           _buildStatusCard(context, detail),
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoBanner(bool isRecent, String status) {
+    // Tampilkan banner hanya jika request masih baru DAN statusnya masih pending/rejected
+    if (!isRecent ||
+        (status.toLowerCase() != 'pending' &&
+            status.toLowerCase() != 'rejected')) {
+      return const SizedBox.shrink();
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: AppColors.info.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.info.withOpacity(0.5)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: AppColors.info, size: 20),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "Permintaan ini belum bisa dihapus karena baru dibuat kurang dari 6 jam yang lalu.",
+              style:
+                  TextStyle(color: AppColors.info, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
