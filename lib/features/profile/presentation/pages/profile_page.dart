@@ -169,28 +169,39 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 20),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.3),
-                        width: 3,
                       ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      backgroundImage: profile.photo != null
-                          ? CachedNetworkImageProvider(profile.photo!)
-                          : null,
-                      child: profile.photo == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Colors.white,
-                            )
-                          : null,
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white.withOpacity(0.03),
+                        // Hapus backgroundImage
+                        child: profile.photo != null
+                            ? ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: profile.photo!,
+                                  fit: BoxFit.contain,
+                                  placeholder: (context, url) =>
+                                      const CircularProgressIndicator(),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                // Fallback jika tidak ada foto
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -266,17 +277,17 @@ class ProfilePage extends StatelessWidget {
                         ),
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.edit_outlined,
                             color: Colors.white,
                             size: 18,
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Text(
                             'Edit',
                             style: TextStyle(
