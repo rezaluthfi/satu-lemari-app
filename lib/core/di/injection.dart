@@ -1,5 +1,3 @@
-// lib/core/di/injection.dart
-
 // Flutter & External Packages
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:satulemari/core/services/category_cache_service.dart';
+import 'package:satulemari/features/item_detail/domain/usecases/get_item_by_ids_usecase.dart';
 import 'package:satulemari/features/notification/domain/usecases/delete_multiple_notification_usecase.dart';
 import 'package:satulemari/features/notification/domain/usecases/mark_multiple_notifications_as_read_usecase.dart';
 import 'package:satulemari/features/notification/domain/usecases/mark_notification_as_read.dart';
@@ -136,6 +136,8 @@ Future<void> init() async {
         getCategories: sl(),
         getTrendingItems: sl(),
         getPersonalizedRecommendations: sl(),
+        getItemsByIds: sl(),
+        categoryCache: sl(),
       ));
   sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
   sl.registerLazySingleton(() => GetTrendingItemsUseCase(sl()));
@@ -148,8 +150,11 @@ Future<void> init() async {
   // Browse Feature
   sl.registerFactory(() => BrowseBloc(searchItems: sl()));
   sl.registerLazySingleton(() => SearchItemsUseCase(sl()));
-  sl.registerLazySingleton<BrowseRepository>(
-      () => BrowseRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<BrowseRepository>(() => BrowseRepositoryImpl(
+        remoteDataSource: sl(),
+        networkInfo: sl(),
+        categoryCache: sl(),
+      ));
   sl.registerLazySingleton<BrowseRemoteDataSource>(
       () => BrowseRemoteDataSourceImpl(dio: sl()));
 
@@ -162,13 +167,13 @@ Future<void> init() async {
       () => CategoryItemsRemoteDataSourceImpl(dio: sl()));
 
   // Item Detail Feature
-
   sl.registerFactory(() => ItemDetailBloc(
         getItemById: sl(),
         getMyRequests: sl(),
         getDashboardStats: sl(),
       ));
   sl.registerLazySingleton(() => GetItemByIdUseCase(sl()));
+  sl.registerLazySingleton(() => GetItemsByIdsUseCase(sl()));
   sl.registerLazySingleton<ItemDetailRepository>(() =>
       ItemDetailRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<ItemDetailRemoteDataSource>(
@@ -223,7 +228,6 @@ Future<void> init() async {
       updateProfile: sl(),
       deleteAccount: sl()));
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
-  // Pastikan use case ini sudah ada karena akan digunakan oleh ItemDetailBloc
   sl.registerLazySingleton(() => GetDashboardStatsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => DeleteAccountUseCase(sl()));
@@ -234,6 +238,7 @@ Future<void> init() async {
 
   // --- CORE ---
   sl.registerLazySingleton(() => NotificationService());
+  sl.registerLazySingleton(() => CategoryCacheService());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton(() => AuthInterceptor(sl()));
 

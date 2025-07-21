@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:satulemari/core/services/category_cache_service.dart';
 import 'package:satulemari/features/browse/data/datasources/browse_remote_datasource.dart';
 import 'package:satulemari/features/browse/domain/repositories/browse_repository.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
@@ -12,9 +13,13 @@ import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 class BrowseRepositoryImpl implements BrowseRepository {
   final BrowseRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
+  final CategoryCacheService categoryCache;
 
-  BrowseRepositoryImpl(
-      {required this.remoteDataSource, required this.networkInfo});
+  BrowseRepositoryImpl({
+    required this.remoteDataSource,
+    required this.networkInfo,
+    required this.categoryCache,
+  });
 
   Item _mapItemModelToItemEntity(ItemModel model) {
     ItemType type = ItemType.unknown;
@@ -23,6 +28,12 @@ class BrowseRepositoryImpl implements BrowseRepository {
     } else if (model.type?.toLowerCase() == 'rental') {
       type = ItemType.rental;
     }
+
+    // Dapatkan nama kategori dari cache menggunakan categoryId
+    final categoryName = model.categoryId != null
+        ? categoryCache.getCategoryNameById(model.categoryId!)
+        : null;
+
     return Item(
       id: model.id,
       name: model.name ?? 'Tanpa Nama',
@@ -33,6 +44,7 @@ class BrowseRepositoryImpl implements BrowseRepository {
       condition: model.condition,
       availableQuantity: model.availableQuantity,
       price: model.price,
+      categoryName: categoryName,
     );
   }
 

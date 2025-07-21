@@ -5,29 +5,33 @@ part 'item_detail_model.g.dart';
 @JsonSerializable(fieldRename: FieldRename.snake)
 class ItemDetailModel {
   final String id;
-  final String name;
-  final String description;
+  final String? name;
+  final String? description;
   final String? size;
   final String? color;
-  final String type;
-  final int availableQuantity;
-  final String condition;
+  final String? type;
+  final int? availableQuantity;
+  final String? condition;
+  final double? price;
+  final PartnerModel? partner;
+  final CategoryInfoModel? category;
+
+  @JsonKey(defaultValue: [])
   final List<String> images;
-  final PartnerModel partner;
-  final CategoryInfoModel category;
 
   ItemDetailModel({
     required this.id,
-    required this.name,
-    required this.description,
+    this.name,
+    this.description,
     this.size,
     this.color,
-    required this.type,
-    required this.availableQuantity,
-    required this.condition,
+    this.type,
+    this.availableQuantity,
+    this.condition,
+    this.price,
     required this.images,
-    required this.partner,
-    required this.category,
+    this.partner,
+    this.category,
   });
 
   factory ItemDetailModel.fromJson(Map<String, dynamic> json) =>
@@ -41,19 +45,16 @@ class PartnerModel {
   final String username;
   final String? fullName;
   final String? photo;
-  // --- TAMBAHKAN FIELD-FIELD INI ---
   final String? phone;
   final String? address;
   final double? latitude;
   final double? longitude;
-  // ---
 
   PartnerModel({
     required this.id,
     required this.username,
     this.fullName,
     this.photo,
-    // --- TAMBAHKAN KE CONSTRUCTOR ---
     this.phone,
     this.address,
     this.latitude,
