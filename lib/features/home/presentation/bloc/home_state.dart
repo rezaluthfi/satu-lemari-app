@@ -8,11 +8,11 @@ class HomeState extends Equatable {
   final String? categoriesError;
 
   final DataStatus trendingStatus;
-  final List<Recommendation> trendingItems;
+  final List<Item> trendingItems;
   final String? trendingError;
 
   final DataStatus personalizedStatus;
-  final List<Recommendation> personalizedItems;
+  final List<Item> personalizedItems;
   final String? personalizedError;
 
   const HomeState({
@@ -32,10 +32,10 @@ class HomeState extends Equatable {
     List<Category>? categories,
     String? categoriesError,
     DataStatus? trendingStatus,
-    List<Recommendation>? trendingItems,
+    List<Item>? trendingItems,
     String? trendingError,
     DataStatus? personalizedStatus,
-    List<Recommendation>? personalizedItems,
+    List<Item>? personalizedItems,
     String? personalizedError,
   }) {
     return HomeState(

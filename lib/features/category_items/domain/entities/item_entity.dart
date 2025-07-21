@@ -11,6 +11,7 @@ class Item extends Equatable {
   final String? condition;
   final int? availableQuantity;
   final double? price;
+  final String? categoryName;
 
   const Item({
     required this.id,
@@ -22,6 +23,7 @@ class Item extends Equatable {
     this.condition,
     this.availableQuantity,
     this.price,
+    this.categoryName,
   });
 
   @override
@@ -34,6 +36,7 @@ class Item extends Equatable {
         size,
         condition,
         availableQuantity,
-        price
+        price,
+        categoryName,
       ];
 }

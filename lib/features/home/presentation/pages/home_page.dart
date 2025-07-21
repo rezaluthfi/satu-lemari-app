@@ -5,8 +5,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
+import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/domain/entities/category.dart';
-import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
 import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
@@ -16,9 +16,7 @@ import 'package:satulemari/shared/widgets/product_card.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 
 class HomePage extends StatefulWidget {
-  // Callback untuk memberitahu MainPage agar pindah tab
   final VoidCallback onNavigateToBrowse;
-
   const HomePage({super.key, required this.onNavigateToBrowse});
 
   @override
@@ -27,7 +25,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin {
-  // Controller untuk search bar
   late TextEditingController _searchController;
 
   static const double _defaultPadding = 16.0;
@@ -65,19 +62,11 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  // Fungsi untuk menangani submit pencarian dari TextField
   void _handleSearchSubmitted(String query) {
     if (query.trim().isEmpty) return;
-
-    // 1. Kirim event ke BrowseBloc untuk memulai pencarian
     context.read<BrowseBloc>().add(SearchTermChanged(query.trim()));
-
-    // 2. Panggil callback untuk berpindah ke tab Browse
     widget.onNavigateToBrowse();
-
-    // 3. Kosongkan field di HomePage agar siap untuk pencarian berikutnya
     _searchController.clear();
-    // 4. Hilangkan fokus dari TextField
     FocusScope.of(context).unfocus();
   }
 
@@ -109,6 +98,74 @@ class _HomePageState extends State<HomePage>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTrendingCarousel(List<Item> items) {
+    if (items.isEmpty) {
+      return Container(
+        height: 100,
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: const Center(
+          child: Text(
+            "Tidak ada item tren saat ini.",
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    const double carouselHeight = 300;
+
+    return SizedBox(
+      height: carouselHeight,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return SizedBox(
+            width: screenWidth * 0.45,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: ProductCard(item: item, isCarousel: true),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPersonalizedGrid(List<Item> items) {
+    if (items.isEmpty) {
+      return Container(
+        height: 100,
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: const Center(
+          child: Text(
+            "Belum ada rekomendasi untukmu.",
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    return MasonryGridView.count(
+      padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      itemCount: items.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        // isCarousel di sini false (default)
+        return ProductCard(item: item);
+      },
     );
   }
 
@@ -233,19 +290,19 @@ class _HomePageState extends State<HomePage>
             controller: _searchController,
             onSubmitted: _handleSearchSubmitted,
             textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'Cari kemeja, hoodie, atau lainnya...',
-              hintStyle: const TextStyle(
+              hintStyle: TextStyle(
                 color: AppColors.textHint,
                 fontSize: 14,
               ),
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.search_rounded,
                 color: AppColors.textHint,
                 size: 20,
               ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
+              contentPadding: EdgeInsets.symmetric(
                 vertical: 14,
                 horizontal: 16,
               ),
@@ -637,73 +694,6 @@ class _HomePageState extends State<HomePage>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTrendingCarousel(List<Recommendation> items) {
-    if (items.isEmpty) {
-      return Container(
-        height: 100,
-        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
-        child: const Center(
-          child: Text(
-            "Tidak ada item tren saat ini.",
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-        ),
-      );
-    }
-
-    final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = screenWidth * 0.48;
-    final cardHeight = cardWidth * 1.5;
-
-    return SizedBox(
-      height: cardHeight,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
-        itemCount: items.length,
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return SizedBox(
-            width: cardWidth,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: ProductCard(recommendation: item, isCarousel: true),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPersonalizedGrid(List<Recommendation> items) {
-    if (items.isEmpty) {
-      return Container(
-        height: 100,
-        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
-        child: const Center(
-          child: Text(
-            "Belum ada rekomendasi untukmu.",
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-        ),
-      );
-    }
-
-    return MasonryGridView.count(
-      padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
-      crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      itemCount: items.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return ProductCard(recommendation: item);
-      },
     );
   }
 }

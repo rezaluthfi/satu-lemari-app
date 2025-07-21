@@ -9,18 +9,25 @@ part of 'item_detail_model.dart';
 ItemDetailModel _$ItemDetailModelFromJson(Map<String, dynamic> json) =>
     ItemDetailModel(
       id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String,
+      name: json['name'] as String?,
+      description: json['description'] as String?,
       size: json['size'] as String?,
       color: json['color'] as String?,
-      type: json['type'] as String,
-      availableQuantity: (json['available_quantity'] as num).toInt(),
-      condition: json['condition'] as String,
-      images:
-          (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      partner: PartnerModel.fromJson(json['partner'] as Map<String, dynamic>),
-      category:
-          CategoryInfoModel.fromJson(json['category'] as Map<String, dynamic>),
+      type: json['type'] as String?,
+      availableQuantity: (json['available_quantity'] as num?)?.toInt(),
+      condition: json['condition'] as String?,
+      price: (json['price'] as num?)?.toDouble(),
+      images: (json['images'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      partner: json['partner'] == null
+          ? null
+          : PartnerModel.fromJson(json['partner'] as Map<String, dynamic>),
+      category: json['category'] == null
+          ? null
+          : CategoryInfoModel.fromJson(
+              json['category'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ItemDetailModelToJson(ItemDetailModel instance) =>
@@ -33,9 +40,10 @@ Map<String, dynamic> _$ItemDetailModelToJson(ItemDetailModel instance) =>
       'type': instance.type,
       'available_quantity': instance.availableQuantity,
       'condition': instance.condition,
-      'images': instance.images,
+      'price': instance.price,
       'partner': instance.partner,
       'category': instance.category,
+      'images': instance.images,
     };
 
 PartnerModel _$PartnerModelFromJson(Map<String, dynamic> json) => PartnerModel(
