@@ -3,7 +3,7 @@ part of 'browse_bloc.dart';
 enum BrowseStatus { initial, loading, success, error }
 
 class BrowseState extends Equatable {
-  // Status umum untuk feedback UI (misal: saat refresh)
+  // Status umum untuk feedback UI
   final BrowseStatus status;
 
   // Data dan status terpisah untuk setiap tab
@@ -18,10 +18,14 @@ class BrowseState extends Equatable {
   // Tab yang sedang aktif
   final String activeTab; // 'donation' or 'rental'
 
-  // Parameter filter & pencarian
   final String query;
   final String? categoryId;
   final String? size;
+  final String? sortBy;
+  final String? sortOrder;
+  final String? city;
+  final double? minPrice;
+  final double? maxPrice;
 
   const BrowseState({
     this.status = BrowseStatus.initial,
@@ -32,12 +36,17 @@ class BrowseState extends Equatable {
     this.rentalItems = const [],
     this.rentalError,
     this.activeTab = 'donation',
+    // --- MODIFIKASI: Tambahkan di constructor ---
     this.query = '',
     this.categoryId,
     this.size,
+    this.sortBy,
+    this.sortOrder,
+    this.city,
+    this.minPrice,
+    this.maxPrice,
   });
 
-  // State awal
   factory BrowseState.initial() {
     return const BrowseState();
   }
@@ -52,8 +61,14 @@ class BrowseState extends Equatable {
     String? rentalError,
     String? activeTab,
     String? query,
+    // --- MODIFIKASI: Gunakan helper _copyWith untuk nullable fields ---
     Object? categoryId = _notProvided,
     Object? size = _notProvided,
+    Object? sortBy = _notProvided,
+    Object? sortOrder = _notProvided,
+    Object? city = _notProvided,
+    Object? minPrice = _notProvided,
+    Object? maxPrice = _notProvided,
   }) {
     return BrowseState(
       status: status ?? this.status,
@@ -65,9 +80,14 @@ class BrowseState extends Equatable {
       rentalError: rentalError ?? this.rentalError,
       activeTab: activeTab ?? this.activeTab,
       query: query ?? this.query,
-      categoryId:
-          categoryId == _notProvided ? this.categoryId : categoryId as String?,
-      size: size == _notProvided ? this.size : size as String?,
+      // --- MODIFIKASI: Gunakan helper untuk semua properti filter ---
+      categoryId: _copyWith(categoryId, this.categoryId),
+      size: _copyWith(size, this.size),
+      sortBy: _copyWith(sortBy, this.sortBy),
+      sortOrder: _copyWith(sortOrder, this.sortOrder),
+      city: _copyWith(city, this.city),
+      minPrice: _copyWith(minPrice, this.minPrice),
+      maxPrice: _copyWith(maxPrice, this.maxPrice),
     );
   }
 
@@ -81,11 +101,25 @@ class BrowseState extends Equatable {
         rentalItems,
         rentalError,
         activeTab,
+        // --- MODIFIKASI: Tambahkan semua properti filter ke props ---
         query,
         categoryId,
-        size
+        size,
+        sortBy,
+        sortOrder,
+        city,
+        minPrice,
+        maxPrice,
       ];
 }
 
-// Helper object to distinguish between null and not provided
+// Helper object untuk membedakan antara null dan tidak disediakan
 const Object _notProvided = Object();
+
+// Helper function untuk copyWith yang lebih bersih
+T? _copyWith<T>(Object? value, T? fallback) {
+  if (value == _notProvided) {
+    return fallback;
+  }
+  return value as T?;
+}

@@ -9,6 +9,11 @@ abstract class BrowseRemoteDataSource {
     String? query,
     String? categoryId,
     String? size,
+    String? sortBy,
+    String? sortOrder,
+    String? city,
+    double? minPrice,
+    double? maxPrice,
   });
 }
 
@@ -22,6 +27,11 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     String? query,
     String? categoryId,
     String? size,
+    String? sortBy,
+    String? sortOrder,
+    String? city,
+    double? minPrice,
+    double? maxPrice,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {
@@ -29,16 +39,21 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
         if (query != null && query.isNotEmpty) 'q': query,
         if (categoryId != null) 'category_id': categoryId,
         if (size != null) 'size': size,
-        // Tambahkan filter lain di sini jika perlu
+        if (sortBy != null) 'sort_by': sortBy,
+        if (sortOrder != null) 'sort_order': sortOrder,
+        if (city != null && city.isNotEmpty) 'city': city,
+        if (minPrice != null) 'min_price': minPrice,
+        if (maxPrice != null) 'max_price': maxPrice,
       };
 
-      // Menggunakan endpoint /items/search
       final response = await dio.get(
-        AppUrls.searchItems,
+        AppUrls.items,
         queryParameters: queryParams,
       );
 
-      final List<dynamic> data = response.data['data'];
+      final List<dynamic> data = response.data['data'] is List
+          ? response.data['data']
+          : response.data['data']['items'];
       return data.map((json) => ItemModel.fromJson(json)).toList();
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Gagal mencari item';

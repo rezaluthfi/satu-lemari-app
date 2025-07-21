@@ -46,7 +46,13 @@ class BrowseRepositoryImpl implements BrowseRepository {
           query: params.query,
           categoryId: params.categoryId,
           size: params.size,
+          sortBy: params.sortBy,
+          sortOrder: params.sortOrder,
+          city: params.city,
+          minPrice: params.minPrice,
+          maxPrice: params.maxPrice,
         );
+
         final entities = remoteModels.map(_mapItemModelToItemEntity).toList();
         return Right(entities);
       } on ServerException catch (e) {
