@@ -1,11 +1,10 @@
-// File: lib/features/home/presentation/pages/home_page.dart
-
-import 'package:firebase_messaging/firebase_messaging.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/home/domain/entities/category.dart';
 import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
@@ -17,14 +16,20 @@ import 'package:satulemari/shared/widgets/product_card.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  // Callback untuk memberitahu MainPage agar pindah tab
+  final VoidCallback onNavigateToBrowse;
+
+  const HomePage({super.key, required this.onNavigateToBrowse});
+
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin {
-  // ... (Konstanta tetap sama)
+  // Controller untuk search bar
+  late TextEditingController _searchController;
+
   static const double _defaultPadding = 16.0;
   static const double _sectionSpacing = 24.0;
   static const double _cardRadius = 12.0;
@@ -33,10 +38,15 @@ class _HomePageState extends State<HomePage>
   @override
   void initState() {
     super.initState();
-    // Panggil data awal
+    _searchController = TextEditingController();
     _fetchInitialData();
-    // Setup listener untuk notifikasi foreground
     _setupFCMListener();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _fetchInitialData() {
@@ -47,23 +57,28 @@ class _HomePageState extends State<HomePage>
     context.read<NotificationBloc>().add(FetchNotificationStats());
   }
 
-  // --- PERBAIKAN: Tambahkan fungsi ini untuk menangani notifikasi real-time ---
   void _setupFCMListener() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Got a message whilst in the foreground!');
-      debugPrint('Message data: ${message.data}');
-
-      if (message.notification != null) {
-        debugPrint(
-            'Message also contained a notification: ${message.notification}');
-      }
-
-      // Jika ada notifikasi baru, panggil ulang statistik notifikasi
-      // Ini akan memperbarui unreadCount dan menampilkan indikator
       if (mounted) {
         context.read<NotificationBloc>().add(FetchNotificationStats());
       }
     });
+  }
+
+  // Fungsi untuk menangani submit pencarian dari TextField
+  void _handleSearchSubmitted(String query) {
+    if (query.trim().isEmpty) return;
+
+    // 1. Kirim event ke BrowseBloc untuk memulai pencarian
+    context.read<BrowseBloc>().add(SearchTermChanged(query.trim()));
+
+    // 2. Panggil callback untuk berpindah ke tab Browse
+    widget.onNavigateToBrowse();
+
+    // 3. Kosongkan field di HomePage agar siap untuk pencarian berikutnya
+    _searchController.clear();
+    // 4. Hilangkan fokus dari TextField
+    FocusScope.of(context).unfocus();
   }
 
   @override
@@ -72,13 +87,12 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
-          _fetchInitialData();
+          context.read<HomeBloc>().add(FetchAllHomeData());
+          context.read<NotificationBloc>().add(FetchNotificationStats());
         },
         color: AppColors.primary,
         child: CustomScrollView(
@@ -164,7 +178,6 @@ class _HomePageState extends State<HomePage>
                           ),
                         ),
                       );
-
                       if (mounted) {
                         context
                             .read<NotificationBloc>()
@@ -205,13 +218,11 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // SISA KODE DI home_page.dart TIDAK BERUBAH
-  // ... (Widget _buildSearchBar, _buildGreeting, dll.)
-  // ...
   Widget _buildSearchBar() {
     return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.all(_defaultPadding),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            _defaultPadding, _defaultPadding, _defaultPadding, 0),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -219,36 +230,24 @@ class _HomePageState extends State<HomePage>
             border: Border.all(color: AppColors.divider, width: 1),
           ),
           child: TextField(
+            controller: _searchController,
+            onSubmitted: _handleSearchSubmitted,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Cari kemeja, hoodie, atau lainnya...',
               hintStyle: const TextStyle(
                 color: AppColors.textHint,
                 fontSize: 14,
               ),
-              prefixIcon: const Padding(
-                padding: EdgeInsets.all(12),
-                child: Icon(
-                  Icons.search_rounded,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ),
-              suffixIcon: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.search_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: AppColors.textHint,
+                size: 20,
               ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
-                vertical: 16,
-                horizontal: 0,
+                vertical: 14,
+                horizontal: 16,
               ),
             ),
           ),
@@ -260,7 +259,7 @@ class _HomePageState extends State<HomePage>
   Widget _buildPromotionalBanner() {
     return SliverToBoxAdapter(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        margin: const EdgeInsets.all(_defaultPadding),
         child: Container(
           height: 120,
           decoration: BoxDecoration(
@@ -655,18 +654,24 @@ class _HomePageState extends State<HomePage>
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = screenWidth * 0.48;
+    final cardHeight = cardWidth * 1.5;
+
     return SizedBox(
-      height: 260,
+      height: cardHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
-          return Container(
-            width: 180,
-            margin: const EdgeInsets.only(right: 12),
-            child: ProductCard(recommendation: item, isCarousel: true),
+          return SizedBox(
+            width: cardWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: ProductCard(recommendation: item, isCarousel: true),
+            ),
           );
         },
       ),

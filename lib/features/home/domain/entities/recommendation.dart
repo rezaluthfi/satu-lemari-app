@@ -10,6 +10,9 @@ class Recommendation extends Equatable {
   final String category;
   final ItemType type;
   final List<String> tags;
+  final String? size;
+  final String? condition;
+  final double? price;
 
   const Recommendation({
     required this.itemId,
@@ -19,9 +22,22 @@ class Recommendation extends Equatable {
     required this.category,
     required this.type,
     required this.tags,
+    this.size,
+    this.condition,
+    this.price,
   });
 
   @override
-  List<Object?> get props =>
-      [itemId, title, description, imageUrl, category, type, tags];
+  List<Object?> get props => [
+        itemId,
+        title,
+        description,
+        imageUrl,
+        category,
+        type,
+        tags,
+        size,
+        condition,
+        price,
+      ];
 }

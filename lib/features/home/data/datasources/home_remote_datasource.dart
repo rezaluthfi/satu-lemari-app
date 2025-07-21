@@ -15,6 +15,29 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
 
   HomeRemoteDataSourceImpl({required this.dio});
 
+  List<RecommendationModel> _parseRecommendations(Response response) {
+    // Pastikan response.data dan response.data['data'] tidak null dan merupakan Map
+    if (response.data == null || response.data['data'] is! Map) {
+      // Kembalikan list kosong jika struktur data tidak sesuai harapan
+      return [];
+    }
+
+    final Map<String, dynamic> dataMap = response.data['data'];
+
+    // Cek apakah ada kunci 'recommendations' atau 'trending_items'
+    final List<dynamic>? recommendationsList =
+        dataMap['recommendations'] ?? dataMap['trending_items'];
+
+    if (recommendationsList == null || recommendationsList is! List) {
+      // Kembalikan list kosong jika daftar tidak ditemukan atau bukan list
+      return [];
+    }
+
+    return recommendationsList
+        .map((json) => RecommendationModel.fromJson(json))
+        .toList();
+  }
+
   @override
   Future<List<CategoryModel>> getCategories() async {
     try {
@@ -27,8 +50,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
         throw ServerException(
             message: 'Server terlalu lama merespons. Silakan coba lagi.');
       }
-      final message =
-          e.response?.data['message'] ?? 'Failed to load categories';
+      final message = e.response?.data['message'] ?? 'Gagal memuat kategori';
       throw ServerException(message: message);
     }
   }
@@ -37,16 +59,15 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
   Future<List<RecommendationModel>> getTrendingItems() async {
     try {
       final response = await dio.get(AppUrls.trendingRecommendations);
-      final List<dynamic> data = response.data['data']['trending_items'];
-      return data.map((json) => RecommendationModel.fromJson(json)).toList();
+
+      return _parseRecommendations(response);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.connectionTimeout) {
         throw ServerException(
             message: 'Server terlalu lama merespons. Silakan coba lagi.');
       }
-      final message =
-          e.response?.data['message'] ?? 'Failed to load trending items';
+      final message = e.response?.data['message'] ?? 'Gagal memuat item tren';
       throw ServerException(message: message);
     }
   }
@@ -58,16 +79,15 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
         AppUrls.personalizedRecommendations,
         queryParameters: {'context': 'browse', 'limit': 10},
       );
-      final List<dynamic> data = response.data['data']['recommendations'];
-      return data.map((json) => RecommendationModel.fromJson(json)).toList();
+
+      return _parseRecommendations(response);
     } on DioException catch (e) {
       if (e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.connectionTimeout) {
         throw ServerException(
             message: 'Server terlalu lama merespons. Silakan coba lagi.');
       }
-      final message =
-          e.response?.data['message'] ?? 'Failed to load recommendations';
+      final message = e.response?.data['message'] ?? 'Gagal memuat rekomendasi';
       throw ServerException(message: message);
     }
   }
