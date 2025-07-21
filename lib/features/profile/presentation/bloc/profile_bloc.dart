@@ -1,5 +1,6 @@
-import 'package:bloc/bloc.dart';
+import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
 import 'package:satulemari/features/profile/data/models/update_profile_request.dart';
 import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
@@ -31,21 +32,34 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
   Future<void> _onFetchProfileData(
       FetchProfileData event, Emitter<ProfileState> emit) async {
-    emit(ProfileLoading());
+    final currentState = state;
+    if (currentState is! ProfileLoaded) {
+      emit(ProfileLoading());
+    }
 
     try {
-      final profileResult = await getProfile(NoParams());
-      final statsResult = await getDashboardStats(NoParams());
+      final results = await Future.wait([
+        getProfile(NoParams()),
+        getDashboardStats(NoParams()),
+      ]);
 
-      profileResult.fold(
-        (failure) => emit(ProfileError(failure.message)),
-        (profile) {
-          statsResult.fold(
-            (failure) => emit(ProfileError(failure.message)),
-            (stats) => emit(ProfileLoaded(profile: profile, stats: stats)),
-          );
-        },
-      );
+      final profileResult = results[0];
+      final statsResult = results[1];
+
+      switch ((profileResult, statsResult)) {
+        case (Right(value: final profile), Right(value: final stats)):
+          emit(ProfileLoaded(
+              profile: profile as Profile, stats: stats as DashboardStats));
+          break;
+        case (Left(value: final failure), _):
+          emit(ProfileError(failure.message));
+          break;
+        case (_, Left(value: final failure)):
+          emit(ProfileError(failure.message));
+          break;
+        default:
+          emit(const ProfileError('Terjadi kesalahan tidak diketahui.'));
+      }
     } catch (e) {
       emit(ProfileError('Terjadi kesalahan: $e'));
     }
@@ -54,51 +68,43 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   Future<void> _onUpdateProfile(
       UpdateProfileButtonPressed event, Emitter<ProfileState> emit) async {
     final currentState = state;
-
     if (currentState is ProfileLoaded) {
-      emit(ProfileUpdateInProgress());
+      // Emit state InProgress sambil membawa data lama agar UI tidak rusak
+      emit(ProfileUpdateInProgress(
+          profile: currentState.profile, stats: currentState.stats));
 
-      try {
-        final result =
-            await updateProfile(UpdateProfileParams(request: event.request));
+      final result =
+          await updateProfile(UpdateProfileParams(request: event.request));
 
-        result.fold(
-          (failure) => emit(ProfileUpdateFailure(failure.message)),
-          (updatedProfile) {
-            // Update berhasil, langsung emit state ProfileLoaded dengan data baru
-            emit(ProfileLoaded(
-              profile: updatedProfile,
-              stats: currentState.stats,
-            ));
-
-            // Emit state sukses untuk listener di UI
-            emit(ProfileUpdateSuccess());
-          },
-        );
-      } catch (e) {
-        emit(ProfileUpdateFailure('Terjadi kesalahan: $e'));
-      }
-    } else {
-      emit(ProfileUpdateFailure('Data profil tidak tersedia'));
+      result.fold(
+        (failure) {
+          // Emit state Failure sambil membawa data lama
+          emit(ProfileUpdateFailure(
+              message: failure.message,
+              profile: currentState.profile,
+              stats: currentState.stats));
+        },
+        (updatedProfile) {
+          // Emit state Success sambil membawa data BARU
+          emit(ProfileUpdateSuccess(
+              profile: updatedProfile, stats: currentState.stats));
+        },
+      );
     }
   }
 
   Future<void> _onDeleteAccount(
       DeleteAccountButtonPressed event, Emitter<ProfileState> emit) async {
-    emit(ProfileLoading());
-
-    try {
-      final result = await deleteAccount(NoParams());
-
-      result.fold(
-        (failure) {
-          // Jika gagal, refresh halaman untuk menampilkan error
-          add(FetchProfileData());
-        },
-        (_) => emit(AccountDeleteSuccess()),
-      );
-    } catch (e) {
-      emit(ProfileError('Terjadi kesalahan: $e'));
-    }
+    emit(AccountDeleteInProgress());
+    final result = await deleteAccount(NoParams());
+    result.fold(
+      (failure) {
+        if (state is ProfileLoaded) {
+          emit(state as ProfileLoaded);
+        }
+        emit(ProfileError(failure.message));
+      },
+      (_) => emit(AccountDeleteSuccess()),
+    );
   }
 }

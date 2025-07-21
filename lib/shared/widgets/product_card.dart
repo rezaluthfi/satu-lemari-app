@@ -1,10 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
-import 'package:satulemari/core/utils/string_extensions.dart'; // <-- BARU: Import extension
+import 'package:satulemari/core/utils/string_extensions.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/domain/entities/recommendation.dart';
+import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
+import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 
 class ProductCard extends StatelessWidget {
   final Recommendation? recommendation;
@@ -36,7 +39,21 @@ class ProductCard extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        Navigator.pushNamed(context, '/item-detail', arguments: itemId);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              // Menyediakan instance ProfileBloc yang ada ke route baru
+              value: BlocProvider.of<ProfileBloc>(context),
+              child: const ItemDetailPage(),
+            ),
+            // Tetap meneruskan itemId melalui settings
+            settings: RouteSettings(
+              arguments: itemId,
+            ),
+          ),
+        );
+        // --- AKHIR PERBAIKAN ---
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -48,18 +65,15 @@ class ProductCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // Prevent overflow
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Image section with fixed height
             Stack(
               children: [
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(16)),
                   child: SizedBox(
-                    height: isCarousel
-                        ? 160
-                        : 200, // Fixed height instead of AspectRatio
+                    height: isCarousel ? 160 : 200,
                     width: double.infinity,
                     child: (imageUrl != null && imageUrl.isNotEmpty)
                         ? CachedNetworkImage(
@@ -102,7 +116,6 @@ class ProductCard extends StatelessWidget {
                   ),
               ],
             ),
-            // Content section with flexible layout
             Flexible(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -145,7 +158,6 @@ class ProductCard extends StatelessWidget {
                       ),
                     if (item != null) ...[
                       const SizedBox(height: 8),
-                      // Wrap chips in a scrollable row to prevent overflow
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -155,10 +167,8 @@ class ProductCard extends StatelessWidget {
                               const SizedBox(width: 8),
                             ],
                             if (condition != null)
-                              // --- MODIFIKASI DISINI: Memanggil extension toFormattedCondition() ---
                               _buildInfoChip(Icons.verified_outlined,
                                   condition.toFormattedCondition()),
-                            // --- AKHIR MODIFIKASI ---
                           ],
                         ),
                       ),
@@ -192,8 +202,7 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
-        mainAxisSize:
-            MainAxisSize.min, // Prevent chip from expanding unnecessarily
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: AppColors.textSecondary),
           const SizedBox(width: 4),

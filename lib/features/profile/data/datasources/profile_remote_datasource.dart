@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
@@ -51,10 +52,9 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<ProfileModel> updateProfile(UpdateProfileRequest request) async {
     try {
-      // PERBAIKAN: Selalu gunakan multipart/form-data untuk semua update profile
       final Map<String, dynamic> data = {};
 
-      // Tambahkan field text sebagai string
+      if (request.username != null) data['username'] = request.username!;
       if (request.fullName != null) data['full_name'] = request.fullName!;
       if (request.phone != null) data['phone'] = request.phone!;
       if (request.address != null) data['address'] = request.address!;
@@ -69,11 +69,9 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       // Jika ada file foto, tambahkan sebagai MultipartFile
       if (request.photoFile != null) {
         final file = File(request.photoFile!.path);
-
-        // Deteksi MIME type berdasarkan file extension
         String? mimeType = lookupMimeType(file.path);
 
-        // Fallback jika MIME type tidak terdeteksi
+        // Fallback MIME type
         if (mimeType == null) {
           final extension = file.path.split('.').last.toLowerCase();
           switch (extension) {
@@ -102,13 +100,12 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
         );
       }
 
-      // Selalu gunakan FormData untuk semua request update profile
       final formData = FormData.fromMap(data);
 
       final response = await dio.put(
         AppUrls.userProfile,
         data: formData,
-        // Jangan set Content-Type manual, biarkan Dio yang handle
+        // Biarkan Dio mengatur Content-Type secara otomatis untuk FormData
       );
 
       return ProfileModel.fromJson(response.data['data']);
