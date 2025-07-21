@@ -34,6 +34,9 @@ RecommendationDataModel _$RecommendationDataModelFromJson(
       itemId: json['item_id'] as String?,
       name: json['name'] as String?,
       category: json['category'] as String?,
+      size: json['size'] as String?,
+      condition: json['condition'] as String?,
+      price: (json['price'] as num?)?.toDouble(),
       images: (json['images'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -49,6 +52,9 @@ Map<String, dynamic> _$RecommendationDataModelToJson(
       'item_id': instance.itemId,
       'name': instance.name,
       'category': instance.category,
+      'size': instance.size,
+      'condition': instance.condition,
+      'price': instance.price,
       'images': instance.images,
       'tags': instance.tags,
     };

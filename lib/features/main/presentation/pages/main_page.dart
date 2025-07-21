@@ -12,7 +12,6 @@ import 'package:satulemari/features/home/presentation/pages/home_page.dart';
 import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/profile/presentation/pages/profile_page.dart';
-import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -22,18 +21,33 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  // --- PERBAIKAN: Gunakan PageController untuk kontrol navigasi ---
+  late PageController _pageController;
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const HomePage(),
-    const BrowsePage(),
-    const HistoryPage(),
-    const ProfilePage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+  // --- AKHIR PERBAIKAN ---
+
+  // Fungsi untuk berpindah tab
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      // Animasikan perpindahan halaman
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -41,26 +55,23 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // Daftarkan semua BLoC yang dibutuhkan oleh halaman-halaman utama di sini
         BlocProvider<NotificationBloc>(
           create: (context) => sl<NotificationBloc>(),
         ),
         BlocProvider(
-          create: (context) => sl<HomeBloc>()..add(FetchAllHomeData()),
+          create: (context) =>
+              sl<HomeBloc>(), // Data akan di-fetch di dalam HomePage
         ),
         BlocProvider(
-          create: (context) =>
-              sl<ProfileBloc>(), // Data di-fetch di dalam ProfilePage
+          create: (context) => sl<ProfileBloc>(),
         ),
         BlocProvider(
           create: (context) => sl<BrowseBloc>(),
         ),
-        BlocProvider(create: (context) => sl<RequestBloc>()),
-        // --- PERBAIKAN UTAMA DI SINI ---
-        // Daftarkan HistoryBloc agar bisa diakses oleh HistoryPage
         BlocProvider(
           create: (context) => sl<HistoryBloc>(),
         ),
-        // --- AKHIR PERBAIKAN ---
       ],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -70,9 +81,19 @@ class _MainPageState extends State<MainPage> {
           }
         },
         child: Scaffold(
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: _pages,
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            children: <Widget>[
+              HomePage(onNavigateToBrowse: () => _onItemTapped(1)),
+              const BrowsePage(),
+              const HistoryPage(),
+              const ProfilePage(),
+            ],
           ),
           bottomNavigationBar: BottomNavigationBar(
             items: const <BottomNavigationBarItem>[
@@ -87,7 +108,7 @@ class _MainPageState extends State<MainPage> {
               BottomNavigationBarItem(
                   icon: Icon(Icons.history_outlined),
                   activeIcon: Icon(Icons.history),
-                  label: 'Riwayat'),
+                  label: 'History'),
               BottomNavigationBarItem(
                   icon: Icon(Icons.person_outline),
                   activeIcon: Icon(Icons.person),

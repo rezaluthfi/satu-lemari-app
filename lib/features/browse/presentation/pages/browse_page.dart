@@ -15,11 +15,13 @@ class BrowsePage extends StatefulWidget {
   State<BrowsePage> createState() => _BrowsePageState();
 }
 
-class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
+class _BrowsePageState extends State<BrowsePage>
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
-  bool _showClearButton = false;
+  @override
+  bool get wantKeepAlive => true; // Jaga state halaman saat berpindah tab
 
   @override
   void initState() {
@@ -29,16 +31,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
 
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
-      _searchController.clear();
       browseBloc.add(TabChanged(_tabController.index));
-    });
-
-    _searchController.addListener(() {
-      if (_showClearButton != _searchController.text.isNotEmpty) {
-        setState(() {
-          _showClearButton = _searchController.text.isNotEmpty;
-        });
-      }
     });
 
     if (browseBloc.state.status == BrowseStatus.initial) {
@@ -79,9 +72,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
       builder: (_) {
         return FilterBottomSheet(
           categories: homeState.categories,
-          // --- MODIFIKASI KUNCI: Teruskan status tab ---
           isRentalTab: browseState.activeTab == 'rental',
-          // --- AKHIR MODIFIKASI ---
           activeCategoryId: browseState.categoryId,
           activeSize: browseState.size,
           activeSortBy: browseState.sortBy,
@@ -93,8 +84,6 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
       },
     ).then((result) {
       if (result != null) {
-        // Jika user mereset, BLoC akan menangani penghapusan filter harga
-        // bahkan jika tabnya sewa.
         context.read<BrowseBloc>().add(
               FilterApplied(
                 categoryId: result.categoryId,
@@ -112,6 +101,8 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    super.build(
+        context); // Panggil super.build untuk AutomaticKeepAliveClientMixin
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -134,38 +125,60 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
         ),
         centerTitle: false,
       ),
-      body: Column(
-        children: [
-          Container(
-            color: AppColors.surface,
-            child: Column(
-              children: [
-                _buildSearchSection(),
-                _buildActiveFiltersSection(),
-                _buildTabSection(),
-              ],
+      body: BlocListener<BrowseBloc, BrowseState>(
+        // Dengarkan perubahan query untuk update UI TextField
+        listenWhen: (previous, current) => previous.query != current.query,
+        listener: (context, state) {
+          if (_searchController.text != state.query) {
+            _searchController.text = state.query;
+            // Pindahkan kursor ke akhir teks
+            _searchController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _searchController.text.length),
+            );
+          }
+        },
+        child: Column(
+          children: [
+            Container(
+              color: AppColors.surface,
+              child: Column(
+                children: [
+                  _buildSearchSection(),
+                  _buildActiveFiltersSection(),
+                  _buildTabSection(),
+                ],
+              ),
             ),
-          ),
-          Container(
-            height: 1,
-            color: AppColors.divider.withOpacity(0.3),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [
-                ItemListView(type: 'donation'),
-                ItemListView(type: 'rental'),
-              ],
+            Container(
+              height: 1,
+              color: AppColors.divider.withOpacity(0.3),
             ),
-          ),
-        ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: const [
+                  ItemListView(type: 'donation'),
+                  ItemListView(type: 'rental'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchSection() {
     return BlocBuilder<BrowseBloc, BrowseState>(
+      // Hanya rebuild jika query atau filter berubah
+      buildWhen: (prev, curr) =>
+          prev.query != curr.query ||
+          prev.categoryId != curr.categoryId ||
+          prev.size != curr.size ||
+          prev.sortBy != curr.sortBy ||
+          prev.city != curr.city ||
+          prev.minPrice != curr.minPrice ||
+          prev.maxPrice != curr.maxPrice,
       builder: (context, state) {
         final isFilterActive = state.categoryId != null ||
             state.size != null ||
@@ -192,13 +205,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                   child: TextField(
                     controller: _searchController,
                     onChanged: (query) {
-                      if (query.isEmpty) {
-                        context.read<BrowseBloc>().add(SearchCleared());
-                      } else {
-                        context
-                            .read<BrowseBloc>()
-                            .add(SearchTermChanged(query));
-                      }
+                      context.read<BrowseBloc>().add(SearchTermChanged(query));
                     },
                     style: const TextStyle(
                       fontSize: 15,
@@ -217,10 +224,9 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                         color: AppColors.textHint,
                         size: 20,
                       ),
-                      suffixIcon: _showClearButton
+                      suffixIcon: state.query.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
-                                _searchController.clear();
                                 context.read<BrowseBloc>().add(SearchCleared());
                               },
                               child: const Icon(
@@ -233,7 +239,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 14,
                       ),
                     ),
                   ),
@@ -291,6 +297,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
     );
   }
 
+  // ... (sisa kode _buildActiveFiltersSection, _buildTabSection, _buildFilterChip tidak berubah)
   Widget _buildActiveFiltersSection() {
     return BlocBuilder<BrowseBloc, BrowseState>(
       builder: (context, state) {
@@ -412,7 +419,6 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                 const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () {
-                    _searchController.clear();
                     context.read<BrowseBloc>().add(ResetFilters());
                   },
                   child: Container(

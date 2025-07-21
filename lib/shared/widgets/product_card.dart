@@ -1,3 +1,5 @@
+// shared/widgets/product_card.dart
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -23,15 +25,19 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // --- PERBAIKAN: Ambil semua data dari recommendation ATAU item ---
     final String itemId = recommendation?.itemId ?? item!.id;
     final String title = recommendation?.title ?? item!.name;
     final String? imageUrl = recommendation?.imageUrl ?? item?.imageUrl;
     final ItemType type = recommendation?.type ?? item!.type;
     final String category = recommendation?.category ?? '';
-    final String? size = item?.size;
-    final String? condition = item?.condition;
+    final String? size = recommendation?.size ?? item?.size;
+    final String? condition = recommendation?.condition ?? item?.condition;
+    final double? price = recommendation?.price ?? item?.price;
+
+    // Properti ini hanya ada di 'Item'
     final int? availableQuantity = item?.availableQuantity;
-    final double? price = item?.price;
+    // --- AKHIR PERBAIKAN ---
 
     final tagColor =
         type == ItemType.donation ? AppColors.donation : AppColors.rental;
@@ -43,17 +49,14 @@ class ProductCard extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => BlocProvider.value(
-              // Menyediakan instance ProfileBloc yang ada ke route baru
               value: BlocProvider.of<ProfileBloc>(context),
               child: const ItemDetailPage(),
             ),
-            // Tetap meneruskan itemId melalui settings
             settings: RouteSettings(
               arguments: itemId,
             ),
           ),
         );
-        // --- AKHIR PERBAIKAN ---
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -145,10 +148,14 @@ class ProductCard extends StatelessWidget {
                           height: 1.3),
                     ),
                     const SizedBox(height: 8),
+
+                    // --- PERBAIKAN: Tampilkan harga jika type rental dan harga ada ---
                     if (type == ItemType.rental && price != null && price > 0)
                       Text(
                         NumberFormat.currency(
-                                locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+                                locale: 'id_ID',
+                                symbol: 'Rp ',
+                                decimalDigits: 0)
                             .format(price),
                         style: const TextStyle(
                             color: AppColors.textPrimary,
@@ -156,32 +163,33 @@ class ProductCard extends StatelessWidget {
                             fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
-                    if (item != null) ...[
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            if (size != null) ...[
-                              _buildInfoChip(Icons.straighten_rounded, size),
-                              const SizedBox(width: 8),
-                            ],
-                            if (condition != null)
-                              _buildInfoChip(Icons.verified_outlined,
-                                  condition.toFormattedCondition()),
+                    // --- AKHIR PERBAIKAN ---
+
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          if (size != null) ...[
+                            _buildInfoChip(Icons.straighten_rounded, size),
+                            const SizedBox(width: 8),
                           ],
-                        ),
+                          if (condition != null)
+                            _buildInfoChip(Icons.verified_outlined,
+                                condition.toFormattedCondition()),
+                        ],
                       ),
-                      if (availableQuantity != null &&
-                          availableQuantity <= 2 &&
-                          availableQuantity > 0) ...[
-                        const SizedBox(height: 8),
-                        const Text('Stok Terbatas!',
-                            style: TextStyle(
-                                color: AppColors.premium,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
-                      ]
+                    ),
+                    if (item != null &&
+                        availableQuantity != null &&
+                        availableQuantity <= 2 &&
+                        availableQuantity > 0) ...[
+                      const SizedBox(height: 8),
+                      const Text('Stok Terbatas!',
+                          style: TextStyle(
+                              color: AppColors.premium,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600)),
                     ]
                   ],
                 ),

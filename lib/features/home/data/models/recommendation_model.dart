@@ -27,24 +27,27 @@ class RecommendationModel {
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class RecommendationDataModel {
-  // Semua field yang mungkin hilang dari API dibuat opsional (nullable)
   final String? itemId;
   final String? name;
   final String? category;
+  final String? size;
+  final String? condition;
+  final double? price;
 
-  @JsonKey(
-      defaultValue: []) // Beri default list kosong jika 'images' null atau tidak ada
+  @JsonKey(defaultValue: [])
   final List<String> images;
 
-  @JsonKey(
-      defaultValue: []) // Beri default list kosong jika 'tags' null atau tidak ada
+  @JsonKey(defaultValue: [])
   final List<String> tags;
 
   RecommendationDataModel({
-    this.itemId, // Hapus 'required'
+    this.itemId,
     this.name,
     this.category,
-    required this.images, // Tetap required, karena defaultValue akan menanganinya
+    this.size,
+    this.condition,
+    this.price,
+    required this.images,
     required this.tags,
   });
 
