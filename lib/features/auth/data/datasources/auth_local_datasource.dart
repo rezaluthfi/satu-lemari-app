@@ -8,9 +8,13 @@ abstract class AuthLocalDataSource {
   Future<AuthResponseModel> getLastAuthResponse();
   Future<void> clearCache();
   Future<String?> getAccessToken();
+
+  Future<void> setOnboardingCompleted();
+  Future<bool> hasSeenOnboarding();
 }
 
 const CACHED_AUTH_RESPONSE = 'CACHED_AUTH_RESPONSE';
+const HAS_SEEN_ONBOARDING = 'HAS_SEEN_ONBOARDING';
 
 // Implementation of local data source for authentication
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -53,5 +57,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     } on CacheException {
       return null;
     }
+  }
+
+  @override
+  Future<bool> hasSeenOnboarding() async {
+    return sharedPreferences.getBool(HAS_SEEN_ONBOARDING) ?? false;
+  }
+
+  @override
+  Future<void> setOnboardingCompleted() async {
+    await sharedPreferences.setBool(HAS_SEEN_ONBOARDING, true);
   }
 }

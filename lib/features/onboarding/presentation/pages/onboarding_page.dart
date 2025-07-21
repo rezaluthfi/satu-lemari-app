@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/features/auth/data/datasources/auth_local_datasource.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../widgets/onboarding_slide.dart';
@@ -62,9 +64,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  void _finishOnboarding() {
-    // TODO: Set onboarding as completed in SharedPreferences
-    // TODO: Navigate to auth screen or home screen
+  Future<void> _finishOnboarding() async {
+    // Set onboarding as completed in SharedPreferences
+    final localDataSource = sl<AuthLocalDataSource>();
+    await localDataSource.setOnboardingCompleted();
+
+    // Pastikan widget masih ada sebelum navigasi
+    if (!mounted) return;
+
+    // Navigate to auth screen
     Navigator.pushReplacementNamed(context, '/auth');
   }
 

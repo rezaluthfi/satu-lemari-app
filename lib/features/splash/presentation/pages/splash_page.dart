@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'dart:async';
 
@@ -18,11 +20,7 @@ class _SplashPageState extends State<SplashPage>
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   late Animation<double> _slideAnimation;
-  Timer? _navigationTimer;
 
-  // Track splash screen phases
-  bool _animationsComplete = false;
-  bool _minimumTimeElapsed = false;
   bool _authCheckTriggered = false;
 
   @override
@@ -33,7 +31,6 @@ class _SplashPageState extends State<SplashPage>
   }
 
   void _initializeAnimations() {
-    // Extend animation duration for smoother experience
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 2500),
       vsync: this,
@@ -62,63 +59,57 @@ class _SplashPageState extends State<SplashPage>
       parent: _animationController,
       curve: const Interval(0.4, 1.0, curve: Curves.easeOutCubic),
     ));
-
-    // Listen to animation completion
-    _animationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _animationsComplete = true;
-        _checkIfReadyToNavigate();
-      }
-    });
   }
 
   void _startSplashSequence() {
     // Start animations immediately
     _animationController.forward();
 
-    // Ensure minimum splash duration (3 seconds total)
-    Timer(const Duration(milliseconds: 2000), () {
-      if (mounted) {
-        _minimumTimeElapsed = true;
-        _checkIfReadyToNavigate();
-      }
-    });
-
-    // Trigger auth check after initial animations (1.8 seconds)
+    // Set a flag to show loading indicator after a delay
     Timer(const Duration(milliseconds: 1800), () {
-      if (mounted && !_authCheckTriggered) {
-        _authCheckTriggered = true;
-        // Add a small delay to show loading indicator
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            context.read<AuthBloc>().add(AppStarted());
-          }
+      if (mounted) {
+        setState(() {
+          _authCheckTriggered = true;
         });
       }
     });
+
+    // Check the initial route after a minimum splash duration
+    Timer(const Duration(milliseconds: 3000), _checkInitialRoute);
   }
 
-  void _checkIfReadyToNavigate() {
-    // Only navigate when both conditions are met:
-    // 1. Animations are complete
-    // 2. Minimum time has elapsed
-    if (_animationsComplete && _minimumTimeElapsed && mounted) {
-      // Add a small buffer before allowing navigation
-      Timer(const Duration(milliseconds: 500), () {
-        // The navigation will be handled by AuthWrapper's BlocListener
-      });
+  Future<void> _checkInitialRoute() async {
+    // If widget is no longer in the tree, do nothing.
+    if (!mounted) return;
+
+    // Get the local data source via service locator
+    final localDataSource = sl<AuthLocalDataSource>();
+    final hasSeenOnboarding = await localDataSource.hasSeenOnboarding();
+
+    if (!mounted) return;
+
+    if (hasSeenOnboarding) {
+      // If user has seen onboarding, proceed to check authentication status.
+      // The AuthWrapper BlocListener will handle navigation to /auth or /main.
+      print("Splash: Onboarding seen. Checking auth status.");
+      context.read<AuthBloc>().add(AppStarted());
+    } else {
+      // If this is the first time, navigate to the onboarding page.
+      print("Splash: First time user. Navigating to onboarding.");
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/onboarding', (route) => false);
     }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
-    _navigationTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // UI Anda tetap sama persis, tidak ada yang diubah di sini.
     return Scaffold(
       backgroundColor: const Color(0xFF3B82F6), // Primary blue
       body: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -223,7 +214,7 @@ class _SplashPageState extends State<SplashPage>
                                                   : 3 - animationValue;
 
                                           return Container(
-                                            margin: EdgeInsets.symmetric(
+                                            margin: const EdgeInsets.symmetric(
                                                 horizontal: 3),
                                             width: 6,
                                             height: 6,

@@ -25,7 +25,7 @@ class AppStrings {
       'Bergabunglah dalam gerakan fashion berkelanjutan. Kurangi limbah tekstil, lindungi bumi.';
   static const String onboardingTitle4 = 'AI Smart Search';
   static const String onboardingDesc4 =
-      'Temukan pakaian impian dengan mudah menggunakan teknologi AI. Cari dengan foto atau deskripsi.';
+      'Temukan pakaian impian dengan mudah menggunakan teknologi AI.';
 
   // Auth
   static const String welcomeBack = 'Selamat Datang Kembali';
