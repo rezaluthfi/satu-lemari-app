@@ -1,6 +1,9 @@
+// lib/features/item_detail/presentation/pages/item_detail_page.dart
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart'; // <-- PERUBAHAN: Import untuk format harga
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/core/utils/string_extensions.dart';
@@ -92,6 +95,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(item),
+                    _buildPrice(item), // <-- PERUBAHAN: Menampilkan harga
                     const Divider(height: 40, color: AppColors.divider),
                     _buildInfoSection(item),
                     const Divider(height: 40, color: AppColors.divider),
@@ -220,8 +224,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   if (isDonation) {
                     context.read<ProfileBloc>().add(FetchProfileData());
                   }
-
-                  // Gunakan pageContext untuk SnackBar dan Navigasi agar tidak ada masalah context
                   ScaffoldMessenger.of(pageContext).showSnackBar(
                     const SnackBar(
                       content: Text('Permintaan berhasil dibuat!'),
@@ -254,9 +256,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       },
     );
   }
-  // --- AKHIR PERBAIKAN ---
 
-  // ... (sisa kode tidak berubah)
   Widget _buildImageCarousel(BuildContext context, List<String> images) {
     if (images.isEmpty) {
       return Container(
@@ -361,12 +361,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(item.category.name.toUpperCase(),
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5)),
+            Expanded(
+              child: Text(item.category.name.toUpperCase(),
+                  style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5)),
+            ),
+            const SizedBox(width: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
@@ -389,6 +393,98 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                 color: AppColors.textPrimary)),
       ],
     );
+  }
+
+  // Improved _buildPrice widget with better UI design
+
+  Widget _buildPrice(ItemDetail item) {
+    if (item.type.toLowerCase() == 'rental' &&
+        item.price != null &&
+        item.price! > 0) {
+      final formattedPrice = NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(item.price);
+
+      return Container(
+        margin: const EdgeInsets.only(top: 12.0, bottom: 8.0),
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.rental.withOpacity(0.1),
+              AppColors.rental.withOpacity(0.05),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.rental.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.rental.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.attach_money_rounded,
+                color: AppColors.rental,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Harga Sewa',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: formattedPrice,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.rental,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: ' / hari',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildInfoSection(ItemDetail item) {
