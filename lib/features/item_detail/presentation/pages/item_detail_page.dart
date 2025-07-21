@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
-import 'package:satulemari/core/utils/string_extensions.dart'; // <-- BARU: Import extension
+import 'package:satulemari/core/utils/string_extensions.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
 import 'package:satulemari/features/item_detail/presentation/widgets/item_detail_shimmer.dart';
+import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
 import 'package:satulemari/features/request/presentation/widgets/rental_request_sheet.dart';
@@ -200,6 +201,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
 
   void _showRequestSheet(
       BuildContext pageContext, ItemDetail item, bool isDonation) {
+    final profileBloc = BlocProvider.of<ProfileBloc>(pageContext);
+
     showModalBottomSheet(
       context: pageContext,
       isScrollControlled: true,
@@ -207,43 +210,53 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (modalContext) {
-        return BlocProvider(
-          create: (context) => sl<RequestBloc>(),
-          child: BlocListener<RequestBloc, RequestState>(
-            listener: (context, state) {
-              if (state is RequestSuccess) {
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  const SnackBar(
-                    content: Text('Permintaan berhasil dibuat!'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-                Navigator.of(pageContext).pushNamedAndRemoveUntil(
-                  '/request-detail',
-                  ModalRoute.withName('/main'),
-                  arguments: state.requestDetail.id,
-                );
-              } else if (state is RequestFailure) {
-                if (Navigator.of(modalContext).canPop()) {
-                  Navigator.of(modalContext).pop();
+        return BlocProvider.value(
+          value: profileBloc,
+          child: BlocProvider(
+            create: (context) => sl<RequestBloc>(),
+            child: BlocListener<RequestBloc, RequestState>(
+              listener: (context, state) {
+                if (state is RequestSuccess) {
+                  if (isDonation) {
+                    context.read<ProfileBloc>().add(FetchProfileData());
+                  }
+
+                  // Gunakan pageContext untuk SnackBar dan Navigasi agar tidak ada masalah context
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Permintaan berhasil dibuat!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                  Navigator.of(pageContext).pushNamedAndRemoveUntil(
+                    '/request-detail',
+                    ModalRoute.withName('/main'),
+                    arguments: state.requestDetail.id,
+                  );
+                } else if (state is RequestFailure) {
+                  if (Navigator.of(modalContext).canPop()) {
+                    Navigator.of(modalContext).pop();
+                  }
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
                 }
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-              }
-            },
-            child: isDonation
-                ? DonationRequestSheet(itemId: item.id)
-                : RentalRequestSheet(itemId: item.id),
+              },
+              child: isDonation
+                  ? DonationRequestSheet(itemId: item.id)
+                  : RentalRequestSheet(itemId: item.id),
+            ),
           ),
         );
       },
     );
   }
+  // --- AKHIR PERBAIKAN ---
 
+  // ... (sisa kode tidak berubah)
   Widget _buildImageCarousel(BuildContext context, List<String> images) {
     if (images.isEmpty) {
       return Container(
@@ -392,9 +405,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           child: Wrap(
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
-
-            spacing: 16.0, // Jarak horizontal antar chip
-            runSpacing: 12.0, // Jarak vertikal jika ada baris baru
+            spacing: 16.0,
+            runSpacing: 12.0,
             children: [
               _buildInfoChip("Ukuran", item.size ?? '-'),
               _buildInfoChip("Warna", item.color ?? '-'),
@@ -481,12 +493,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                           fontSize: 16,
                           color: AppColors.textPrimary)),
                   const SizedBox(height: 4),
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.verified,
-                          color: AppColors.success, size: 14),
-                      const SizedBox(width: 4),
-                      const Text("Partner Terverifikasi",
+                      Icon(Icons.verified, color: AppColors.success, size: 14),
+                      SizedBox(width: 4),
+                      Text("Partner Terverifikasi",
                           style: TextStyle(
                               color: AppColors.success,
                               fontSize: 12,

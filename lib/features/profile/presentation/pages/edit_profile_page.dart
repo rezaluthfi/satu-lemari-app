@@ -6,6 +6,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/core/utils/validators.dart';
 import 'package:satulemari/features/profile/data/models/update_profile_request.dart';
 import 'package:satulemari/features/profile/domain/entities/profile.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
@@ -22,13 +23,14 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
+  late TextEditingController _usernameController;
   late TextEditingController _fullNameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _cityController;
   late TextEditingController _descriptionController;
 
-  XFile? _newImageFile; // State untuk menyimpan file gambar yang dipilih
+  XFile? _newImageFile;
   double? _latitude;
   double? _longitude;
 
@@ -37,6 +39,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   void initState() {
     super.initState();
+    _usernameController = TextEditingController();
     _fullNameController = TextEditingController();
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
@@ -49,6 +52,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.didChangeDependencies();
     if (!_isInitialized) {
       final profile = ModalRoute.of(context)!.settings.arguments as Profile;
+      _usernameController.text = profile.username;
       _fullNameController.text = profile.fullName ?? '';
       _phoneController.text = profile.phone ?? '';
       _addressController.text = profile.address ?? '';
@@ -62,6 +66,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _fullNameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
@@ -78,12 +83,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
 
       final request = UpdateProfileRequest(
+        username: textOrNull(_usernameController),
         fullName: textOrNull(_fullNameController),
         phone: textOrNull(_phoneController),
         address: textOrNull(_addressController),
         city: textOrNull(_cityController),
         description: textOrNull(_descriptionController),
-        photoFile: _newImageFile, // Kirim file gambar
+        photoFile: _newImageFile,
         latitude: _latitude,
         longitude: _longitude,
       );
@@ -179,6 +185,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         title: const Text('Edit Profil'),
         backgroundColor: AppColors.primary,
         elevation: 0,
+        foregroundColor: Colors.white,
       ),
       body: BlocListener<ProfileBloc, ProfileState>(
         listener: (context, state) {
@@ -186,9 +193,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                 content: Text('Profil berhasil diperbarui!'),
                 backgroundColor: AppColors.success));
-            Navigator.of(context).pop(true);
-          }
-          if (state is ProfileUpdateFailure) {
+            Navigator.of(context).pop(); // Cukup pop saja
+          } else if (state is ProfileUpdateFailure) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(state.message),
                 backgroundColor: AppColors.error));
@@ -236,15 +242,60 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 32),
               CustomTextField(
+                label: 'Username',
+                controller: _usernameController,
+                validator: (value) =>
+                    Validators.validateRequired(value, 'Username'),
+                hint: 'Contoh: john.doe',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Email',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Text(
+                  profile.email,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Email tidak dapat diubah.',
+                style: TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
                   label: 'Nama Lengkap',
                   controller: _fullNameController,
                   validator: (value) =>
-                      value!.isEmpty ? 'Nama tidak boleh kosong' : null),
+                      Validators.validateRequired(value, 'Nama Lengkap')),
               const SizedBox(height: 16),
               CustomTextField(
-                  label: 'Nomor Telepon',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone),
+                label: 'Nomor Telepon',
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                validator: Validators.validatePhoneNumber,
+              ),
               const SizedBox(height: 16),
               CustomTextField(
                 label: 'Alamat Lengkap',
@@ -273,10 +324,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 32),
               BlocBuilder<ProfileBloc, ProfileState>(
                 builder: (context, state) {
+                  final isLoading = state is ProfileUpdateInProgress;
                   return CustomButton(
                     text: 'Simpan Perubahan',
-                    onPressed: _onSavePressed,
-                    isLoading: state is ProfileUpdateInProgress,
+                    onPressed: isLoading ? null : _onSavePressed,
+                    isLoading: isLoading,
                   );
                 },
               )

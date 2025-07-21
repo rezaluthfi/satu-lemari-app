@@ -25,19 +25,22 @@ class ProfileError extends ProfileState {
   List<Object> get props => [message];
 }
 
-class ProfileUpdateInProgress extends ProfileState {}
-
-class ProfileUpdateSuccess extends ProfileState {}
-
-class ProfileUpdateFailure extends ProfileState {
-  final String message;
-  const ProfileUpdateFailure(this.message);
-  @override
-  List<Object> get props => [message];
+class ProfileUpdateInProgress extends ProfileLoaded {
+  const ProfileUpdateInProgress({required super.profile, required super.stats});
 }
 
-// --- TAMBAHKAN STATE INI ---
+class ProfileUpdateSuccess extends ProfileLoaded {
+  const ProfileUpdateSuccess({required super.profile, required super.stats});
+}
+
+class ProfileUpdateFailure extends ProfileLoaded {
+  final String message;
+  const ProfileUpdateFailure(
+      {required this.message, required super.profile, required super.stats});
+  @override
+  List<Object> get props => [message, profile, stats];
+}
+
 class AccountDeleteInProgress extends ProfileState {}
 
-// ---
 class AccountDeleteSuccess extends ProfileState {}

@@ -45,8 +45,8 @@ class ProfilePage extends StatelessWidget {
         },
         child: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, state) {
-            if (state is ProfileLoading || state is ProfileInitial) {
-              return const ProfileShimmer();
+            if (state is ProfileLoaded) {
+              return _buildProfileContent(context, state.profile, state.stats);
             }
             if (state is ProfileError) {
               return Center(
@@ -96,14 +96,6 @@ class ProfilePage extends StatelessWidget {
                 ),
               );
             }
-            if (state is ProfileLoaded) {
-              return _buildProfileContent(context, state.profile, state.stats);
-            }
-            final lastState = context.read<ProfileBloc>().state;
-            if (lastState is ProfileLoaded) {
-              return _buildProfileContent(
-                  context, lastState.profile, lastState.stats);
-            }
             return const ProfileShimmer();
           },
         ),
@@ -113,52 +105,50 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildProfileContent(
       BuildContext context, Profile profile, DashboardStats stats) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Profile Header Section (with integrated edit button)
-          _buildProfileHeader(context, profile),
-
-          // Main Content
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Description (if available)
-                if (profile.description != null &&
-                    profile.description!.isNotEmpty) ...[
-                  _buildDescriptionCard(profile.description!),
-                  const SizedBox(height: 16),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProfileHeader(context, profile),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (profile.description != null &&
+                            profile.description!.isNotEmpty) ...[
+                          _buildDescriptionCard(profile.description!),
+                          const SizedBox(height: 16),
+                        ],
+                        _buildStatsSection(stats),
+                        const SizedBox(height: 16),
+                        _buildDonationQuotaCard(profile),
+                        const SizedBox(height: 16),
+                        _buildContactCard(profile),
+                        const SizedBox(height: 16),
+                        if (profile.latitude != null &&
+                            profile.longitude != null) ...[
+                          _buildLocationCard(context, profile),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    child: _buildActionSection(context),
+                  ),
                 ],
-
-                // Stats Grid
-                _buildStatsSection(stats),
-                const SizedBox(height: 16),
-
-                // Donation Quota
-                _buildDonationQuotaCard(profile),
-                const SizedBox(height: 16),
-
-                // Contact Information
-                _buildContactCard(profile),
-                const SizedBox(height: 16),
-
-                // Location Section
-                if (profile.latitude != null && profile.longitude != null) ...[
-                  _buildLocationCard(context, profile),
-                  const SizedBox(height: 16),
-                ],
-
-                // Action Buttons
-                _buildActionSection(context),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -174,14 +164,12 @@ class ProfilePage extends StatelessWidget {
       child: SafeArea(
         child: Stack(
           children: [
-            // Main Profile Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 20), // Space for edit button
-
-                  // Profile Picture
+                  const SizedBox(height: 20),
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -206,8 +194,6 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-
-                  // Name and Username
                   Text(
                     profile.fullName ?? profile.username,
                     style: const TextStyle(
@@ -224,9 +210,8 @@ class ProfilePage extends StatelessWidget {
                       fontSize: 16,
                       color: Colors.white.withOpacity(0.9),
                     ),
+                    textAlign: TextAlign.center,
                   ),
-
-                  // Location
                   if (profile.city != null && profile.city!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -251,8 +236,6 @@ class ProfilePage extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Edit Button - Positioned at top right
             Positioned(
               top: 16,
               right: 16,
@@ -281,11 +264,7 @@ class ProfilePage extends StatelessWidget {
                             arguments: profile,
                           ),
                         ),
-                      ).then((result) {
-                        if (result == true) {
-                          context.read<ProfileBloc>().add(FetchProfileData());
-                        }
-                      });
+                      );
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -466,8 +445,6 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Progress Bar
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
@@ -479,8 +456,6 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Progress Text
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -503,8 +478,6 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-
-          // Reset Date
           Text(
             'Reset pada: ${DateFormat('dd MMMM yyyy').format(DateTime.parse(profile.quotaResetDate))}',
             style: const TextStyle(

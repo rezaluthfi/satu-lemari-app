@@ -7,6 +7,8 @@ import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/presentation/bloc/request_detail_bloc.dart';
 import 'package:satulemari/features/history/presentation/widgets/request_detail_shimmer.dart';
+import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
+import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RequestDetailPage extends StatelessWidget {
@@ -39,14 +41,8 @@ class RequestDetailPage extends StatelessWidget {
             BlocBuilder<RequestDetailBloc, RequestDetailState>(
               builder: (context, state) {
                 if (state is RequestDetailLoaded) {
-                  final bool isDeletable = DateTime.now()
-                          .difference(state.detail.createdAt)
-                          .inHours >=
-                      6;
-
-                  if (isDeletable &&
-                      (state.detail.status == 'pending' ||
-                          state.detail.status == 'rejected')) {
+                  if (state.detail.status == 'pending' ||
+                      state.detail.status == 'rejected') {
                     return Container(
                       margin: const EdgeInsets.only(right: 16),
                       child: IconButton(
@@ -210,17 +206,12 @@ class RequestDetailPage extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context, RequestDetail detail) {
-    // --- BARU: Cek apakah request masih baru (kurang dari 6 jam) ---
-    final bool isRecent =
-        DateTime.now().difference(detail.createdAt).inHours < 6;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- BARU: Panggil widget banner info ---
-          _buildInfoBanner(isRecent, detail.status),
+          // --- PERBAIKAN 1: Hapus pemanggilan _buildInfoBanner ---
           _buildItemCard(context, detail.item),
           const SizedBox(height: 24),
           _buildRequestCard(context, detail),
@@ -234,37 +225,7 @@ class RequestDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoBanner(bool isRecent, String status) {
-    // Tampilkan banner hanya jika request masih baru DAN statusnya masih pending/rejected
-    if (!isRecent ||
-        (status.toLowerCase() != 'pending' &&
-            status.toLowerCase() != 'rejected')) {
-      return const SizedBox.shrink();
-    }
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 24),
-      decoration: BoxDecoration(
-        color: AppColors.info.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.info.withOpacity(0.5)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline_rounded, color: AppColors.info, size: 20),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              "Permintaan ini belum bisa dihapus karena baru dibuat kurang dari 6 jam yang lalu.",
-              style:
-                  TextStyle(color: AppColors.info, fontWeight: FontWeight.w500),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // --- PERBAIKAN 1: Hapus seluruh method _buildInfoBanner ---
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -297,8 +258,18 @@ class RequestDetailPage extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                Navigator.pushNamed(context, '/item-detail',
-                    arguments: item.id);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: BlocProvider.of<ProfileBloc>(context),
+                      child: const ItemDetailPage(),
+                    ),
+                    settings: RouteSettings(
+                      arguments: item.id,
+                    ),
+                  ),
+                );
               },
               borderRadius: BorderRadius.circular(16),
               child: Padding(
@@ -387,6 +358,10 @@ class RequestDetailPage extends StatelessWidget {
 
   Widget _buildRequestCard(BuildContext context, RequestDetail detail) {
     final bool isDonation = detail.type == 'donation';
+    // --- PERBAIKAN 2: Konversi waktu ke zona waktu lokal ---
+    final localCreatedAt = detail.createdAt.toLocal();
+    final localPickupDate = detail.pickupDate?.toLocal();
+    final localReturnDate = detail.returnDate?.toLocal();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,8 +385,8 @@ class RequestDetailPage extends StatelessWidget {
                 _buildInfoRow(
                   icon: Icons.calendar_today_rounded,
                   label: 'Tanggal Permintaan',
-                  value: DateFormat('dd MMMM yyyy, HH:mm')
-                      .format(detail.createdAt),
+                  value:
+                      DateFormat('dd MMMM yyyy, HH:mm').format(localCreatedAt),
                 ),
                 if (isDonation &&
                     detail.reason != null &&
@@ -432,8 +407,8 @@ class RequestDetailPage extends StatelessWidget {
                   _buildInfoRow(
                     icon: Icons.event_available_rounded,
                     label: 'Tanggal Ambil',
-                    value: detail.pickupDate != null
-                        ? DateFormat('dd MMMM yyyy').format(detail.pickupDate!)
+                    value: localPickupDate != null
+                        ? DateFormat('dd MMMM yyyy').format(localPickupDate)
                         : 'Tidak ditentukan',
                   ),
                   const SizedBox(height: 20),
@@ -442,8 +417,8 @@ class RequestDetailPage extends StatelessWidget {
                   _buildInfoRow(
                     icon: Icons.event_busy_rounded,
                     label: 'Tanggal Kembali',
-                    value: detail.returnDate != null
-                        ? DateFormat('dd MMMM yyyy').format(detail.returnDate!)
+                    value: localReturnDate != null
+                        ? DateFormat('dd MMMM yyyy').format(localReturnDate)
                         : 'Tidak ditentukan',
                   ),
                 ]
