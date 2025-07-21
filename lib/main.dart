@@ -20,6 +20,7 @@ import 'package:satulemari/features/notification/presentation/pages/notification
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
@@ -40,6 +41,7 @@ Future<void> main() async {
   );
 
   await di.init();
+
   runApp(const MyApp());
 }
 
@@ -49,7 +51,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => di.sl<AuthBloc>()..add(AppStarted()),
+      create: (context) => di.sl<AuthBloc>(),
       child: MaterialApp(
         title: 'SatuLemari',
         theme: AppTheme.lightTheme,
