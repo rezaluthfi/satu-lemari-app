@@ -47,14 +47,19 @@ class ProductCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // Prevent overflow
           children: [
+            // Image section with fixed height
             Stack(
               children: [
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: AspectRatio(
-                    aspectRatio: 1,
+                  child: SizedBox(
+                    height: isCarousel
+                        ? 160
+                        : 200, // Fixed height instead of AspectRatio
+                    width: double.infinity,
                     child: (imageUrl != null && imageUrl.isNotEmpty)
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
@@ -96,66 +101,77 @@ class ProductCard extends StatelessWidget {
                   ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (recommendation != null)
+            // Content section with flexible layout
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (recommendation != null)
+                      Text(
+                        category.toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (recommendation != null) const SizedBox(height: 6),
                     Text(
-                      category.toUpperCase(),
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.primary,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5),
-                    ),
-                  if (recommendation != null) const SizedBox(height: 6),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                        height: 1.3),
-                  ),
-                  const SizedBox(height: 8),
-                  if (type == ItemType.rental && price != null && price > 0)
-                    Text(
-                      NumberFormat.currency(
-                              locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
-                          .format(price),
-                      style: const TextStyle(
-                          color: AppColors.textPrimary,
                           fontSize: 14,
-                          fontWeight: FontWeight.bold),
+                          color: AppColors.textPrimary,
+                          height: 1.3),
                     ),
-                  if (item != null) ...[
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (size != null) ...[
-                          _buildInfoChip(Icons.straighten_rounded, size),
-                          const SizedBox(width: 8),
-                        ],
-                        if (condition != null)
-                          _buildInfoChip(Icons.verified_outlined, condition),
-                      ],
-                    ),
-                    if (availableQuantity != null &&
-                        availableQuantity <= 2 &&
-                        availableQuantity > 0) ...[
+                    if (type == ItemType.rental && price != null && price > 0)
+                      Text(
+                        NumberFormat.currency(
+                                locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
+                            .format(price),
+                        style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    if (item != null) ...[
                       const SizedBox(height: 8),
-                      const Text('Stok Terbatas!',
-                          style: TextStyle(
-                              color: AppColors.premium,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
+                      // Wrap chips in a scrollable row to prevent overflow
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            if (size != null) ...[
+                              _buildInfoChip(Icons.straighten_rounded, size),
+                              const SizedBox(width: 8),
+                            ],
+                            if (condition != null)
+                              _buildInfoChip(
+                                  Icons.verified_outlined, condition),
+                          ],
+                        ),
+                      ),
+                      if (availableQuantity != null &&
+                          availableQuantity <= 2 &&
+                          availableQuantity > 0) ...[
+                        const SizedBox(height: 8),
+                        const Text('Stok Terbatas!',
+                            style: TextStyle(
+                                color: AppColors.premium,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
+                      ]
                     ]
-                  ]
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -173,15 +189,20 @@ class ProductCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        mainAxisSize:
+            MainAxisSize.min, // Prevent chip from expanding unnecessarily
         children: [
           Icon(icon, size: 14, color: AppColors.textSecondary),
           const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
