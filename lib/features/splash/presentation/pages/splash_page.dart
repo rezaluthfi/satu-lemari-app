@@ -131,25 +131,12 @@ class _SplashPageState extends State<SplashPage>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Logo Container with enhanced shadow
                                 Container(
                                   width: 120,
                                   height: 120,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
-                                        blurRadius: 30,
-                                        offset: const Offset(0, 15),
-                                      ),
-                                      BoxShadow(
-                                        color: Colors.white.withOpacity(0.1),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, -5),
-                                      ),
-                                    ],
                                   ),
                                   child: const Icon(
                                     Icons.checkroom_outlined,
