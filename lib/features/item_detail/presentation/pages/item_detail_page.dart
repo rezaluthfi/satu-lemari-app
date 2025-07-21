@@ -1,3 +1,5 @@
+// File: lib/features/item_detail/presentation/pages/item_detail_page.dart
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +9,7 @@ import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
 import 'package:satulemari/features/item_detail/presentation/widgets/item_detail_shimmer.dart';
+import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
 import 'package:satulemari/features/request/presentation/widgets/rental_request_sheet.dart';
@@ -35,16 +38,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   Widget build(BuildContext context) {
     final itemId = ModalRoute.of(context)!.settings.arguments as String;
 
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) =>
-              sl<ItemDetailBloc>()..add(FetchItemDetail(itemId)),
-        ),
-        BlocProvider(
-          create: (context) => sl<RequestBloc>(),
-        ),
-      ],
+    return BlocProvider(
+      create: (context) => sl<ItemDetailBloc>()..add(FetchItemDetail(itemId)),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: BlocBuilder<ItemDetailBloc, ItemDetailState>(
@@ -66,78 +61,134 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   Widget _buildLoadedContent(BuildContext context, ItemDetail item) {
-    return BlocListener<RequestBloc, RequestState>(
-      listener: (context, state) {
-        if (state is RequestFailure) {
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message), backgroundColor: AppColors.error));
-        }
-        if (state is RequestSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Permintaan berhasil dibuat!'),
-              backgroundColor: AppColors.success));
+    return Stack(
+      children: [
+        CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 350.0,
+              pinned: true,
+              backgroundColor: AppColors.background,
+              elevation: 0.5,
+              leading: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const BackButton(color: Colors.white),
+                ),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                background: _buildImageCarousel(context, item.images),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(item),
+                    const Divider(height: 40, color: AppColors.divider),
+                    _buildInfoSection(item),
+                    const Divider(height: 40, color: AppColors.divider),
+                    _buildDescription(item),
+                    const Divider(height: 40, color: AppColors.divider),
+                    _buildPartnerInfo(context, item),
+                    const SizedBox(height: 120),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: _buildBottomBar(context, item),
+        )
+      ],
+    );
+  }
 
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/request-detail',
-            ModalRoute.withName('/main'),
-            arguments: state.requestDetail.id,
-          );
-        }
-      },
-      child: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 350.0,
-                pinned: true,
-                backgroundColor: AppColors.background,
-                elevation: 0.5,
-                leading: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const BackButton(color: Colors.white),
-                  ),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: _buildImageCarousel(context, item.images),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(item),
-                      const Divider(height: 40, color: AppColors.divider),
-                      _buildInfoSection(item),
-                      const Divider(height: 40, color: AppColors.divider),
-                      _buildDescription(item),
-                      const Divider(height: 40, color: AppColors.divider),
-                      _buildPartnerInfo(context, item),
-                      const SizedBox(height: 120),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _buildBottomBar(context, item),
-          )
-        ],
+  Widget _buildBottomBar(BuildContext context, ItemDetail item) {
+    final isDonation = item.type.toLowerCase() == 'donation';
+    final buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
+    final buttonColor = isDonation ? AppColors.donation : AppColors.rental;
+
+    return Container(
+      padding: const EdgeInsets.all(16).copyWith(top: 12),
+      decoration: BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            )
+          ],
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      child: CustomButton(
+        text: buttonText,
+        onPressed: () {
+          _showRequestSheet(context, item, isDonation);
+        },
+        backgroundColor: buttonColor,
       ),
+    );
+  }
+
+  void _showRequestSheet(
+      BuildContext pageContext, ItemDetail item, bool isDonation) {
+    showModalBottomSheet(
+      context: pageContext,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalContext) {
+        return BlocProvider(
+          create: (context) => sl<RequestBloc>(),
+          child: BlocListener<RequestBloc, RequestState>(
+            listener: (context, state) {
+              if (state is RequestSuccess) {
+                // Navigasi dan SnackBar
+                ScaffoldMessenger.of(pageContext).showSnackBar(
+                  const SnackBar(
+                    content: Text('Permintaan berhasil dibuat!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+
+                Navigator.of(pageContext).pushNamedAndRemoveUntil(
+                  '/request-detail',
+                  ModalRoute.withName('/main'),
+                  arguments: state.requestDetail.id,
+                );
+
+                // Skip update NotificationBloc untuk sementara
+                // atau bisa dilakukan di halaman tujuan (request-detail page)
+              } else if (state is RequestFailure) {
+                if (Navigator.of(modalContext).canPop()) {
+                  Navigator.of(modalContext).pop();
+                }
+                ScaffoldMessenger.of(pageContext).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: isDonation
+                ? DonationRequestSheet(itemId: item.id)
+                : RentalRequestSheet(itemId: item.id),
+          ),
+        );
+      },
     );
   }
 
@@ -380,7 +431,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                     color: AppColors.primary),
                 tooltip: 'Chat via WhatsApp',
               ),
-            // --- PERBAIKI LOGIKA PETA DI SINI ---
             if (partner.latitude != null && partner.longitude != null)
               IconButton(
                 onPressed: () async {
@@ -401,48 +451,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           ],
         )
       ],
-    );
-  }
-
-  Widget _buildBottomBar(BuildContext context, ItemDetail item) {
-    final isDonation = item.type.toLowerCase() == 'donation';
-    final buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
-    final buttonColor = isDonation ? AppColors.donation : AppColors.rental;
-
-    return Container(
-      padding: const EdgeInsets.all(16).copyWith(top: 12),
-      decoration: BoxDecoration(
-          color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            )
-          ],
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-      child: CustomButton(
-        text: buttonText,
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            // backgroundColor: Colors.transparent, // <-- Biarkan transparan, karena warna diatur di dalam sheet
-            shape: const RoundedRectangleBorder(
-              // <-- Tambahkan shape untuk border radius
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            builder: (_) => BlocProvider.value(
-              // Teruskan instance RequestBloc dari halaman ini ke bottom sheet
-              value: BlocProvider.of<RequestBloc>(context),
-              child: isDonation
-                  ? DonationRequestSheet(itemId: item.id)
-                  : RentalRequestSheet(itemId: item.id),
-            ),
-          );
-        },
-        backgroundColor: buttonColor,
-      ),
     );
   }
 }

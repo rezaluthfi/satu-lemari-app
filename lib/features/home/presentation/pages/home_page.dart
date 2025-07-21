@@ -1,3 +1,6 @@
+// File: lib/features/home/presentation/pages/home_page.dart
+
+import 'package:firebase_messaging/firebase_messaging.dart'; // <-- TAMBAHKAN IMPORT INI
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
@@ -7,8 +10,11 @@ import 'package:satulemari/features/home/domain/entities/category.dart';
 import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
+import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
+import 'package:satulemari/features/notification/presentation/pages/notification_page.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
 import 'package:satulemari/shared/widgets/product_card.dart';
+import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,14 +24,46 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin {
+  // ... (Konstanta tetap sama)
+  static const double _defaultPadding = 16.0;
+  static const double _sectionSpacing = 24.0;
+  static const double _cardRadius = 12.0;
+  static const double _appBarHeight = 100.0;
+
   @override
   void initState() {
     super.initState();
+    // Panggil data awal
+    _fetchInitialData();
+    // Setup listener untuk notifikasi foreground
+    _setupFCMListener();
+  }
+
+  void _fetchInitialData() {
     final homeBloc = context.read<HomeBloc>();
-    final currentState = homeBloc.state;
-    if (currentState.categoriesStatus == DataStatus.initial) {
+    if (homeBloc.state.categoriesStatus == DataStatus.initial) {
       homeBloc.add(FetchAllHomeData());
     }
+    context.read<NotificationBloc>().add(FetchNotificationStats());
+  }
+
+  // --- PERBAIKAN: Tambahkan fungsi ini untuk menangani notifikasi real-time ---
+  void _setupFCMListener() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        debugPrint(
+            'Message also contained a notification: ${message.notification}');
+      }
+
+      // Jika ada notifikasi baru, panggil ulang statistik notifikasi
+      // Ini akan memperbarui unreadCount dan menampilkan indikator
+      if (mounted) {
+        context.read<NotificationBloc>().add(FetchNotificationStats());
+      }
+    });
   }
 
   @override
@@ -34,213 +72,377 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
-          context.read<HomeBloc>().add(FetchAllHomeData());
+          _fetchInitialData();
         },
         color: AppColors.primary,
         child: CustomScrollView(
           slivers: [
-            // Enhanced AppBar with gradient and better styling
-            SliverAppBar(
-              pinned: true,
-              floating: true,
-              expandedHeight: 120.0,
-              flexibleSpace: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.primary,
-                      AppColors.primaryLight,
-                    ],
-                  ),
-                ),
-                child: FlexibleSpaceBar(
-                  background: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 60, 16, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildGreeting(),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Temukan fashion terbaikmu hari ini',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              backgroundColor: AppColors.primary,
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: IconButton(
-                    onPressed: () {
-                      // TODO: Navigasi ke halaman notifikasi
-                    },
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_none_outlined,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // Enhanced Search Bar
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.divider, width: 1),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Cari kemeja, hoodie, atau lainnya...',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textHint,
-                        fontSize: 14,
-                      ),
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.all(12),
-                        child: const Icon(
-                          Icons.search_rounded,
-                          color: AppColors.primary,
-                          size: 20,
-                        ),
-                      ),
-                      suffixIcon: Container(
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.search_rounded,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 0,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Promotional Banner
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: _buildPromotionalBanner(),
-              ),
-            ),
-
-            // Main Content
-            SliverList(
-              delegate: SliverChildListDelegate([
-                const SizedBox(height: 32),
-                _buildSectionHeader(context, 'Jelajahi Kategori',
-                    subtitle: 'Pilih kategori favoritmu'),
-                BlocBuilder<HomeBloc, HomeState>(
-                  buildWhen: (p, c) => p.categoriesStatus != c.categoriesStatus,
-                  builder: (context, state) {
-                    switch (state.categoriesStatus) {
-                      case DataStatus.loading:
-                      case DataStatus.initial:
-                        return const CategoryGridShimmer();
-                      case DataStatus.loaded:
-                        return _buildCategoryGrid(context, state.categories);
-                      case DataStatus.error:
-                        return _buildSectionError(
-                          context,
-                          state.categoriesError ?? 'Gagal memuat kategori',
-                          () => context.read<HomeBloc>().add(FetchCategories()),
-                        );
-                    }
-                  },
-                ),
-                const SizedBox(height: 40),
-                _buildSectionHeader(context, 'Lagi Tren',
-                    subtitle: 'Item populer minggu ini'),
-                const SizedBox(height: 20),
-                BlocBuilder<HomeBloc, HomeState>(
-                  buildWhen: (p, c) => p.trendingStatus != c.trendingStatus,
-                  builder: (context, state) {
-                    switch (state.trendingStatus) {
-                      case DataStatus.loading:
-                      case DataStatus.initial:
-                        return const TrendingCarouselShimmer();
-                      case DataStatus.loaded:
-                        return _buildTrendingCarousel(
-                            context, state.trendingItems);
-                      case DataStatus.error:
-                        return _buildSectionError(
-                          context,
-                          state.trendingError ?? 'Gagal memuat item tren',
-                          () => context
-                              .read<HomeBloc>()
-                              .add(FetchTrendingItems()),
-                        );
-                    }
-                  },
-                ),
-                const SizedBox(height: 40),
-                _buildSectionHeader(context, 'Spesial Untukmu',
-                    subtitle: 'Rekomendasi berdasarkan preferensimu'),
-                const SizedBox(height: 20),
-                BlocBuilder<HomeBloc, HomeState>(
-                  buildWhen: (p, c) =>
-                      p.personalizedStatus != c.personalizedStatus,
-                  builder: (context, state) {
-                    switch (state.personalizedStatus) {
-                      case DataStatus.loading:
-                      case DataStatus.initial:
-                        return const PersonalizedGridShimmer();
-                      case DataStatus.loaded:
-                        return _buildPersonalizedGrid(
-                            context, state.personalizedItems);
-                      case DataStatus.error:
-                        return _buildSectionError(
-                          context,
-                          state.personalizedError ?? 'Gagal memuat rekomendasi',
-                          () => context
-                              .read<HomeBloc>()
-                              .add(FetchPersonalizedItems()),
-                        );
-                    }
-                  },
-                ),
-                const SizedBox(height: 40),
-              ]),
+            _buildAppBar(),
+            _buildSearchBar(),
+            _buildPromotionalBanner(),
+            _buildCategories(),
+            _buildTrending(),
+            _buildPersonalized(),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 80),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      pinned: true,
+      floating: true,
+      expandedHeight: _appBarHeight,
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary,
+              AppColors.primaryLight,
+            ],
+          ),
+        ),
+        child: FlexibleSpaceBar(
+          background: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  _defaultPadding, 8, _defaultPadding, _defaultPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildGreeting(),
+                  const SizedBox(height: 4),
+                  const Flexible(
+                    child: Text(
+                      'Temukan fashion terbaikmu hari ini',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      backgroundColor: AppColors.primary,
+      actions: [
+        Container(
+          margin: const EdgeInsets.only(right: 8),
+          child: BlocBuilder<NotificationBloc, NotificationState>(
+            buildWhen: (previous, current) => previous.stats != current.stats,
+            builder: (context, state) {
+              final hasUnread = (state.stats?.unreadCount ?? 0) > 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider.value(
+                            value: BlocProvider.of<NotificationBloc>(context),
+                            child: const NotificationPage(),
+                          ),
+                        ),
+                      );
+
+                      if (mounted) {
+                        context
+                            .read<NotificationBloc>()
+                            .add(FetchNotificationStats());
+                        context
+                            .read<HistoryBloc>()
+                            .add(const FetchHistory(type: 'donation'));
+                        context
+                            .read<HistoryBloc>()
+                            .add(const FetchHistory(type: 'rental'));
+                      }
+                    },
+                    icon: const Icon(
+                      Icons.notifications_none_outlined,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  if (hasUnread)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.premium,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // SISA KODE DI home_page.dart TIDAK BERUBAH
+  // ... (Widget _buildSearchBar, _buildGreeting, dll.)
+  // ...
+  Widget _buildSearchBar() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(_defaultPadding),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(_cardRadius),
+            border: Border.all(color: AppColors.divider, width: 1),
+          ),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Cari kemeja, hoodie, atau lainnya...',
+              hintStyle: const TextStyle(
+                color: AppColors.textHint,
+                fontSize: 14,
+              ),
+              prefixIcon: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              suffixIcon: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.search_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPromotionalBanner() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: Container(
+          height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_cardRadius),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.accent,
+                AppColors.warning,
+              ],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                top: -20,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 30,
+                bottom: -10,
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(_defaultPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Dapatkan Diskon 50%',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    const Flexible(
+                      child: Text(
+                        'Untuk semua item fashion premium',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Text(
+                        'Lihat Sekarang',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategories() {
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        const SizedBox(height: _sectionSpacing),
+        _buildSectionHeader(
+          'Jelajahi Kategori',
+          subtitle: 'Pilih kategori favoritmu',
+        ),
+        BlocBuilder<HomeBloc, HomeState>(
+          buildWhen: (p, c) => p.categoriesStatus != c.categoriesStatus,
+          builder: (context, state) {
+            switch (state.categoriesStatus) {
+              case DataStatus.loading:
+              case DataStatus.initial:
+                return const CategoryGridShimmer();
+              case DataStatus.loaded:
+                return _buildCategoryGrid(state.categories);
+              case DataStatus.error:
+                return _buildSectionError(
+                  state.categoriesError ?? 'Gagal memuat kategori',
+                  () => context.read<HomeBloc>().add(FetchCategories()),
+                );
+            }
+          },
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildTrending() {
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        const SizedBox(height: _sectionSpacing),
+        _buildSectionHeader(
+          'Lagi Tren',
+          subtitle: 'Item populer minggu ini',
+        ),
+        const SizedBox(height: 16),
+        BlocBuilder<HomeBloc, HomeState>(
+          buildWhen: (p, c) => p.trendingStatus != c.trendingStatus,
+          builder: (context, state) {
+            switch (state.trendingStatus) {
+              case DataStatus.loading:
+              case DataStatus.initial:
+                return const TrendingCarouselShimmer();
+              case DataStatus.loaded:
+                return _buildTrendingCarousel(state.trendingItems);
+              case DataStatus.error:
+                return _buildSectionError(
+                  state.trendingError ?? 'Gagal memuat item tren',
+                  () => context.read<HomeBloc>().add(FetchTrendingItems()),
+                );
+            }
+          },
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildPersonalized() {
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        const SizedBox(height: _sectionSpacing),
+        _buildSectionHeader(
+          'Spesial Untukmu',
+          subtitle: 'Rekomendasi berdasarkan preferensimu',
+        ),
+        const SizedBox(height: 16),
+        BlocBuilder<HomeBloc, HomeState>(
+          buildWhen: (p, c) => p.personalizedStatus != c.personalizedStatus,
+          builder: (context, state) {
+            switch (state.personalizedStatus) {
+              case DataStatus.loading:
+              case DataStatus.initial:
+                return const PersonalizedGridShimmer();
+              case DataStatus.loaded:
+                return _buildPersonalizedGrid(state.personalizedItems);
+              case DataStatus.error:
+                return _buildSectionError(
+                  state.personalizedError ?? 'Gagal memuat rekomendasi',
+                  () => context.read<HomeBloc>().add(FetchPersonalizedItems()),
+                );
+            }
+          },
+        ),
+      ]),
     );
   }
 
@@ -254,167 +456,66 @@ class _HomePageState extends State<HomePage>
                   ? state.user.username!
                   : 'Pengguna';
         }
-        return Text(
-          'Halo, $name!',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        return Flexible(
+          child: Text(
+            'Halo, $name!',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         );
       },
     );
   }
 
-  Widget _buildPromotionalBanner() {
-    return Container(
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.accent,
-            AppColors.warning,
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 40,
-            bottom: -10,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Dapatkan Diskon 50%',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Untuk semua item fashion premium',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Lihat Sekarang',
-                    style: TextStyle(
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String title,
-      {String? subtitle}) {
+  Widget _buildSectionHeader(String title, {String? subtitle}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-          TextButton(
-            onPressed: () {
-              // TODO: Navigate to see all
-            },
-            child: const Text(
-              'Lihat Semua',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              ),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildSectionError(
-      BuildContext context, String message, VoidCallback onRetry) {
+  Widget _buildSectionError(String message, VoidCallback onRetry) {
     return Container(
-      height: 120,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+      padding: const EdgeInsets.all(_defaultPadding),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(_cardRadius),
         border: Border.all(color: AppColors.divider),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
             Icons.error_outline_rounded,
@@ -433,23 +534,27 @@ class _HomePageState extends State<HomePage>
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
-          CustomButton(
-            text: 'Coba Lagi',
-            onPressed: onRetry,
-            type: ButtonType.outline,
-            height: 32,
-            fontSize: 12,
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: 'Coba Lagi',
+              onPressed: onRetry,
+              type: ButtonType.outline,
+              height: 36,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryGrid(BuildContext context, List<Category> categories) {
+  Widget _buildCategoryGrid(List<Category> categories) {
     if (categories.isEmpty) {
-      return const SizedBox(
+      return Container(
         height: 100,
-        child: Center(
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: const Center(
           child: Text(
             "Kategori tidak ditemukan.",
             style: TextStyle(color: AppColors.textSecondary),
@@ -459,65 +564,74 @@ class _HomePageState extends State<HomePage>
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 4,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.8,
-        ),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return _buildCategoryCard(context, category);
+      padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final crossAxisCount =
+              (constraints.maxWidth / 80).floor().clamp(3, 5);
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              return _buildCategoryCard(category);
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildCategoryCard(BuildContext context, Category category) {
+  Widget _buildCategoryCard(Category category) {
     return InkWell(
       onTap: () {
-        // Navigate to category items page
         Navigator.pushNamed(context, '/category-items', arguments: category);
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(_cardRadius),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(_cardRadius),
           border: Border.all(color: AppColors.divider, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.local_offer_rounded,
                 color: AppColors.primary,
-                size: 24,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Flexible(
-              child: Text(
-                category.name,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  category.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -527,12 +641,12 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildTrendingCarousel(
-      BuildContext context, List<Recommendation> items) {
+  Widget _buildTrendingCarousel(List<Recommendation> items) {
     if (items.isEmpty) {
-      return const SizedBox(
+      return Container(
         height: 100,
-        child: Center(
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: const Center(
           child: Text(
             "Tidak ada item tren saat ini.",
             style: TextStyle(color: AppColors.textSecondary),
@@ -542,15 +656,16 @@ class _HomePageState extends State<HomePage>
     }
 
     return SizedBox(
-      height: 280,
+      height: 260,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index];
           return Container(
-            margin: const EdgeInsets.only(right: 16),
+            width: 180,
+            margin: const EdgeInsets.only(right: 12),
             child: ProductCard(recommendation: item, isCarousel: true),
           );
         },
@@ -558,12 +673,12 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildPersonalizedGrid(
-      BuildContext context, List<Recommendation> items) {
+  Widget _buildPersonalizedGrid(List<Recommendation> items) {
     if (items.isEmpty) {
-      return const SizedBox(
+      return Container(
         height: 100,
-        child: Center(
+        margin: const EdgeInsets.symmetric(horizontal: _defaultPadding),
+        child: const Center(
           child: Text(
             "Belum ada rekomendasi untukmu.",
             style: TextStyle(color: AppColors.textSecondary),
@@ -573,10 +688,10 @@ class _HomePageState extends State<HomePage>
     }
 
     return MasonryGridView.count(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
       crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
       itemCount: items.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

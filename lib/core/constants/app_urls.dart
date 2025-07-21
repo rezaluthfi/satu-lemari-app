@@ -26,4 +26,14 @@ class AppUrls {
   // History
   static const String myRequests = '/requests/my';
   static const String requests = '/requests';
+
+  // Notifications
+  static const String fcmToken = '/notifications/fcm-token';
+  static const String notifications = '/notifications';
+  static const String notificationStats = '/notifications/stats';
+  static const String markNotificationsRead =
+      '/notifications/mark-read'; // Untuk multiple
+  static const String markAllNotificationsRead =
+      '/notifications/read-all'; // Untuk semua
+  static const String deleteNotificationsBulk = '/notifications/delete-bulk';
 }

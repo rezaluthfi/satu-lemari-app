@@ -43,21 +43,22 @@ class RequestDetailPage extends StatelessWidget {
                       state.detail.status == 'rejected') {
                     return Container(
                       margin: const EdgeInsets.only(right: 16),
-                      child: Material(
-                        color: AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        child: InkWell(
-                          onTap: () => _showDeleteDialog(context, requestId),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            child: const Icon(
-                              Icons.delete_outline_rounded,
-                              color: AppColors.error,
-                              size: 20,
-                            ),
-                          ),
+                      child: IconButton(
+                        onPressed: () => _showDeleteDialog(context, requestId),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: Colors.white,
+                          size: 20,
                         ),
+                        style: IconButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                        tooltip: 'Hapus Permintaan',
                       ),
                     );
                   }
@@ -140,15 +141,19 @@ class RequestDetailPage extends StatelessWidget {
             ),
             child: const Text('Batal'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
               context
                   .read<RequestDetailBloc>()
                   .add(DeleteRequestButtonPressed(requestId));
             },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.error,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Hapus'),
           ),

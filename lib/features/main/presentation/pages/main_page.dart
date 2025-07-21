@@ -9,6 +9,7 @@ import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart'
 import 'package:satulemari/features/history/presentation/pages/history_page.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/pages/home_page.dart';
+import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/profile/presentation/pages/profile_page.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
@@ -40,6 +41,9 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<NotificationBloc>(
+          create: (context) => sl<NotificationBloc>(),
+        ),
         BlocProvider(
           create: (context) => sl<HomeBloc>()..add(FetchAllHomeData()),
         ),

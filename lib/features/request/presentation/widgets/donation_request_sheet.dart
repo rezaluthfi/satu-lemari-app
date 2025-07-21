@@ -1,3 +1,5 @@
+// File: features/request/presentation/widgets/donation_request_sheet.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
@@ -16,16 +18,8 @@ class DonationRequestSheet extends StatefulWidget {
 
 class _DonationRequestSheetState extends State<DonationRequestSheet> {
   final _reasonController = TextEditingController();
-  bool _isLoading = false; // <-- State loading lokal
 
   void _submit() {
-    // Mencegah double-tap
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
     final request = CreateRequestModel(
       itemId: widget.itemId,
       quantity: 1,
@@ -43,41 +37,44 @@ class _DonationRequestSheetState extends State<DonationRequestSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // <-- Tambahkan Container pembungkus
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      // --- PERBAIKAN UI DI SINI ---
       decoration: const BoxDecoration(
-        color: AppColors.background, // Beri warna latar belakang
+        color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      // ---
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ajukan Permintaan Donasi',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Text(
-              'Tuliskan alasan singkat mengapa Anda membutuhkan barang ini (opsional).',
-              style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 20),
-          CustomTextField(
-            label: 'Alasan',
-            controller: _reasonController,
-            maxLines: 4,
-            hint: 'Contoh: Untuk wawancara kerja...',
-          ),
-          const SizedBox(height: 24),
-          // Hapus BlocBuilder, gunakan state lokal
-          CustomButton(
-            text: 'Kirim Permintaan',
-            onPressed: _submit,
-            width: double.infinity,
-            isLoading: _isLoading,
-          ),
-        ],
+      child: BlocBuilder<RequestBloc, RequestState>(
+        builder: (context, state) {
+          // --- PERBAIKAN: Gunakan nama state yang benar ---
+          final bool isLoading = state is RequestInProgress;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Ajukan Permintaan Donasi',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text(
+                  'Tuliskan alasan singkat mengapa Anda membutuhkan barang ini (opsional).',
+                  style: TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 20),
+              CustomTextField(
+                label: 'Alasan',
+                controller: _reasonController,
+                maxLines: 4,
+                hint: 'Contoh: Untuk wawancara kerja...',
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                text: 'Kirim Permintaan',
+                onPressed: isLoading ? null : _submit,
+                width: double.infinity,
+                isLoading: isLoading,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
