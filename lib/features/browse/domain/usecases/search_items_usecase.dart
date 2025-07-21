@@ -20,28 +20,34 @@ class SearchItemsParams extends Equatable {
   final String? query;
   final String? categoryId;
   final String? size;
+  final String? sortBy;
+  final String? sortOrder;
+  final String? city;
+  final double? minPrice;
+  final double? maxPrice;
 
   const SearchItemsParams({
     required this.type,
     this.query,
     this.categoryId,
     this.size,
+    this.sortBy,
+    this.sortOrder,
+    this.city,
+    this.minPrice,
+    this.maxPrice,
   });
 
   @override
-  List<Object?> get props => [type, query, categoryId, size];
-
-  SearchItemsParams copyWith({
-    String? type,
-    String? query,
-    String? categoryId,
-    String? size,
-  }) {
-    return SearchItemsParams(
-      type: type ?? this.type,
-      query: query ?? this.query,
-      categoryId: categoryId ?? this.categoryId,
-      size: size ?? this.size,
-    );
-  }
+  List<Object?> get props => [
+        type,
+        query,
+        categoryId,
+        size,
+        sortBy,
+        sortOrder,
+        city,
+        minPrice,
+        maxPrice,
+      ];
 }

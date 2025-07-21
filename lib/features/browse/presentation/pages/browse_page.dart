@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/browse/presentation/widgets/filter_bottom_sheet.dart';
@@ -78,18 +79,31 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
       builder: (_) {
         return FilterBottomSheet(
           categories: homeState.categories,
+          // --- MODIFIKASI KUNCI: Teruskan status tab ---
+          isRentalTab: browseState.activeTab == 'rental',
+          // --- AKHIR MODIFIKASI ---
           activeCategoryId: browseState.categoryId,
           activeSize: browseState.size,
+          activeSortBy: browseState.sortBy,
+          activeSortOrder: browseState.sortOrder,
+          activeCity: browseState.city,
+          activeMinPrice: browseState.minPrice,
+          activeMaxPrice: browseState.maxPrice,
         );
       },
     ).then((result) {
       if (result != null) {
-        print(
-            'Filter result received: categoryId=${result.categoryId}, size=${result.size}');
+        // Jika user mereset, BLoC akan menangani penghapusan filter harga
+        // bahkan jika tabnya sewa.
         context.read<BrowseBloc>().add(
               FilterApplied(
                 categoryId: result.categoryId,
                 size: result.size,
+                sortBy: result.sortBy,
+                sortOrder: result.sortOrder,
+                city: result.city,
+                minPrice: result.minPrice,
+                maxPrice: result.maxPrice,
               ),
             );
       }
@@ -122,7 +136,6 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
       ),
       body: Column(
         children: [
-          // Header Section with Search and Filters
           Container(
             color: AppColors.surface,
             child: Column(
@@ -133,12 +146,10 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
               ],
             ),
           ),
-          // Divider
           Container(
             height: 1,
             color: AppColors.divider.withOpacity(0.3),
           ),
-          // Content Section
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -156,13 +167,17 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
   Widget _buildSearchSection() {
     return BlocBuilder<BrowseBloc, BrowseState>(
       builder: (context, state) {
-        final isFilterActive = state.categoryId != null || state.size != null;
+        final isFilterActive = state.categoryId != null ||
+            state.size != null ||
+            state.sortBy != null ||
+            (state.city != null && state.city!.isNotEmpty) ||
+            state.minPrice != null ||
+            state.maxPrice != null;
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
           child: Row(
             children: [
-              // Search Field
               Expanded(
                 child: Container(
                   height: 48,
@@ -192,12 +207,12 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                     ),
                     decoration: InputDecoration(
                       hintText: 'Cari pakaian...',
-                      hintStyle: TextStyle(
+                      hintStyle: const TextStyle(
                         color: AppColors.textHint,
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
                       ),
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.search_rounded,
                         color: AppColors.textHint,
                         size: 20,
@@ -208,7 +223,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                                 _searchController.clear();
                                 context.read<BrowseBloc>().add(SearchCleared());
                               },
-                              child: Icon(
+                              child: const Icon(
                                 Icons.close_rounded,
                                 color: AppColors.textHint,
                                 size: 20,
@@ -225,7 +240,6 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(width: 12),
-              // Filter Button
               GestureDetector(
                 onTap: _showFilterBottomSheet,
                 child: Container(
@@ -294,9 +308,19 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
           }
         }
 
-        if (categoryName == null && state.size == null) {
+        final hasAnyFilter = categoryName != null ||
+            state.size != null ||
+            state.sortBy != null ||
+            (state.city != null && state.city!.isNotEmpty) ||
+            state.minPrice != null ||
+            state.maxPrice != null;
+
+        if (!hasAnyFilter) {
           return const SizedBox.shrink();
         }
+
+        final currencyFormatter = NumberFormat.currency(
+            locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
 
         return Container(
           padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
@@ -311,25 +335,80 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                         _buildFilterChip(
                           label: categoryName,
                           onDeleted: () {
-                            _searchController.clear();
                             context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: null, size: state.size));
+                                categoryId: null,
+                                size: state.size,
+                                sortBy: state.sortBy,
+                                sortOrder: state.sortOrder,
+                                city: state.city,
+                                minPrice: state.minPrice,
+                                maxPrice: state.maxPrice));
                           },
                         ),
                       if (state.size != null)
                         _buildFilterChip(
-                          label: 'Ukuran ${state.size}',
+                          label: 'Ukuran: ${state.size}',
                           onDeleted: () {
-                            _searchController.clear();
                             context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: state.categoryId, size: null));
+                                categoryId: state.categoryId,
+                                size: null,
+                                sortBy: state.sortBy,
+                                sortOrder: state.sortOrder,
+                                city: state.city,
+                                minPrice: state.minPrice,
+                                maxPrice: state.maxPrice));
+                          },
+                        ),
+                      if (state.sortBy != null)
+                        _buildFilterChip(
+                          label:
+                              'Urut: ${state.sortBy == 'price' ? 'Harga' : state.sortBy == 'name' ? 'Nama' : 'Terbaru'}',
+                          onDeleted: () {
+                            context.read<BrowseBloc>().add(FilterApplied(
+                                categoryId: state.categoryId,
+                                size: state.size,
+                                sortBy: null,
+                                sortOrder: null,
+                                city: state.city,
+                                minPrice: state.minPrice,
+                                maxPrice: state.maxPrice));
+                          },
+                        ),
+                      if (state.city != null && state.city!.isNotEmpty)
+                        _buildFilterChip(
+                          label: 'Kota: ${state.city}',
+                          onDeleted: () {
+                            context.read<BrowseBloc>().add(FilterApplied(
+                                categoryId: state.categoryId,
+                                size: state.size,
+                                sortBy: state.sortBy,
+                                sortOrder: state.sortOrder,
+                                city: null,
+                                minPrice: state.minPrice,
+                                maxPrice: state.maxPrice));
+                          },
+                        ),
+                      if (state.activeTab == 'rental' &&
+                          (state.minPrice != null || state.maxPrice != null))
+                        _buildFilterChip(
+                          label:
+                              'Harga: ${state.minPrice != null ? currencyFormatter.format(state.minPrice) : '0'} - ${state.maxPrice != null ? currencyFormatter.format(state.maxPrice) : '∞'}',
+                          onDeleted: () {
+                            context.read<BrowseBloc>().add(FilterApplied(
+                                categoryId: state.categoryId,
+                                size: state.size,
+                                sortBy: state.sortBy,
+                                sortOrder: state.sortOrder,
+                                city: state.city,
+                                minPrice: null,
+                                maxPrice: null));
                           },
                         ),
                     ],
                   ),
                 ),
               ),
-              if (categoryName != null || state.size != null) ...[
+              if (hasAnyFilter) ...[
                 const SizedBox(width: 12),
                 GestureDetector(
                   onTap: () {
@@ -347,7 +426,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                         width: 1,
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
@@ -355,7 +434,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
                           size: 16,
                           color: AppColors.error,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         Text(
                           'Reset',
                           style: TextStyle(
@@ -467,7 +546,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
           children: [
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
@@ -476,7 +555,7 @@ class _BrowsePageState extends State<BrowsePage> with TickerProviderStateMixin {
             const SizedBox(width: 8),
             GestureDetector(
               onTap: onDeleted,
-              child: Icon(
+              child: const Icon(
                 Icons.close_rounded,
                 size: 16,
                 color: AppColors.primary,
