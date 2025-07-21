@@ -1,15 +1,13 @@
-// File: lib/features/item_detail/presentation/pages/item_detail_page.dart
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/core/utils/string_extensions.dart'; // <-- BARU: Import extension
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
 import 'package:satulemari/features/item_detail/presentation/widgets/item_detail_shimmer.dart';
-import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
 import 'package:satulemari/features/request/presentation/widgets/rental_request_sheet.dart';
@@ -51,7 +49,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               return Center(child: Text(state.message));
             }
             if (state is ItemDetailLoaded) {
-              return _buildLoadedContent(context, state.item);
+              return _buildLoadedContent(context, state);
             }
             return const SizedBox.shrink();
           },
@@ -60,7 +58,9 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     );
   }
 
-  Widget _buildLoadedContent(BuildContext context, ItemDetail item) {
+  Widget _buildLoadedContent(BuildContext context, ItemDetailLoaded state) {
+    final item = state.item;
+
     return Stack(
       children: [
         CustomScrollView(
@@ -108,19 +108,55 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           bottom: 0,
           left: 0,
           right: 0,
-          child: _buildBottomBar(context, item),
+          child: _buildBottomBar(context, state),
         )
       ],
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, ItemDetail item) {
+  Widget _buildBottomBar(BuildContext context, ItemDetailLoaded state) {
+    final item = state.item;
+    final buttonState = state.buttonState;
+
+    String buttonText;
+    Color buttonColor;
+    VoidCallback? onPressed;
+    String? disabledReason;
+
     final isDonation = item.type.toLowerCase() == 'donation';
-    final buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
-    final buttonColor = isDonation ? AppColors.donation : AppColors.rental;
+
+    switch (buttonState) {
+      case ItemDetailButtonState.outOfStock:
+        buttonText = "Stok Habis";
+        buttonColor = AppColors.disabled;
+        onPressed = null;
+        disabledReason = "Maaf, barang ini sudah tidak tersedia saat ini.";
+        break;
+      case ItemDetailButtonState.pendingRequest:
+        buttonText = "Permintaan Tertunda";
+        buttonColor = AppColors.warning;
+        onPressed = null;
+        disabledReason =
+            "Anda sudah memiliki permintaan untuk barang ini. Mohon tunggu konfirmasi.";
+        break;
+      case ItemDetailButtonState.quotaExceeded:
+        buttonText = "Kuota Donasi Penuh";
+        buttonColor = AppColors.premium;
+        onPressed = null;
+        disabledReason =
+            "Anda telah mencapai batas 3x permintaan donasi minggu ini.";
+        break;
+      case ItemDetailButtonState.active:
+      default:
+        buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
+        buttonColor = isDonation ? AppColors.donation : AppColors.rental;
+        onPressed = () => _showRequestSheet(context, item, isDonation);
+        disabledReason = null;
+        break;
+    }
 
     return Container(
-      padding: const EdgeInsets.all(16).copyWith(top: 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
           color: AppColors.surface,
           boxShadow: [
@@ -131,12 +167,33 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             )
           ],
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-      child: CustomButton(
-        text: buttonText,
-        onPressed: () {
-          _showRequestSheet(context, item, isDonation);
-        },
-        backgroundColor: buttonColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: CustomButton(
+              text: buttonText,
+              onPressed: onPressed,
+              backgroundColor: buttonColor,
+              textColor: onPressed == null
+                  ? Colors.white.withOpacity(0.8)
+                  : Colors.white,
+            ),
+          ),
+          if (disabledReason != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                disabledReason,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 12, color: AppColors.textSecondary),
+              ),
+            ),
+          ]
+        ],
       ),
     );
   }
@@ -155,22 +212,17 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           child: BlocListener<RequestBloc, RequestState>(
             listener: (context, state) {
               if (state is RequestSuccess) {
-                // Navigasi dan SnackBar
                 ScaffoldMessenger.of(pageContext).showSnackBar(
                   const SnackBar(
                     content: Text('Permintaan berhasil dibuat!'),
                     backgroundColor: AppColors.success,
                   ),
                 );
-
                 Navigator.of(pageContext).pushNamedAndRemoveUntil(
                   '/request-detail',
                   ModalRoute.withName('/main'),
                   arguments: state.requestDetail.id,
                 );
-
-                // Skip update NotificationBloc untuk sementara
-                // atau bisa dilakukan di halaman tujuan (request-detail page)
               } else if (state is RequestFailure) {
                 if (Navigator.of(modalContext).canPop()) {
                   Navigator.of(modalContext).pop();
@@ -200,7 +252,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               child: Icon(Icons.inventory_2_outlined,
                   color: AppColors.disabled, size: 64)));
     }
-
     return Stack(
       children: [
         PageView.builder(
@@ -292,7 +343,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         ? AppColors.donation
         : AppColors.rental;
     final tagText = item.type.toLowerCase() == 'donation' ? 'Donasi' : 'Sewa';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -333,16 +383,25 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Detail",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildInfoChip("Ukuran", item.size ?? '-'),
-            _buildInfoChip("Warna", item.color ?? '-'),
-            _buildInfoChip("Kondisi", item.condition),
-            _buildInfoChip("Stok", '${item.availableQuantity}'),
-          ],
+        Center(
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+
+            spacing: 16.0, // Jarak horizontal antar chip
+            runSpacing: 12.0, // Jarak vertikal jika ada baris baru
+            children: [
+              _buildInfoChip("Ukuran", item.size ?? '-'),
+              _buildInfoChip("Warna", item.color ?? '-'),
+              _buildInfoChip("Kondisi", item.condition.toFormattedCondition()),
+              _buildInfoChip("Stok", '${item.availableQuantity}'),
+            ],
+          ),
         )
       ],
     );
@@ -356,12 +415,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                 const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         const SizedBox(height: 4),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
               color: AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(8)),
-          child:
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         )
       ],
     );
@@ -372,7 +435,10 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Deskripsi",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 8),
         Text(item.description,
             style:
@@ -387,70 +453,167 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Pemilik",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 16),
         Row(
           children: [
             CircleAvatar(
-              radius: 24,
+              radius: 28,
               backgroundColor: AppColors.surfaceVariant,
               backgroundImage:
                   partner.photo != null ? NetworkImage(partner.photo!) : null,
               child: partner.photo == null
-                  ? const Icon(Icons.person, color: AppColors.disabled)
+                  ? const Icon(Icons.person,
+                      color: AppColors.disabled, size: 28)
                   : null,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(partner.fullName ?? partner.username,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const Text("Partner Terverifikasi",
-                      style: TextStyle(color: AppColors.success, fontSize: 12)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.verified,
+                          color: AppColors.success, size: 14),
+                      const SizedBox(width: 4),
+                      const Text("Partner Terverifikasi",
+                          style: TextStyle(
+                              color: AppColors.success,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
                 ],
               ),
             ),
-            if (partner.phone != null && partner.phone!.isNotEmpty)
-              IconButton(
-                onPressed: () async {
-                  final phone = partner.phone!.startsWith('0')
-                      ? '62${partner.phone!.substring(1)}'
-                      : partner.phone;
-                  final waUrl = Uri.parse('https://wa.me/$phone');
-                  if (await canLaunchUrl(waUrl)) {
-                    await launchUrl(waUrl,
-                        mode: LaunchMode.externalApplication);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Tidak dapat membuka WhatsApp.')));
-                  }
-                },
-                icon: const Icon(Icons.chat_bubble_outline,
-                    color: AppColors.primary),
-                tooltip: 'Chat via WhatsApp',
-              ),
-            if (partner.latitude != null && partner.longitude != null)
-              IconButton(
-                onPressed: () async {
-                  final lat = partner.latitude;
-                  final lng = partner.longitude;
-                  final mapUrl = Uri.parse(
-                      'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-                  if (await canLaunchUrl(mapUrl)) {
-                    await launchUrl(mapUrl);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Tidak dapat membuka peta.')));
-                  }
-                },
-                icon: const Icon(Icons.map_outlined, color: AppColors.primary),
-                tooltip: 'Lihat Lokasi',
-              ),
           ],
-        )
+        ),
+        if ((partner.phone != null && partner.phone!.isNotEmpty) ||
+            (partner.latitude != null && partner.longitude != null)) ...[
+          const SizedBox(height: 20),
+          const Row(
+            children: [
+              Icon(Icons.phone_outlined,
+                  color: AppColors.textSecondary, size: 16),
+              SizedBox(width: 8),
+              Text("Hubungi Pemilik",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (partner.phone != null && partner.phone!.isNotEmpty)
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.chat_bubble_outline,
+                    label: "Chat WhatsApp",
+                    color: const Color(0xFF25D366),
+                    onTap: () async {
+                      final phone = partner.phone!.startsWith('0')
+                          ? '62${partner.phone!.substring(1)}'
+                          : partner.phone;
+                      final waUrl = Uri.parse('https://wa.me/$phone');
+                      if (await canLaunchUrl(waUrl)) {
+                        await launchUrl(waUrl,
+                            mode: LaunchMode.externalApplication);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tidak dapat membuka WhatsApp.'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              if ((partner.phone != null && partner.phone!.isNotEmpty) &&
+                  (partner.latitude != null && partner.longitude != null))
+                const SizedBox(width: 12),
+              if (partner.latitude != null && partner.longitude != null)
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.location_on_outlined,
+                    label: "Lihat Lokasi",
+                    color: AppColors.primary,
+                    onTap: () async {
+                      final lat = partner.latitude;
+                      final lng = partner.longitude;
+                      final mapUrl = Uri.parse(
+                          'https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+                      if (await canLaunchUrl(mapUrl)) {
+                        await launchUrl(mapUrl);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tidak dapat membuka peta.'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: color.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(8),
+            color: color.withOpacity(0.05),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

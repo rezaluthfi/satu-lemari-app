@@ -53,7 +53,10 @@ class _DonationRequestSheetState extends State<DonationRequestSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Ajukan Permintaan Donasi',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               const Text(
                   'Tuliskan alasan singkat mengapa Anda membutuhkan barang ini (opsional).',

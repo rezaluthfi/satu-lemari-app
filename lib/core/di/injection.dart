@@ -1,3 +1,5 @@
+// lib/core/di/injection.dart
+
 // Flutter & External Packages
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -160,7 +162,12 @@ Future<void> init() async {
       () => CategoryItemsRemoteDataSourceImpl(dio: sl()));
 
   // Item Detail Feature
-  sl.registerFactory(() => ItemDetailBloc(getItemById: sl()));
+
+  sl.registerFactory(() => ItemDetailBloc(
+        getItemById: sl(),
+        getMyRequests: sl(),
+        getDashboardStats: sl(),
+      ));
   sl.registerLazySingleton(() => GetItemByIdUseCase(sl()));
   sl.registerLazySingleton<ItemDetailRepository>(() =>
       ItemDetailRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
@@ -216,6 +223,7 @@ Future<void> init() async {
       updateProfile: sl(),
       deleteAccount: sl()));
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
+  // Pastikan use case ini sudah ada karena akan digunakan oleh ItemDetailBloc
   sl.registerLazySingleton(() => GetDashboardStatsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => DeleteAccountUseCase(sl()));
