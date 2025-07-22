@@ -1,9 +1,20 @@
+// lib/main.dart
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// Import semua BLoC yang akan disediakan
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
+import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
+import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
+import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
+import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
+
+// Import lainnya
 import 'core/constants/app_theme.dart';
 import 'core/di/injection.dart' as di;
 import 'features/auth/presentation/pages/auth_page.dart';
@@ -50,8 +61,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => di.sl<AuthBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => di.sl<AuthBloc>()),
+        BlocProvider(create: (context) => di.sl<HomeBloc>()),
+        BlocProvider(create: (context) => di.sl<BrowseBloc>()),
+        BlocProvider(create: (context) => di.sl<HistoryBloc>()),
+        BlocProvider(create: (context) => di.sl<NotificationBloc>()),
+        BlocProvider(create: (context) => di.sl<ProfileBloc>()),
+      ],
       child: MaterialApp(
         title: 'SatuLemari',
         theme: AppTheme.lightTheme,
@@ -89,6 +107,21 @@ class AuthWrapper extends StatelessWidget {
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/auth', (route) => false);
         } else if (state is Authenticated) {
+          // --- PENYESUAIAN BERDASARKAN KODE BLOC ANDA ---
+
+          // 1. ProfileBloc: Event untuk mengambil profil & statistik
+          context.read<ProfileBloc>().add(FetchProfileData());
+
+          // 2. HistoryBloc: Event untuk mengambil data donasi dan peminjaman
+          context.read<HistoryBloc>().add(const FetchHistory(type: 'donation'));
+          context.read<HistoryBloc>().add(const FetchHistory(type: 'rental'));
+
+          // 3. HomeBloc: Event untuk mengambil semua data home
+          context.read<HomeBloc>().add(FetchAllHomeData());
+
+          // 4. NotificationBloc: Event untuk mengambil statistik notifikasi (jumlah yang belum dibaca)
+          context.read<NotificationBloc>().add(FetchNotificationStats());
+
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/main', (route) => false);
         }
