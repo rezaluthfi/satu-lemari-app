@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
+import 'package:satulemari/features/auth/domain/entities/user.dart';
+import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:satulemari/features/profile/data/models/update_profile_request.dart';
 import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
 import 'package:satulemari/features/profile/domain/entities/profile.dart';
@@ -19,21 +21,23 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   final GetDashboardStatsUseCase getDashboardStats;
   final UpdateProfileUseCase updateProfile;
   final DeleteAccountUseCase deleteAccount;
+  // --- TAMBAHKAN PROPERTY INI ---
+  final AuthBloc authBloc;
 
   ProfileBloc({
     required this.getProfile,
     required this.getDashboardStats,
     required this.updateProfile,
     required this.deleteAccount,
+    // --- TAMBAHKAN DI CONSTRUCTOR ---
+    required this.authBloc,
   }) : super(ProfileInitial()) {
     on<FetchProfileData>(_onFetchProfileData);
     on<UpdateProfileButtonPressed>(_onUpdateProfile);
     on<DeleteAccountButtonPressed>(_onDeleteAccount);
-    // --- TAMBAHKAN HANDLER INI ---
     on<ProfileReset>(_onProfileReset);
   }
 
-  // --- TAMBAHKAN METHOD INI ---
   void _onProfileReset(ProfileReset event, Emitter<ProfileState> emit) {
     print('ProfileBloc state has been reset.');
     emit(ProfileInitial());
@@ -75,7 +79,6 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       UpdateProfileButtonPressed event, Emitter<ProfileState> emit) async {
     final currentState = state;
     if (currentState is ProfileLoaded) {
-      // Emit state InProgress sambil membawa data lama agar UI tidak rusak
       emit(ProfileUpdateInProgress(
           profile: currentState.profile, stats: currentState.stats));
 
@@ -84,16 +87,26 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
 
       result.fold(
         (failure) {
-          // Emit state Failure sambil membawa data lama
           emit(ProfileUpdateFailure(
               message: failure.message,
               profile: currentState.profile,
               stats: currentState.stats));
         },
         (updatedProfile) {
-          // Emit state Success sambil membawa data BARU
           emit(ProfileUpdateSuccess(
               profile: updatedProfile, stats: currentState.stats));
+
+          // --- BAGIAN PENTING: BERI TAHU AUTHBLOC ---
+          final currentAuthState = authBloc.state;
+          if (currentAuthState is Authenticated) {
+            final updatedUser = currentAuthState.user.copyWith(
+              username: updatedProfile.username,
+              // Anda juga bisa memperbarui field lain di sini jika perlu
+              // Contoh: fullName: updatedProfile.fullName,
+            );
+            authBloc.add(UserDataUpdated(updatedUser));
+          }
+          // ------------------------------------------
         },
       );
     }
