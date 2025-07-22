@@ -46,3 +46,13 @@ class LoginWithGoogleButtonPressed extends AuthEvent {}
 
 // Event for logout
 class LogoutButtonPressed extends AuthEvent {}
+
+// --- TAMBAHKAN EVENT INI ---
+class UserDataUpdated extends AuthEvent {
+  final User updatedUser;
+
+  const UserDataUpdated(this.updatedUser);
+
+  @override
+  List<Object> get props => [updatedUser];
+}

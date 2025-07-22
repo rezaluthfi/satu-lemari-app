@@ -39,6 +39,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginWithEmailButtonPressed>(_onLoginWithEmailButtonPressed);
     on<LoginWithGoogleButtonPressed>(_onLoginWithGoogleButtonPressed);
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
+    // --- TAMBAHKAN HANDLER INI ---
+    on<UserDataUpdated>(_onUserDataUpdated);
 
     notificationService.onTokenRefresh().listen((newToken) {
       if (state is Authenticated) {
@@ -46,6 +48,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         _registerToken(token: newToken);
       }
     });
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  void _onUserDataUpdated(UserDataUpdated event, Emitter<AuthState> emit) {
+    final currentState = state;
+    if (currentState is Authenticated) {
+      print(
+          'AuthBloc: User data updated internally. New username: ${event.updatedUser.username}');
+      emit(Authenticated(user: event.updatedUser));
+    }
   }
 
   Future<void> _registerToken({String? token}) async {

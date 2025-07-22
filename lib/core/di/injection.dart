@@ -104,7 +104,8 @@ Future<void> init() async {
   // --- FEATURES ---
 
   // Auth Feature
-  sl.registerFactory(() => AuthBloc(
+  // --- GANTI MENJADI LAZY SINGLETON ---
+  sl.registerLazySingleton(() => AuthBloc(
         registerUseCase: sl(),
         loginWithEmailUseCase: sl(),
         loginWithGoogleUseCase: sl(),
@@ -223,10 +224,12 @@ Future<void> init() async {
 
   // Profile Feature
   sl.registerFactory(() => ProfileBloc(
-      getProfile: sl(),
-      getDashboardStats: sl(),
-      updateProfile: sl(),
-      deleteAccount: sl()));
+        getProfile: sl(),
+        getDashboardStats: sl(),
+        updateProfile: sl(),
+        deleteAccount: sl(),
+        authBloc: sl(),
+      ));
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetDashboardStatsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
