@@ -6,6 +6,14 @@ abstract class BrowseEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class SuggestionsRequested extends BrowseEvent {
+  final String query;
+  const SuggestionsRequested(this.query);
+
+  @override
+  List<Object> get props => [query];
+}
+
 class BrowseDataFetched extends BrowseEvent {}
 
 class TabChanged extends BrowseEvent {

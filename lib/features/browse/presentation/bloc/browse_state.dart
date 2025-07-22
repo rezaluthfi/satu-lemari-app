@@ -2,6 +2,8 @@ part of 'browse_bloc.dart';
 
 enum BrowseStatus { initial, loading, success, error }
 
+enum SuggestionStatus { initial, loading, success, error }
+
 class BrowseState extends Equatable {
   // Status umum untuk feedback UI
   final BrowseStatus status;
@@ -18,6 +20,12 @@ class BrowseState extends Equatable {
   // Tab yang sedang aktif
   final String activeTab; // 'donation' or 'rental'
 
+  // Properti untuk AI Suggestions
+  final SuggestionStatus suggestionStatus;
+  final List<String> suggestions;
+  final String? suggestionError;
+
+  // Properti untuk filter dan pencarian
   final String query;
   final String? categoryId;
   final String? size;
@@ -36,7 +44,9 @@ class BrowseState extends Equatable {
     this.rentalItems = const [],
     this.rentalError,
     this.activeTab = 'donation',
-    // --- MODIFIKASI: Tambahkan di constructor ---
+    this.suggestionStatus = SuggestionStatus.initial,
+    this.suggestions = const [],
+    this.suggestionError,
     this.query = '',
     this.categoryId,
     this.size,
@@ -60,8 +70,10 @@ class BrowseState extends Equatable {
     List<Item>? rentalItems,
     String? rentalError,
     String? activeTab,
+    SuggestionStatus? suggestionStatus,
+    List<String>? suggestions,
+    String? suggestionError,
     String? query,
-    // --- MODIFIKASI: Gunakan helper _copyWith untuk nullable fields ---
     Object? categoryId = _notProvided,
     Object? size = _notProvided,
     Object? sortBy = _notProvided,
@@ -79,8 +91,10 @@ class BrowseState extends Equatable {
       rentalItems: rentalItems ?? this.rentalItems,
       rentalError: rentalError ?? this.rentalError,
       activeTab: activeTab ?? this.activeTab,
+      suggestionStatus: suggestionStatus ?? this.suggestionStatus,
+      suggestions: suggestions ?? this.suggestions,
+      suggestionError: suggestionError ?? this.suggestionError,
       query: query ?? this.query,
-      // --- MODIFIKASI: Gunakan helper untuk semua properti filter ---
       categoryId: _copyWith(categoryId, this.categoryId),
       size: _copyWith(size, this.size),
       sortBy: _copyWith(sortBy, this.sortBy),
@@ -101,7 +115,9 @@ class BrowseState extends Equatable {
         rentalItems,
         rentalError,
         activeTab,
-        // --- MODIFIKASI: Tambahkan semua properti filter ke props ---
+        suggestionStatus,
+        suggestions,
+        suggestionError,
         query,
         categoryId,
         size,
@@ -113,10 +129,8 @@ class BrowseState extends Equatable {
       ];
 }
 
-// Helper object untuk membedakan antara null dan tidak disediakan
 const Object _notProvided = Object();
 
-// Helper function untuk copyWith yang lebih bersih
 T? _copyWith<T>(Object? value, T? fallback) {
   if (value == _notProvided) {
     return fallback;

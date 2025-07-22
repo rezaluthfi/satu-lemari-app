@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
+import 'package:satulemari/features/browse/data/models/ai_suggestions_model.dart';
 import 'package:satulemari/features/category_items/data/models/item_model.dart';
 
 abstract class BrowseRemoteDataSource {
@@ -15,6 +16,8 @@ abstract class BrowseRemoteDataSource {
     double? minPrice,
     double? maxPrice,
   });
+
+  Future<AiSuggestionsModel> getAiSuggestions(String query);
 }
 
 class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
@@ -57,6 +60,20 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
       return data.map((json) => ItemModel.fromJson(json)).toList();
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Gagal mencari item';
+      throw ServerException(message: message);
+    }
+  }
+
+  @override
+  Future<AiSuggestionsModel> getAiSuggestions(String query) async {
+    try {
+      final response = await dio.get(
+        AppUrls.aiSuggestions,
+        queryParameters: {'q': query},
+      );
+      return AiSuggestionsModel.fromJson(response.data);
+    } on DioException catch (e) {
+      final message = e.response?.data['message'] ?? 'Gagal memuat saran';
       throw ServerException(message: message);
     }
   }

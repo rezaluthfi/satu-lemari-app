@@ -7,6 +7,7 @@ import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/browse/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:satulemari/features/browse/presentation/widgets/item_list_view.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
+import 'dart:ui'; // Import untuk BackdropFilter
 
 class BrowsePage extends StatefulWidget {
   const BrowsePage({super.key});
@@ -19,9 +20,10 @@ class _BrowsePageState extends State<BrowsePage>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
-  bool get wantKeepAlive => true; // Jaga state halaman saat berpindah tab
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -37,16 +39,29 @@ class _BrowsePageState extends State<BrowsePage>
     if (browseBloc.state.status == BrowseStatus.initial) {
       browseBloc.add(BrowseDataFetched());
     }
+
+    _searchFocusNode.addListener(() {
+      if (!_searchFocusNode.hasFocus) {
+        // Beri jeda sedikit agar onTap pada suggestion sempat berjalan
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted && !_searchFocusNode.hasFocus) {
+            context.read<BrowseBloc>().add(const SuggestionsRequested(''));
+          }
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _showFilterBottomSheet() {
+    _searchFocusNode.unfocus();
     final homeState = context.read<HomeBloc>().state;
     final browseState = context.read<BrowseBloc>().state;
 
@@ -101,8 +116,7 @@ class _BrowsePageState extends State<BrowsePage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(
-        context); // Panggil super.build untuk AutomaticKeepAliveClientMixin
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -126,51 +140,53 @@ class _BrowsePageState extends State<BrowsePage>
         centerTitle: false,
       ),
       body: BlocListener<BrowseBloc, BrowseState>(
-        // Dengarkan perubahan query untuk update UI TextField
         listenWhen: (previous, current) => previous.query != current.query,
         listener: (context, state) {
           if (_searchController.text != state.query) {
             _searchController.text = state.query;
-            // Pindahkan kursor ke akhir teks
             _searchController.selection = TextSelection.fromPosition(
               TextPosition(offset: _searchController.text.length),
             );
           }
         },
-        child: Column(
+        child: Stack(
           children: [
-            Container(
-              color: AppColors.surface,
-              child: Column(
-                children: [
-                  _buildSearchSection(),
-                  _buildActiveFiltersSection(),
-                  _buildTabSection(),
-                ],
-              ),
+            Column(
+              children: [
+                Container(
+                  color: AppColors.surface,
+                  child: Column(
+                    children: [
+                      _buildSearchTextField(),
+                      _buildActiveFiltersSection(),
+                      _buildTabSection(),
+                    ],
+                  ),
+                ),
+                Container(
+                  height: 1,
+                  color: AppColors.divider.withOpacity(0.3),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: const [
+                      ItemListView(type: 'donation'),
+                      ItemListView(type: 'rental'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            Container(
-              height: 1,
-              color: AppColors.divider.withOpacity(0.3),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: const [
-                  ItemListView(type: 'donation'),
-                  ItemListView(type: 'rental'),
-                ],
-              ),
-            ),
+            _buildSuggestionsList(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchSection() {
+  Widget _buildSearchTextField() {
     return BlocBuilder<BrowseBloc, BrowseState>(
-      // Hanya rebuild jika query atau filter berubah
       buildWhen: (prev, curr) =>
           prev.query != curr.query ||
           prev.categoryId != curr.categoryId ||
@@ -204,7 +220,13 @@ class _BrowsePageState extends State<BrowsePage>
                   ),
                   child: TextField(
                     controller: _searchController,
+                    focusNode: _searchFocusNode,
                     onChanged: (query) {
+                      context
+                          .read<BrowseBloc>()
+                          .add(SuggestionsRequested(query));
+                    },
+                    onSubmitted: (query) {
                       context.read<BrowseBloc>().add(SearchTermChanged(query));
                     },
                     style: const TextStyle(
@@ -213,7 +235,7 @@ class _BrowsePageState extends State<BrowsePage>
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Cari pakaian...',
+                      hintText: 'Cari fashion kesukaanmu...',
                       hintStyle: const TextStyle(
                         color: AppColors.textHint,
                         fontSize: 15,
@@ -224,10 +246,17 @@ class _BrowsePageState extends State<BrowsePage>
                         color: AppColors.textHint,
                         size: 20,
                       ),
-                      suffixIcon: state.query.isNotEmpty
+                      suffixIcon: _searchController.text.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
+                                // ============================================
+                                // ===           PERBAIKAN DI SINI          ===
+                                // ============================================
+                                // 1. Bersihkan controller secara manual
+                                _searchController.clear();
+                                // 2. Panggil event BLoC untuk reset state dan data
                                 context.read<BrowseBloc>().add(SearchCleared());
+                                // ============================================
                               },
                               child: const Icon(
                                 Icons.close_rounded,
@@ -297,7 +326,140 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  // ... (sisa kode _buildActiveFiltersSection, _buildTabSection, _buildFilterChip tidak berubah)
+  Widget _buildSuggestionsList() {
+    return BlocBuilder<BrowseBloc, BrowseState>(
+      buildWhen: (prev, curr) =>
+          prev.suggestionStatus != curr.suggestionStatus ||
+          prev.suggestions != curr.suggestions,
+      builder: (context, state) {
+        final bool showSuggestions = _searchFocusNode.hasFocus &&
+            (state.suggestionStatus == SuggestionStatus.loading ||
+                (state.suggestionStatus == SuggestionStatus.success &&
+                    state.suggestions.isNotEmpty));
+
+        return Positioned(
+          top: 64,
+          left: 20,
+          right: 20,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale:
+                      Tween<double>(begin: 0.95, end: 1.0).animate(animation),
+                  alignment: Alignment.topCenter,
+                  child: child,
+                ),
+              );
+            },
+            child: showSuggestions
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(16.0),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        constraints: const BoxConstraints(maxHeight: 280),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface.withOpacity(0.85),
+                          borderRadius: BorderRadius.circular(16.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: AppColors.divider.withOpacity(0.1),
+                          ),
+                        ),
+                        child: _buildSuggestionContent(state),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestionContent(BrowseState state) {
+    if (state.suggestionStatus == SuggestionStatus.loading) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.primary),
+            ),
+            SizedBox(width: 16),
+            Text(
+              'Aku rasa kamu suka ini, tunggu...',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            )
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: state.suggestions.length,
+      itemBuilder: (context, index) {
+        final suggestion = state.suggestions[index];
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              _searchFocusNode.unfocus();
+              context.read<BrowseBloc>().add(SearchTermChanged(suggestion));
+            },
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
+              child: Row(
+                children: [
+                  const Icon(
+                      Icons
+                          .manage_search_rounded, // Icon baru yang lebih relevan
+                      size: 20,
+                      color: AppColors.primary),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      suggestion,
+                      style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.north_west_rounded,
+                      size: 16, color: AppColors.textHint),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      separatorBuilder: (context, index) => Divider(
+          height: 1,
+          indent: 20,
+          endIndent: 20,
+          color: AppColors.divider.withOpacity(0.1)),
+    );
+  }
+  // ==========================================================
+
   Widget _buildActiveFiltersSection() {
     return BlocBuilder<BrowseBloc, BrowseState>(
       builder: (context, state) {

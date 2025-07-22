@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:rxdart/rxdart.dart';
@@ -10,23 +11,32 @@ part 'browse_state.dart';
 
 class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   final SearchItemsUseCase searchItems;
+  final GetAiSuggestionsUseCase getAiSuggestions;
 
   List<Item> _originalDonationItems = [];
   List<Item> _originalRentalItems = [];
   StreamSubscription<void>? _searchSubscription;
 
-  BrowseBloc({required this.searchItems}) : super(BrowseState.initial()) {
+  BrowseBloc({
+    required this.searchItems,
+    required this.getAiSuggestions,
+  }) : super(BrowseState.initial()) {
     on<BrowseDataFetched>(_onBrowseDataFetched);
     on<TabChanged>(_onTabChanged);
     on<FilterApplied>(_onFilterApplied);
     on<ResetFilters>(_onResetFilters);
-    on<SearchTermChanged>(
-      _onSearchTermChanged,
+
+    // Event untuk AI Suggestions dengan debounce
+    on<SuggestionsRequested>(
+      _onSuggestionsRequested,
       transformer: (events, mapper) => events
           .debounceTime(const Duration(milliseconds: 300))
-          .distinct()
           .switchMap(mapper),
     );
+
+    // Event untuk search item. Sekarang tidak perlu debounce karena akan dipanggil secara eksplisit.
+    on<SearchTermChanged>(_onSearchTermChanged);
+
     on<SearchCleared>(_onSearchCleared);
   }
 
@@ -34,6 +44,32 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   Future<void> close() {
     _searchSubscription?.cancel();
     return super.close();
+  }
+
+  Future<void> _onSuggestionsRequested(
+      SuggestionsRequested event, Emitter<BrowseState> emit) async {
+    if (event.query.trim().isEmpty) {
+      emit(state.copyWith(
+        suggestionStatus: SuggestionStatus.initial,
+        suggestions: [],
+      ));
+      return;
+    }
+
+    emit(state.copyWith(suggestionStatus: SuggestionStatus.loading));
+
+    final result = await getAiSuggestions(event.query);
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        suggestionStatus: SuggestionStatus.error,
+        suggestionError: failure.message,
+      )),
+      (suggestions) => emit(state.copyWith(
+        suggestionStatus: SuggestionStatus.success,
+        suggestions: suggestions.suggestions,
+      )),
+    );
   }
 
   Future<void> _onBrowseDataFetched(
@@ -47,7 +83,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     final newTab = event.index == 0 ? 'donation' : 'rental';
     if (state.activeTab == newTab) return;
 
-    // Saat ganti tab, reset semua filter
     final newState = state.copyWith(
       activeTab: newTab,
       query: '',
@@ -58,6 +93,8 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       city: null,
       minPrice: null,
       maxPrice: null,
+      suggestionStatus: SuggestionStatus.initial,
+      suggestions: [],
     );
     emit(newState);
 
@@ -86,7 +123,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       FilterApplied event, Emitter<BrowseState> emit) async {
     _searchSubscription?.cancel();
 
-    // Perbarui state dengan semua filter yang diterapkan
     final newState = state.copyWith(
       categoryId: event.categoryId,
       size: event.size,
@@ -105,7 +141,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       ResetFilters event, Emitter<BrowseState> emit) async {
     _searchSubscription?.cancel();
 
-    // Reset semua parameter filter ke null
     final newState = state.copyWith(
       categoryId: null,
       size: null,
@@ -115,6 +150,8 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       minPrice: null,
       maxPrice: null,
       query: '',
+      suggestionStatus: SuggestionStatus.initial,
+      suggestions: [],
     );
 
     emit(newState);
@@ -143,17 +180,26 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onSearchTermChanged(
       SearchTermChanged event, Emitter<BrowseState> emit) async {
+    // Saat search term berubah, kita update query di state dan hide suggestions.
+    // Kemudian langsung jalankan _performSearch.
+    final newState = state.copyWith(
+      query: event.query,
+      suggestionStatus: SuggestionStatus.initial,
+      suggestions: [],
+    );
+
     if (event.query.trim().isEmpty) {
       await _onSearchCleared(SearchCleared(), emit);
     } else {
-      await _performSearch(emit, state.copyWith(query: event.query));
+      await _performSearch(emit, newState);
     }
   }
 
   Future<void> _onSearchCleared(
       SearchCleared event, Emitter<BrowseState> emit) async {
     _searchSubscription?.cancel();
-    final newState = state.copyWith(query: '');
+    final newState = state.copyWith(
+        query: '', suggestionStatus: SuggestionStatus.initial, suggestions: []);
     final currentTab = newState.activeTab;
     final hasFilters = newState.categoryId != null ||
         newState.size != null ||
@@ -196,7 +242,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       emit(currentState.copyWith(rentalStatus: BrowseStatus.loading));
     }
 
-    // Buat parameter pencarian dari state saat ini
     final params = SearchItemsParams(
       type: currentTab,
       query: currentState.query,
@@ -218,7 +263,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
     final latestState = state;
 
-    // Cek apakah state masih relevan
     final bool isStateRelevant = latestState.activeTab == params.type &&
         latestState.query == params.query &&
         latestState.categoryId == params.categoryId &&
