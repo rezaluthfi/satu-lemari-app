@@ -1,8 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/home/domain/entities/category.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
+
+/// Formatter untuk mengubah input angka menjadi format mata uang Rupiah
+/// dengan pemisah ribuan (titik).
+class CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.selection.baseOffset == 0) {
+      return newValue;
+    }
+
+    // Hapus semua karakter non-digit dari teks baru
+    String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    // Jika setelah dibersihkan menjadi kosong, kembalikan nilai kosong
+    if (newText.isEmpty) {
+      return const TextEditingValue();
+    }
+
+    // Parse ke double dan format dengan pemisah ribuan
+    double value = double.parse(newText);
+    final formatter = NumberFormat.decimalPattern('id_ID');
+    String newTextFormatted = formatter.format(value);
+
+    // Kembalikan nilai yang sudah diformat dengan kursor di akhir
+    return newValue.copyWith(
+        text: newTextFormatted,
+        selection: TextSelection.collapsed(offset: newTextFormatted.length));
+  }
+}
 
 // Class untuk data yang dikembalikan saat filter diterapkan
 class FilterResult {
@@ -27,11 +58,7 @@ class FilterResult {
 
 class FilterBottomSheet extends StatefulWidget {
   final List<Category> categories;
-
-  // Indikator apakah ini tab sewa atau donasi
   final bool isRentalTab;
-
-  // Menerima semua filter yang aktif saat ini
   final String? activeCategoryId;
   final String? activeSize;
   final String? activeSortBy;
@@ -43,7 +70,7 @@ class FilterBottomSheet extends StatefulWidget {
   const FilterBottomSheet({
     super.key,
     required this.categories,
-    required this.isRentalTab, // Wajib diisi
+    required this.isRentalTab,
     this.activeCategoryId,
     this.activeSize,
     this.activeSortBy,
@@ -58,7 +85,6 @@ class FilterBottomSheet extends StatefulWidget {
 }
 
 class _FilterBottomSheetState extends State<FilterBottomSheet> {
-  // State untuk semua filter
   String? _selectedCategoryId;
   String? _selectedSize;
   String? _selectedSortBy;
@@ -68,10 +94,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late TextEditingController _minPriceController;
   late TextEditingController _maxPriceController;
 
+  // State untuk menyimpan pesan error validasi harga
+  String? _priceValidationError;
+
   final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   final Map<String, String> _sortByOptions = {
     'created_at': 'Terbaru',
-    'price': 'Harga', // Akan kita sembunyikan jika bukan tab sewa
+    'price': 'Harga',
     'name': 'Nama',
   };
 
@@ -80,24 +109,26 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    // Inisialisasi semua state dengan filter yang aktif
     _selectedCategoryId = widget.activeCategoryId;
     _selectedSize = widget.activeSize;
     _selectedSortBy = widget.activeSortBy;
     _selectedSortOrder = widget.activeSortOrder ?? 'desc';
 
     _cityController = TextEditingController(text: widget.activeCity ?? '');
-    _minPriceController = TextEditingController(
-        text: widget.activeMinPrice?.toStringAsFixed(0) ?? '');
-    _maxPriceController = TextEditingController(
-        text: widget.activeMaxPrice?.toStringAsFixed(0) ?? '');
 
-    // Filter opsi sortBy berdasarkan apakah ini tab sewa atau tidak
+    final formatter = NumberFormat.decimalPattern('id_ID');
+    _minPriceController = TextEditingController(
+        text: widget.activeMinPrice != null
+            ? formatter.format(widget.activeMinPrice)
+            : '');
+    _maxPriceController = TextEditingController(
+        text: widget.activeMaxPrice != null
+            ? formatter.format(widget.activeMaxPrice)
+            : '');
+
     _filteredSortByOptions = Map.from(_sortByOptions);
     if (!widget.isRentalTab) {
-      // Hapus opsi harga jika bukan di tab sewa
       _filteredSortByOptions.remove('price');
-      // Jika sorting aktif adalah 'harga', reset ke null
       if (_selectedSortBy == 'price') {
         _selectedSortBy = null;
       }
@@ -113,29 +144,49 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   void _resetFilters() {
-    Navigator.of(context).pop(FilterResult(
-      categoryId: null,
-      size: null,
-      sortBy: null,
-      sortOrder: null,
-      city: null,
-      minPrice: null,
-      maxPrice: null,
-    ));
+    Navigator.of(context).pop(FilterResult());
   }
 
   void _applyFilters() {
+    // Selalu reset pesan error setiap kali tombol ditekan
+    setState(() {
+      _priceValidationError = null;
+    });
+
+    // Ambil nilai dan bersihkan dari format Rupiah (hapus titik)
+    final minPriceString = _minPriceController.text.replaceAll('.', '');
+    final maxPriceString = _maxPriceController.text.replaceAll('.', '');
+
+    // Konversi ke double, anggap null jika string kosong
+    final double? minPrice =
+        minPriceString.isNotEmpty ? double.tryParse(minPriceString) : null;
+    final double? maxPrice =
+        maxPriceString.isNotEmpty ? double.tryParse(maxPriceString) : null;
+
+    // Lakukan validasi
+    if (widget.isRentalTab &&
+        minPrice != null &&
+        maxPrice != null &&
+        minPrice > maxPrice) {
+      // Set state untuk menampilkan pesan error di UI dan hentikan proses
+      setState(() {
+        _priceValidationError =
+            'Harga minimal tidak boleh lebih besar dari harga maksimal.';
+      });
+      return;
+    }
+
+    // Jika valid, buat objek FilterResult dan kembalikan (pop)
     final result = FilterResult(
       categoryId: _selectedCategoryId,
       size: _selectedSize,
       sortBy: _selectedSortBy,
       sortOrder: _selectedSortOrder,
-      city: _cityController.text.trim(),
-      // Hanya kirim harga jika di tab sewa
-      minPrice:
-          widget.isRentalTab ? double.tryParse(_minPriceController.text) : null,
-      maxPrice:
-          widget.isRentalTab ? double.tryParse(_maxPriceController.text) : null,
+      city: _cityController.text.trim().isEmpty
+          ? null
+          : _cityController.text.trim(),
+      minPrice: widget.isRentalTab ? minPrice : null,
+      maxPrice: widget.isRentalTab ? maxPrice : null,
     );
     Navigator.of(context).pop(result);
   }
@@ -171,15 +222,12 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   const SizedBox(height: 12),
                   _buildSortOrderToggles(),
                   const SizedBox(height: 24),
-
-                  // Tampilkan filter harga secara kondisional
                   if (widget.isRentalTab) ...[
-                    _buildSectionTitle('Rentang Harga (Rp)'),
+                    _buildSectionTitle('Rentang Harga'),
                     const SizedBox(height: 12),
                     _buildPriceRangeFields(),
                     const SizedBox(height: 24),
                   ],
-
                   _buildSectionTitle('Lokasi (Kota)'),
                   const SizedBox(height: 12),
                   _buildCityField(),
@@ -191,6 +239,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   _buildSectionTitle('Ukuran'),
                   const SizedBox(height: 12),
                   _buildSizeChips(),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -250,7 +299,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
     return Wrap(
       spacing: 8.0,
       runSpacing: 8.0,
-      // Gunakan opsi yang sudah difilter
       children: _filteredSortByOptions.entries.map((entry) {
         final isSelected = _selectedSortBy == entry.key;
         return ChoiceChip(
@@ -309,16 +357,35 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   Widget _buildPriceRangeFields() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-            child: _buildTextField(_minPriceController, 'Harga Min', 'Rp ')),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text('-', style: TextStyle(color: AppColors.textSecondary)),
+        Row(
+          children: [
+            Expanded(
+                child:
+                    _buildTextField(_minPriceController, 'Harga Min', "Rp ")),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child:
+                  Text('-', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            Expanded(
+                child:
+                    _buildTextField(_maxPriceController, 'Harga Max', "Rp ")),
+          ],
         ),
-        Expanded(
-            child: _buildTextField(_maxPriceController, 'Harga Max', 'Rp ')),
+        if (_priceValidationError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+            child: Text(
+              _priceValidationError!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -329,15 +396,25 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
 
   Widget _buildTextField(
       TextEditingController controller, String hintText, String? prefixText) {
+    final isPriceField = prefixText != null;
+    final inputFormatters = isPriceField
+        ? [FilteringTextInputFormatter.digitsOnly, CurrencyInputFormatter()]
+        : <TextInputFormatter>[];
+
     return TextField(
       controller: controller,
-      keyboardType:
-          prefixText != null ? TextInputType.number : TextInputType.text,
-      inputFormatters:
-          prefixText != null ? [FilteringTextInputFormatter.digitsOnly] : [],
+      keyboardType: isPriceField ? TextInputType.number : TextInputType.text,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hintText,
         prefixText: prefixText,
+        errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Theme.of(context).colorScheme.error)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.error, width: 1.5)),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: AppColors.divider)),
