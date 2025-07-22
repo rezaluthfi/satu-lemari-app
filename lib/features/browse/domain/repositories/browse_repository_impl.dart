@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/services/category_cache_service.dart';
 import 'package:satulemari/features/browse/data/datasources/browse_remote_datasource.dart';
+import 'package:satulemari/features/browse/domain/entities/ai_suggestions.dart';
 import 'package:satulemari/features/browse/domain/repositories/browse_repository.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/core/errors/failures.dart';
@@ -67,6 +68,20 @@ class BrowseRepositoryImpl implements BrowseRepository {
 
         final entities = remoteModels.map(_mapItemModelToItemEntity).toList();
         return Right(entities);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ConnectionFailure('No Internet Connection'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AiSuggestions>> getAiSuggestions(String query) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final remoteModel = await remoteDataSource.getAiSuggestions(query);
+        return Right(remoteModel);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
