@@ -487,8 +487,9 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
+          // SESUDAH
           Text(
-            'Reset pada: ${DateFormat('dd MMMM yyyy').format(DateTime.parse(profile.quotaResetDate))}',
+            'Reset pada: ${DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.parse(profile.quotaResetDate))}',
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,

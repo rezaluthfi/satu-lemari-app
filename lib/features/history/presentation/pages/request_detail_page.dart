@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart'; // Add this import
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
@@ -11,8 +12,30 @@ import 'package:satulemari/features/item_detail/presentation/pages/item_detail_p
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class RequestDetailPage extends StatelessWidget {
+class RequestDetailPage extends StatefulWidget {
   const RequestDetailPage({super.key});
+
+  @override
+  State<RequestDetailPage> createState() => _RequestDetailPageState();
+}
+
+class _RequestDetailPageState extends State<RequestDetailPage> {
+  bool _localeInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeLocale();
+  }
+
+  Future<void> _initializeLocale() async {
+    await initializeDateFormatting('id_ID', null);
+    if (mounted) {
+      setState(() {
+        _localeInitialized = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +123,9 @@ class RequestDetailPage extends StatelessWidget {
           },
           child: BlocBuilder<RequestDetailBloc, RequestDetailState>(
             builder: (context, state) {
-              if (state is RequestDetailLoading ||
+              // Show shimmer while locale is initializing or data is loading
+              if (!_localeInitialized ||
+                  state is RequestDetailLoading ||
                   state is RequestDetailInitial) {
                 return const RequestDetailShimmer();
               }
@@ -211,7 +236,6 @@ class RequestDetailPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- PERBAIKAN 1: Hapus pemanggilan _buildInfoBanner ---
           _buildItemCard(context, detail.item),
           const SizedBox(height: 24),
           _buildRequestCard(context, detail),
@@ -224,8 +248,6 @@ class RequestDetailPage extends StatelessWidget {
       ),
     );
   }
-
-  // --- PERBAIKAN 1: Hapus seluruh method _buildInfoBanner ---
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -358,7 +380,6 @@ class RequestDetailPage extends StatelessWidget {
 
   Widget _buildRequestCard(BuildContext context, RequestDetail detail) {
     final bool isDonation = detail.type == 'donation';
-    // --- PERBAIKAN 2: Konversi waktu ke zona waktu lokal ---
     final localCreatedAt = detail.createdAt.toLocal();
     final localPickupDate = detail.pickupDate?.toLocal();
     final localReturnDate = detail.returnDate?.toLocal();
@@ -385,8 +406,8 @@ class RequestDetailPage extends StatelessWidget {
                 _buildInfoRow(
                   icon: Icons.calendar_today_rounded,
                   label: 'Tanggal Permintaan',
-                  value:
-                      DateFormat('dd MMMM yyyy, HH:mm').format(localCreatedAt),
+                  value: DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
+                      .format(localCreatedAt),
                 ),
                 if (isDonation &&
                     detail.reason != null &&
@@ -408,7 +429,8 @@ class RequestDetailPage extends StatelessWidget {
                     icon: Icons.event_available_rounded,
                     label: 'Tanggal Ambil',
                     value: localPickupDate != null
-                        ? DateFormat('dd MMMM yyyy').format(localPickupDate)
+                        ? DateFormat('dd MMMM yyyy', 'id_ID')
+                            .format(localPickupDate)
                         : 'Tidak ditentukan',
                   ),
                   const SizedBox(height: 20),
@@ -418,7 +440,8 @@ class RequestDetailPage extends StatelessWidget {
                     icon: Icons.event_busy_rounded,
                     label: 'Tanggal Kembali',
                     value: localReturnDate != null
-                        ? DateFormat('dd MMMM yyyy').format(localReturnDate)
+                        ? DateFormat('dd MMMM yyyy', 'id_ID')
+                            .format(localReturnDate)
                         : 'Tidak ditentukan',
                   ),
                 ]

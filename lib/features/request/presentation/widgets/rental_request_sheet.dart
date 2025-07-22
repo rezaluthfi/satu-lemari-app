@@ -1,5 +1,3 @@
-// File: features/request/presentation/widgets/rental_request_sheet.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -30,6 +28,7 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
     if (_formKey.currentState!.validate()) {
       String? formatDate(DateTime? date) {
         if (date == null) return null;
+        // Gunakan format standar untuk dikirim ke backend
         return DateFormat('yyyy-MM-dd').format(date);
       }
 
@@ -58,14 +57,37 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
       firstDate: firstDate,
       lastDate: lastDate,
       helpText: isPickup ? 'Pilih Tanggal Ambil' : 'Pilih Tanggal Kembali',
+      // ==========================================================
+      // === PERUBAHAN 1: Menambahkan Builder untuk Styling Picker ===
+      // ==========================================================
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary, // Warna utama picker
+              onPrimary: Colors.white, // Warna teks di atas warna utama
+              onSurface: AppColors.textPrimary, // Warna tanggal lain
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary, // Warna tombol OK/CANCEL
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedDate != null && mounted) {
       setState(() {
         if (isPickup) {
           _selectedPickupDate = pickedDate;
+          // =================================================================
+          // === PERUBAHAN 2: Menambahkan locale 'id_ID' untuk format tanggal ===
+          // =================================================================
           _pickupDateController.text =
-              DateFormat('dd MMMM yyyy').format(pickedDate);
+              DateFormat('dd MMMM yyyy', 'id_ID').format(pickedDate);
           if (_selectedReturnDate != null &&
               pickedDate.isAfter(_selectedReturnDate!)) {
             _selectedReturnDate = null;
@@ -84,8 +106,11 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
             return;
           }
           _selectedReturnDate = pickedDate;
+          // =================================================================
+          // === PERUBAHAN 3: Menambahkan locale 'id_ID' untuk format tanggal ===
+          // =================================================================
           _returnDateController.text =
-              DateFormat('dd MMMM yyyy').format(pickedDate);
+              DateFormat('dd MMMM yyyy', 'id_ID').format(pickedDate);
         }
       });
       _formKey.currentState?.validate();
@@ -111,7 +136,6 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
       ),
       child: BlocBuilder<RequestBloc, RequestState>(
         builder: (context, state) {
-          // --- PERBAIKAN: Gunakan nama state yang benar ---
           final bool isLoading = state is RequestInProgress;
 
           return Form(
@@ -134,10 +158,12 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
                   controller: _quantityController,
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Jumlah tidak boleh kosong';
-                    if (int.tryParse(value) == null || int.parse(value) <= 0)
+                    }
+                    if (int.tryParse(value) == null || int.parse(value) <= 0) {
                       return 'Jumlah tidak valid';
+                    }
                     return null;
                   },
                 ),
@@ -147,7 +173,7 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
                   controller: _pickupDateController,
                   readOnly: true,
                   onTap: () => _selectDate(context, true),
-                  prefixIcon: Icons.calendar_today,
+                  prefixIcon: Icons.calendar_today_rounded,
                   validator: (value) => (value == null || value.isEmpty)
                       ? 'Tanggal ambil tidak boleh kosong'
                       : null,
@@ -169,7 +195,7 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
                     }
                     _selectDate(context, false);
                   },
-                  prefixIcon: Icons.calendar_today,
+                  prefixIcon: Icons.calendar_today_rounded,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Tanggal kembali tidak boleh kosong';
