@@ -41,6 +41,15 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<DeleteNotification>(_onDeleteNotification);
     on<DeleteMultipleNotifications>(_onDeleteMultipleNotifications);
     on<MarkMultipleAsRead>(_onMarkMultipleAsRead);
+    // --- TAMBAHKAN HANDLER INI ---
+    on<NotificationReset>(_onNotificationReset);
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  void _onNotificationReset(
+      NotificationReset event, Emitter<NotificationState> emit) {
+    print('NotificationBloc state has been reset.');
+    emit(const NotificationState());
   }
 
   Future<void> _onFetchNotifications(

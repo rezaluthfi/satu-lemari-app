@@ -1,3 +1,5 @@
+// lib/features/history/presentation/bloc/history_bloc.dart
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/features/history/domain/entities/request_item.dart';
@@ -11,6 +13,14 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
   HistoryBloc({required this.getMyRequests}) : super(const HistoryState()) {
     on<FetchHistory>(_onFetchHistory);
+    // --- TAMBAHKAN HANDLER INI ---
+    on<HistoryReset>(_onHistoryReset);
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  void _onHistoryReset(HistoryReset event, Emitter<HistoryState> emit) {
+    print('HistoryBloc state has been reset.');
+    emit(const HistoryState()); // Kembali ke state awal yang kosong
   }
 
   Future<void> _onFetchHistory(

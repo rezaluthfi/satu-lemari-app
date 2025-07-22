@@ -13,3 +13,6 @@ class FetchCategories extends HomeEvent {}
 class FetchTrendingItems extends HomeEvent {}
 
 class FetchPersonalizedItems extends HomeEvent {}
+
+// --- TAMBAHKAN KELAS INI ---
+class HomeReset extends HomeEvent {}

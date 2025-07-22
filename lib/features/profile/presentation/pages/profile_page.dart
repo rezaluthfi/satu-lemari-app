@@ -4,6 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
+// --- IMPORT UNTUK RESET BLOC ---
+import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
+import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
+import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
+// ---------------------------------
 import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
 import 'package:satulemari/features/profile/domain/entities/profile.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
@@ -17,6 +22,7 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Memastikan data diambil jika state masih initial
     if (context.read<ProfileBloc>().state is ProfileInitial) {
       context.read<ProfileBloc>().add(FetchProfileData());
     }
@@ -32,6 +38,7 @@ class ProfilePage extends StatelessWidget {
                 backgroundColor: AppColors.success,
               ),
             );
+            // Panggil event logout setelah akun berhasil dihapus
             context.read<AuthBloc>().add(LogoutButtonPressed());
           }
           if (state is ProfileError) {
@@ -125,7 +132,7 @@ class ProfilePage extends StatelessWidget {
                           _buildDescriptionCard(profile.description!),
                           const SizedBox(height: 16),
                         ],
-                        _buildStatsSection(stats),
+                        _buildStatsSection(stats), // Bagian statistik
                         const SizedBox(height: 16),
                         _buildDonationQuotaCard(profile),
                         const SizedBox(height: 16),
@@ -141,7 +148,7 @@ class ProfilePage extends StatelessWidget {
                   const Spacer(),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    child: _buildActionSection(context),
+                    child: _buildActionSection(context), // Bagian tombol aksi
                   ),
                 ],
               ),
@@ -179,14 +186,14 @@ class ProfilePage extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.white.withOpacity(0.03),
-                        // Hapus backgroundImage
                         child: profile.photo != null
                             ? ClipOval(
                                 child: CachedNetworkImage(
                                   imageUrl: profile.photo!,
-                                  fit: BoxFit.contain,
+                                  fit: BoxFit.cover, // Gunakan cover agar pas
                                   placeholder: (context, url) =>
-                                      const CircularProgressIndicator(),
+                                      const CircularProgressIndicator(
+                                          color: Colors.white),
                                   errorWidget: (context, url, error) =>
                                       const Icon(
                                     Icons.person,
@@ -196,7 +203,6 @@ class ProfilePage extends StatelessWidget {
                                 ),
                               )
                             : const Icon(
-                                // Fallback jika tidak ada foto
                                 Icons.person,
                                 size: 50,
                                 color: Colors.white,
@@ -330,6 +336,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  // --- WIDGET STATISTIK YANG SUDAH DIMODIFIKASI ---
   Widget _buildStatsSection(DashboardStats stats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,15 +367,6 @@ class ProfilePage extends StatelessWidget {
                 stats.totalRentals.toString(),
                 Icons.shopping_bag_outlined,
                 AppColors.rental,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                'Item Aktif',
-                stats.activeItems.toString(),
-                Icons.checkroom_outlined,
-                AppColors.info,
               ),
             ),
           ],
@@ -622,7 +620,7 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            profile.address ?? 'Lokasi',
+            profile.address ?? 'Lokasi belum diatur',
             style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
@@ -654,6 +652,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  // --- WIDGET AKSI DENGAN LOGIKA LOGOUT YANG BENAR ---
   Widget _buildActionSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -724,7 +723,26 @@ class ProfilePage extends StatelessWidget {
                                       ),
                                       TextButton(
                                         onPressed: () {
+                                          // Tutup dialog terlebih dahulu
                                           Navigator.of(dialogContext).pop();
+
+                                          // 1. Reset state semua BLoC yang relevan
+                                          print(
+                                              "Resetting all user-specific BLoC states...");
+                                          context
+                                              .read<ProfileBloc>()
+                                              .add(ProfileReset());
+                                          context
+                                              .read<HistoryBloc>()
+                                              .add(HistoryReset());
+                                          context
+                                              .read<HomeBloc>()
+                                              .add(HomeReset());
+                                          context
+                                              .read<NotificationBloc>()
+                                              .add(NotificationReset());
+
+                                          // 2. Lanjutkan dengan proses logout
                                           context
                                               .read<AuthBloc>()
                                               .add(LogoutButtonPressed());

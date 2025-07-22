@@ -39,3 +39,6 @@ class MarkMultipleAsRead extends NotificationEvent {
   @override
   List<Object> get props => [notificationIds];
 }
+
+// --- TAMBAHKAN KELAS INI ---
+class NotificationReset extends NotificationEvent {}

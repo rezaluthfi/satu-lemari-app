@@ -16,3 +16,6 @@ class UpdateProfileButtonPressed extends ProfileEvent {
 }
 
 class DeleteAccountButtonPressed extends ProfileEvent {}
+
+// --- TAMBAHKAN KELAS INI ---
+class ProfileReset extends ProfileEvent {}
