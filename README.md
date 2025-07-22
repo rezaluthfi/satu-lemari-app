@@ -13,7 +13,7 @@ Aplikasi mobile untuk platform donasi dan rental pakaian **SatuLemari**. Dibangu
 - **Pencarian Cerdas & Rekomendasi**:
   - Pencarian item dengan filter kategori.
   - Rekomendasi item yang dipersonalisasi dan sedang tren, didukung oleh AI dari backend.
-  - Analisis _intent_ pengguna dari input bahasa natural.
+  - Analisis _intent_ pengguna dari input bahasa natural (speech-to-text).
 - **Profil & Dashboard Pengguna**: Kelola profil, lihat statistik donasi/sewa, dan atur lokasi.
 - **Geolokasi**: Tampilkan item dan mitra di peta interaktif, serta pilih lokasi dengan _location picker_.
 - **Notifikasi Real-time**:
