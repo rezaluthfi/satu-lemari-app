@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
 import 'package:satulemari/features/profile/data/models/update_profile_request.dart';
 import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
@@ -28,6 +29,14 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<FetchProfileData>(_onFetchProfileData);
     on<UpdateProfileButtonPressed>(_onUpdateProfile);
     on<DeleteAccountButtonPressed>(_onDeleteAccount);
+    // --- TAMBAHKAN HANDLER INI ---
+    on<ProfileReset>(_onProfileReset);
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  void _onProfileReset(ProfileReset event, Emitter<ProfileState> emit) {
+    print('ProfileBloc state has been reset.');
+    emit(ProfileInitial());
   }
 
   Future<void> _onFetchProfileData(
@@ -46,19 +55,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final profileResult = results[0];
       final statsResult = results[1];
 
-      switch ((profileResult, statsResult)) {
-        case (Right(value: final profile), Right(value: final stats)):
-          emit(ProfileLoaded(
-              profile: profile as Profile, stats: stats as DashboardStats));
-          break;
-        case (Left(value: final failure), _):
-          emit(ProfileError(failure.message));
-          break;
-        case (_, Left(value: final failure)):
-          emit(ProfileError(failure.message));
-          break;
-        default:
-          emit(const ProfileError('Terjadi kesalahan tidak diketahui.'));
+      if (profileResult.isRight() && statsResult.isRight()) {
+        emit(ProfileLoaded(
+          profile: (profileResult as Right).value,
+          stats: (statsResult as Right).value,
+        ));
+      } else {
+        final failure = profileResult.isLeft()
+            ? (profileResult as Left).value
+            : (statsResult as Left).value;
+        emit(ProfileError((failure as Failure).message));
       }
     } catch (e) {
       emit(ProfileError('Terjadi kesalahan: $e'));

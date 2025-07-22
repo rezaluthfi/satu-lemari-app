@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,7 +22,9 @@ class EditProfilePage extends StatefulWidget {
   State<EditProfilePage> createState() => _EditProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+// --- TAMBAHKAN 'with WidgetsBindingObserver' ---
+class _EditProfilePageState extends State<EditProfilePage>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _usernameController;
   late TextEditingController _fullNameController;
@@ -30,6 +33,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _cityController;
   late TextEditingController _descriptionController;
 
+  final ImagePicker _picker = ImagePicker(); // Instance picker
   XFile? _newImageFile;
   double? _latitude;
   double? _longitude;
@@ -45,6 +49,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _addressController = TextEditingController();
     _cityController = TextEditingController();
     _descriptionController = TextEditingController();
+
+    // --- DAFTARKAN OBSERVER ---
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cek jika aplikasi kembali aktif (misalnya setelah dari kamera)
+    if (state == AppLifecycleState.resumed) {
+      _retrieveLostData();
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  // --- TAMBAHKAN METHOD INI UNTUK MEMULIHKAN DATA GAMBAR ---
+  Future<void> _retrieveLostData() async {
+    print("Attempting to retrieve lost data...");
+    final LostDataResponse response = await _picker.retrieveLostData();
+    if (response.isEmpty) {
+      print("No lost data found.");
+      return;
+    }
+    if (response.file != null) {
+      print("Lost data found! File path: ${response.file!.path}");
+      if (mounted) {
+        // Jika data ditemukan, langsung panggil proses crop
+        _cropImage(response.file!);
+      }
+    } else {
+      print("Error retrieving lost data: ${response.exception}");
+    }
   }
 
   @override
@@ -66,6 +102,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   void dispose() {
+    // --- HAPUS OBSERVER ---
+    WidgetsBinding.instance.removeObserver(this);
+
     _usernameController.dispose();
     _fullNameController.dispose();
     _phoneController.dispose();
@@ -131,7 +170,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               title: const Text('Galeri'),
               onTap: () {
                 Navigator.of(context).pop();
-                _pickAndCropImage(ImageSource.gallery);
+                _pickImage(ImageSource.gallery);
               },
             ),
             ListTile(
@@ -139,7 +178,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               title: const Text('Kamera'),
               onTap: () {
                 Navigator.of(context).pop();
-                _pickAndCropImage(ImageSource.camera);
+                _pickImage(ImageSource.camera);
               },
             ),
           ],
@@ -148,15 +187,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Future<void> _pickAndCropImage(ImageSource source) async {
-    final picker = ImagePicker();
+  // Pisahkan logic pick dan crop
+  Future<void> _pickImage(ImageSource source) async {
+    // Tidak perlu lagi membuat instance picker di sini
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile == null || !mounted) return;
+
+    _cropImage(pickedFile);
+  }
+
+  Future<void> _cropImage(XFile imageFile) async {
     final cropper = ImageCropper();
-
-    final pickedFile = await picker.pickImage(source: source);
-    if (pickedFile == null) return;
-
     final croppedFile = await cropper.cropImage(
-      sourcePath: pickedFile.path,
+      sourcePath: imageFile.path,
       aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       compressQuality: 70,
       uiSettings: [
@@ -164,8 +207,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
             toolbarTitle: 'Potong Gambar',
             toolbarColor: AppColors.primary,
             toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true),
-        IOSUiSettings(title: 'Potong Gambar', aspectRatioLockEnabled: true),
+        IOSUiSettings(
+            title: 'Potong Gambar',
+            aspectRatioLockEnabled: true,
+            aspectRatioPickerButtonHidden: true,
+            resetAspectRatioEnabled: false),
       ],
     );
 
@@ -193,7 +241,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                 content: Text('Profil berhasil diperbarui!'),
                 backgroundColor: AppColors.success));
-            Navigator.of(context).pop(); // Cukup pop saja
+            Navigator.of(context).pop();
           } else if (state is ProfileUpdateFailure) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(state.message),

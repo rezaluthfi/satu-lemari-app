@@ -35,6 +35,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<FetchCategories>(_onFetchCategories);
     on<FetchTrendingItems>(_onFetchTrendingItems);
     on<FetchPersonalizedItems>(_onFetchPersonalizedItems);
+    // --- TAMBAHKAN HANDLER INI ---
+    on<HomeReset>(_onHomeReset);
+  }
+
+  // --- TAMBAHKAN METHOD INI ---
+  void _onHomeReset(HomeReset event, Emitter<HomeState> emit) {
+    print('HomeBloc state has been reset.');
+    emit(const HomeState());
   }
 
   Future<void> _onFetchCategories(
@@ -67,6 +75,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         trendingError: failure.message,
       )),
       (ids) async {
+        if (ids.isEmpty) {
+          emit(state
+              .copyWith(trendingStatus: DataStatus.loaded, trendingItems: []));
+          return;
+        }
         final itemsResult = await getItemsByIds(GetItemsByIdsParams(ids: ids));
         itemsResult.fold(
           (failure) => emit(state.copyWith(
@@ -93,6 +106,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         personalizedError: failure.message,
       )),
       (ids) async {
+        if (ids.isEmpty) {
+          emit(state.copyWith(
+              personalizedStatus: DataStatus.loaded, personalizedItems: []));
+          return;
+        }
         final itemsResult = await getItemsByIds(GetItemsByIdsParams(ids: ids));
         itemsResult.fold(
           (failure) => emit(state.copyWith(
