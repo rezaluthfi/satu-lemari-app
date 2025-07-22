@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Import semua BLoC yang akan disediakan
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
@@ -52,6 +53,8 @@ Future<void> main() async {
   );
 
   await di.init();
+
+  await initializeDateFormatting('id_ID', null);
 
   runApp(const MyApp());
 }

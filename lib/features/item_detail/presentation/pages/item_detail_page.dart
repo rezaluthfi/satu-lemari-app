@@ -72,18 +72,11 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             SliverAppBar(
               expandedHeight: 350.0,
               pinned: true,
-              backgroundColor: AppColors.background,
+              backgroundColor: AppColors.primary,
               elevation: 0.5,
-              leading: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const BackButton(color: Colors.white),
-                ),
-              ),
+              title: const Text('Detail Item',
+                  style: TextStyle(color: Colors.white)),
+              leading: const BackButton(color: Colors.white),
               flexibleSpace: FlexibleSpaceBar(
                 background: _buildImageCarousel(context, item.images),
               ),

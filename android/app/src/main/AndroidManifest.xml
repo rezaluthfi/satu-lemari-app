@@ -30,7 +30,7 @@
     </queries>
     
     <application
-        android:label="satulemari"
+        android:label="SatuLemari"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
