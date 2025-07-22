@@ -1,5 +1,8 @@
+// lib/features/browse/presentation/bloc/browse_bloc.dart
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
@@ -12,6 +15,7 @@ part 'browse_state.dart';
 class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   final SearchItemsUseCase searchItems;
   final GetAiSuggestionsUseCase getAiSuggestions;
+  final AnalyzeIntentUseCase analyzeIntent;
 
   List<Item> _originalDonationItems = [];
   List<Item> _originalRentalItems = [];
@@ -20,30 +24,80 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   BrowseBloc({
     required this.searchItems,
     required this.getAiSuggestions,
+    required this.analyzeIntent,
   }) : super(BrowseState.initial()) {
     on<BrowseDataFetched>(_onBrowseDataFetched);
     on<TabChanged>(_onTabChanged);
     on<FilterApplied>(_onFilterApplied);
     on<ResetFilters>(_onResetFilters);
+    on<SearchTermChanged>(_onSearchTermChanged);
+    on<SearchCleared>(_onSearchCleared);
+    on<IntentAnalysisAndSearchRequested>(_onIntentAnalysisAndSearchRequested);
 
-    // Event untuk AI Suggestions dengan debounce
     on<SuggestionsRequested>(
       _onSuggestionsRequested,
       transformer: (events, mapper) => events
           .debounceTime(const Duration(milliseconds: 300))
           .switchMap(mapper),
     );
-
-    // Event untuk search item. Sekarang tidak perlu debounce karena akan dipanggil secara eksplisit.
-    on<SearchTermChanged>(_onSearchTermChanged);
-
-    on<SearchCleared>(_onSearchCleared);
   }
 
   @override
   Future<void> close() {
     _searchSubscription?.cancel();
     return super.close();
+  }
+
+  Future<void> _onIntentAnalysisAndSearchRequested(
+    IntentAnalysisAndSearchRequested event,
+    Emitter<BrowseState> emit,
+  ) async {
+    _searchSubscription?.cancel();
+    _searchSubscription = null;
+
+    final loadingState = state.copyWith(
+      query: event.query,
+      suggestionStatus: SuggestionStatus.initial,
+      suggestions: [],
+    );
+
+    if (state.activeTab == 'donation') {
+      emit(loadingState.copyWith(donationStatus: BrowseStatus.loading));
+    } else {
+      emit(loadingState.copyWith(rentalStatus: BrowseStatus.loading));
+    }
+
+    final result = await analyzeIntent(event.query);
+
+    await result.fold(
+      (failure) async {
+        final errorState = state.copyWith(query: event.query);
+        if (state.activeTab == 'donation') {
+          emit(errorState.copyWith(
+              donationStatus: BrowseStatus.error,
+              donationError: failure.message));
+        } else {
+          emit(errorState.copyWith(
+              rentalStatus: BrowseStatus.error, rentalError: failure.message));
+        }
+      },
+      (intent) async {
+        final filters = intent.filters;
+
+        final newState = state.copyWith(
+          query: filters.search ?? event.query,
+          categoryId: filters.categoryId,
+          size: filters.size,
+          maxPrice: filters.maxPrice?.toDouble(),
+          minPrice: null,
+          sortBy: null,
+          sortOrder: null,
+          city: null,
+        );
+
+        await _performSearch(emit, newState);
+      },
+    );
   }
 
   Future<void> _onSuggestionsRequested(
@@ -180,8 +234,6 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onSearchTermChanged(
       SearchTermChanged event, Emitter<BrowseState> emit) async {
-    // Saat search term berubah, kita update query di state dan hide suggestions.
-    // Kemudian langsung jalankan _performSearch.
     final newState = state.copyWith(
       query: event.query,
       suggestionStatus: SuggestionStatus.initial,
@@ -287,8 +339,8 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
           }
         },
         (items) {
-          final isOriginalData = params.query == null ||
-              params.query!.isEmpty &&
+          final isOriginalData =
+              (params.query == null || params.query!.isEmpty) &&
                   params.categoryId == null &&
                   params.size == null &&
                   params.sortBy == null &&

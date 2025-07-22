@@ -1,7 +1,10 @@
+// lib/features/browse/data/datasources/browse_remote_datasource.dart
+
 import 'package:dio/dio.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/features/browse/data/models/ai_suggestions_model.dart';
+import 'package:satulemari/features/browse/data/models/intent_analysis_model.dart';
 import 'package:satulemari/features/category_items/data/models/item_model.dart';
 
 abstract class BrowseRemoteDataSource {
@@ -18,6 +21,8 @@ abstract class BrowseRemoteDataSource {
   });
 
   Future<AiSuggestionsModel> getAiSuggestions(String query);
+
+  Future<IntentAnalysisResponseModel> analyzeIntent(String query);
 }
 
 class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
@@ -74,6 +79,21 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
       return AiSuggestionsModel.fromJson(response.data);
     } on DioException catch (e) {
       final message = e.response?.data['message'] ?? 'Gagal memuat saran';
+      throw ServerException(message: message);
+    }
+  }
+
+  @override
+  Future<IntentAnalysisResponseModel> analyzeIntent(String query) async {
+    try {
+      final response = await dio.post(
+        AppUrls.aiIntent,
+        data: {'query': query},
+      );
+      return IntentAnalysisResponseModel.fromJson(response.data);
+    } on DioException catch (e) {
+      final message =
+          e.response?.data['message'] ?? 'Gagal menganalisis permintaan';
       throw ServerException(message: message);
     }
   }

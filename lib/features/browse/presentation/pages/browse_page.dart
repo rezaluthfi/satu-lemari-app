@@ -1,3 +1,5 @@
+// lib/features/browse/presentation/pages/browse_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,7 +9,8 @@ import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/browse/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:satulemari/features/browse/presentation/widgets/item_list_view.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
-import 'dart:ui'; // Import untuk BackdropFilter
+import 'dart:ui';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class BrowsePage extends StatefulWidget {
   const BrowsePage({super.key});
@@ -22,12 +25,19 @@ class _BrowsePageState extends State<BrowsePage>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
+  // State untuk Speech Recognition
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _hintText = 'Cari fashion kesukaanmu...';
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    // Inisialisasi Speech object
+    _speech = stt.SpeechToText();
     _tabController = TabController(length: 2, vsync: this);
     final browseBloc = context.read<BrowseBloc>();
 
@@ -54,10 +64,62 @@ class _BrowsePageState extends State<BrowsePage>
 
   @override
   void dispose() {
+    // Hentikan listening saat widget di-dispose untuk mencegah memory leak
+    _speech.stop();
     _tabController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  // Logic untuk mendengarkan suara
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize(
+        onStatus: (val) {
+          if (val == 'done' || val == 'notListening') {
+            setState(() {
+              _isListening = false;
+              _hintText = 'Cari fashion kesukaanmu...';
+            });
+            _speech.stop();
+          }
+        },
+        onError: (val) {
+          setState(() {
+            _isListening = false;
+            _hintText = 'Coba lagi...';
+          });
+          _speech.stop();
+        },
+      );
+      if (available) {
+        setState(() {
+          _isListening = true;
+          _hintText = 'Aku mendengarkan...';
+        });
+        _speech.listen(
+          localeId: 'id_ID', // Optimalkan untuk Bahasa Indonesia
+          onResult: (val) {
+            // Kita tidak langsung proses, tapi tunggu hasil akhir
+          },
+        );
+      }
+    } else {
+      setState(() {
+        _isListening = false;
+        _hintText = 'Cari fashion kesukaanmu...';
+      });
+      _speech.stop();
+      final lastWords = _speech.lastRecognizedWords;
+      if (lastWords.isNotEmpty) {
+        _searchFocusNode.unfocus();
+        // Kirim event ke BLoC untuk dianalisis
+        context
+            .read<BrowseBloc>()
+            .add(IntentAnalysisAndSearchRequested(lastWords));
+      }
+    }
   }
 
   void _showFilterBottomSheet() {
@@ -170,7 +232,7 @@ class _BrowsePageState extends State<BrowsePage>
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: const [
+                    children: [
                       ItemListView(type: 'donation'),
                       ItemListView(type: 'rental'),
                     ],
@@ -188,7 +250,6 @@ class _BrowsePageState extends State<BrowsePage>
   Widget _buildSearchTextField() {
     return BlocBuilder<BrowseBloc, BrowseState>(
       buildWhen: (prev, curr) =>
-          prev.query != curr.query ||
           prev.categoryId != curr.categoryId ||
           prev.size != curr.size ||
           prev.sortBy != curr.sortBy ||
@@ -214,7 +275,9 @@ class _BrowsePageState extends State<BrowsePage>
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.divider.withOpacity(0.3),
+                      color: _isListening
+                          ? AppColors.primary
+                          : AppColors.divider.withOpacity(0.3),
                       width: 1,
                     ),
                   ),
@@ -227,7 +290,11 @@ class _BrowsePageState extends State<BrowsePage>
                           .add(SuggestionsRequested(query));
                     },
                     onSubmitted: (query) {
-                      context.read<BrowseBloc>().add(SearchTermChanged(query));
+                      if (query.isNotEmpty) {
+                        context
+                            .read<BrowseBloc>()
+                            .add(IntentAnalysisAndSearchRequested(query));
+                      }
                     },
                     style: const TextStyle(
                       fontSize: 15,
@@ -235,9 +302,11 @@ class _BrowsePageState extends State<BrowsePage>
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Cari fashion kesukaanmu...',
-                      hintStyle: const TextStyle(
-                        color: AppColors.textHint,
+                      hintText: _hintText,
+                      hintStyle: TextStyle(
+                        color: _isListening
+                            ? AppColors.primary
+                            : AppColors.textHint,
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
                       ),
@@ -249,14 +318,8 @@ class _BrowsePageState extends State<BrowsePage>
                       suffixIcon: _searchController.text.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
-                                // ============================================
-                                // ===           PERBAIKAN DI SINI          ===
-                                // ============================================
-                                // 1. Bersihkan controller secara manual
                                 _searchController.clear();
-                                // 2. Panggil event BLoC untuk reset state dan data
                                 context.read<BrowseBloc>().add(SearchCleared());
-                                // ============================================
                               },
                               child: const Icon(
                                 Icons.close_rounded,
@@ -271,6 +334,32 @@ class _BrowsePageState extends State<BrowsePage>
                         vertical: 14,
                       ),
                     ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: _listen,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _isListening
+                        ? AppColors.primary.withOpacity(0.1)
+                        : AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isListening
+                          ? AppColors.primary
+                          : AppColors.divider.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                    color:
+                        _isListening ? AppColors.primary : AppColors.textHint,
+                    size: 24,
                   ),
                 ),
               ),
@@ -458,7 +547,6 @@ class _BrowsePageState extends State<BrowsePage>
           color: AppColors.divider.withOpacity(0.1)),
     );
   }
-  // ==========================================================
 
   Widget _buildActiveFiltersSection() {
     return BlocBuilder<BrowseBloc, BrowseState>(

@@ -1,7 +1,10 @@
+// lib/features/browse/domain/repositories/browse_repository_impl.dart
+
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/services/category_cache_service.dart';
 import 'package:satulemari/features/browse/data/datasources/browse_remote_datasource.dart';
 import 'package:satulemari/features/browse/domain/entities/ai_suggestions.dart';
+import 'package:satulemari/features/browse/domain/entities/intent_analysis.dart';
 import 'package:satulemari/features/browse/domain/repositories/browse_repository.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/core/errors/failures.dart';
@@ -30,7 +33,6 @@ class BrowseRepositoryImpl implements BrowseRepository {
       type = ItemType.rental;
     }
 
-    // Dapatkan nama kategori dari cache menggunakan categoryId
     final categoryName = model.categoryId != null
         ? categoryCache.getCategoryNameById(model.categoryId!)
         : null;
@@ -82,6 +84,40 @@ class BrowseRepositoryImpl implements BrowseRepository {
       try {
         final remoteModel = await remoteDataSource.getAiSuggestions(query);
         return Right(remoteModel);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ConnectionFailure('No Internet Connection'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, IntentAnalysis>> analyzeIntent(String query) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final remoteModel = await remoteDataSource.analyzeIntent(query);
+        final data = remoteModel.data;
+
+        // Logika penting: Konversi nama kategori dari AI ke ID kategori aplikasi
+        String? categoryId;
+        if (data.entities.category != null &&
+            data.entities.category!.isNotEmpty) {
+          categoryId =
+              categoryCache.getCategoryIdByName(data.entities.category!);
+        }
+
+        // Mapping dari Model ke Entity
+        final entity = IntentAnalysis(
+          query: data.query,
+          filters: IntentFilters(
+            search: data.filters.search,
+            size: data.filters.size,
+            maxPrice: data.filters.maxPrice,
+            categoryId: categoryId, // Gunakan ID yang sudah dikonversi
+          ),
+        );
+        return Right(entity);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
