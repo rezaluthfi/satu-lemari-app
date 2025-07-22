@@ -1,3 +1,5 @@
+// lib/core/di/injection.dart
+
 // Flutter & External Packages
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -46,6 +48,9 @@ import 'package:satulemari/features/browse/domain/repositories/browse_repository
 import 'package:satulemari/features/browse/domain/repositories/browse_repository_impl.dart';
 import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
+// --- TAMBAHKAN IMPORT UNTUK USECASE BARU ---
+import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecase.dart';
+// ------------------------------------------
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 
 // History
@@ -152,9 +157,11 @@ Future<void> init() async {
   sl.registerFactory(() => BrowseBloc(
         searchItems: sl(),
         getAiSuggestions: sl(),
+        analyzeIntent: sl(),
       ));
   sl.registerLazySingleton(() => SearchItemsUseCase(sl()));
   sl.registerLazySingleton(() => GetAiSuggestionsUseCase(sl()));
+  sl.registerLazySingleton(() => AnalyzeIntentUseCase(sl()));
   sl.registerLazySingleton<BrowseRepository>(() => BrowseRepositoryImpl(
         remoteDataSource: sl(),
         networkInfo: sl(),

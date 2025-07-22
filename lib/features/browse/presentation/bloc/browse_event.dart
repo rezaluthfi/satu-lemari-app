@@ -1,3 +1,4 @@
+// lib/features/browse/presentation/bloc/browse_event.dart
 part of 'browse_bloc.dart';
 
 abstract class BrowseEvent extends Equatable {
@@ -57,3 +58,11 @@ class FilterApplied extends BrowseEvent {
 }
 
 class ResetFilters extends BrowseEvent {}
+
+class IntentAnalysisAndSearchRequested extends BrowseEvent {
+  final String query;
+  const IntentAnalysisAndSearchRequested(this.query);
+
+  @override
+  List<Object> get props => [query];
+}

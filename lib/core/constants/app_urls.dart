@@ -10,6 +10,7 @@ class AppUrls {
   static const String searchItems = '/items/search';
 
   // AI
+  static const String aiIntent = '/ai/intent';
   static const String aiSuggestions = '/ai/suggestions';
   static const String trendingRecommendations = '/ai/recommendations/trending';
   static const String personalizedRecommendations =
