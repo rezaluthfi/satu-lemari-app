@@ -93,7 +93,7 @@ lib/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/dzuura/satu-lemari-app.git
+git clone https://github.com/rezaluthfi/satu-lemari-app.git
 cd satu-lemari-app
 ```
 
@@ -174,6 +174,7 @@ Didistribusikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk informasi lebih
 
 - **Email**: satulemariapp@gmail.com
 - **Backend Repository**: [SatuLemari Backend](https://github.com/dzuura/satu-lemari)
+- **Issues**: [GitHub Issues](https://github.com/rezaluthfi/satu-lemari-app/issues)
 
 ---
 
