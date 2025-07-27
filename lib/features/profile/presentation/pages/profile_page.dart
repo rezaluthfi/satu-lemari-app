@@ -4,11 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
-// --- IMPORT UNTUK RESET BLOC ---
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
-// ---------------------------------
 import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
 import 'package:satulemari/features/profile/domain/entities/profile.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
@@ -17,93 +15,230 @@ import 'package:satulemari/features/profile/presentation/widgets/profile_shimmer
 import 'package:satulemari/shared/widgets/custom_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Memastikan data diambil jika state masih initial
-    if (context.read<ProfileBloc>().state is ProfileInitial) {
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Trigger fetch data ketika widget pertama kali di-init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchProfileDataIfNeeded();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Trigger fetch when dependencies change (e.g., when page becomes visible)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchProfileDataIfNeeded();
+      }
+    });
+  }
+
+  void _fetchProfileDataIfNeeded() {
+    final profileState = context.read<ProfileBloc>().state;
+    final authState = context.read<AuthBloc>().state;
+
+    print(
+        "[PROFILE_PAGE_LOG] Current ProfileState: ${profileState.runtimeType}");
+    print("[PROFILE_PAGE_LOG] Current AuthState: ${authState.runtimeType}");
+
+    // Fetch jika user authenticated/registered dan profile belum loaded
+    if ((authState is Authenticated || authState is RegistrationSuccess) &&
+        (profileState is ProfileInitial || profileState is ProfileError)) {
+      print("[PROFILE_PAGE_LOG] Triggering FetchProfileData");
       context.read<ProfileBloc>().add(FetchProfileData());
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: BlocListener<ProfileBloc, ProfileState>(
-        listener: (context, state) {
-          if (state is AccountDeleteSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Akun berhasil dihapus.'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-            // Panggil event logout setelah akun berhasil dihapus
-            context.read<AuthBloc>().add(LogoutButtonPressed());
-          }
-          if (state is ProfileError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
-        child: BlocBuilder<ProfileBloc, ProfileState>(
-          builder: (context, state) {
-            if (state is ProfileLoaded) {
-              return _buildProfileContent(context, state.profile, state.stats);
-            }
-            if (state is ProfileError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.error_outline_rounded,
-                          color: AppColors.error,
-                          size: 48,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Oops! Gagal Memuat Profil',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        state.message,
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      CustomButton(
-                        text: 'Coba Lagi',
-                        onPressed: () =>
-                            context.read<ProfileBloc>().add(FetchProfileData()),
-                        icon: Icons.refresh,
-                      ),
-                    ],
+      body: MultiBlocListener(
+        listeners: [
+          // Listen to AuthBloc changes
+          BlocListener<AuthBloc, AuthState>(
+            listener: (context, authState) {
+              print(
+                  "[PROFILE_PAGE_LOG] AuthBloc state changed: ${authState.runtimeType}");
+
+              // Handle both Authenticated and RegistrationSuccess states
+              if (authState is Authenticated ||
+                  authState is RegistrationSuccess) {
+                // Ketika user berhasil login atau register, fetch profile data
+                final profileState = context.read<ProfileBloc>().state;
+                if (profileState is ProfileInitial ||
+                    profileState is ProfileError) {
+                  print(
+                      "[PROFILE_PAGE_LOG] User authenticated/registered, fetching profile data");
+                  context.read<ProfileBloc>().add(FetchProfileData());
+                }
+              } else if (authState is Unauthenticated) {
+                // Reset profile ketika logout
+                print(
+                    "[PROFILE_PAGE_LOG] User unauthenticated, resetting profile");
+                context.read<ProfileBloc>().add(ProfileReset());
+              }
+            },
+          ),
+          // Listen to ProfileBloc changes
+          BlocListener<ProfileBloc, ProfileState>(
+            listener: (context, state) {
+              print(
+                  "[PROFILE_PAGE_LOG] ProfileBloc state changed: ${state.runtimeType}");
+
+              if (state is ProfileUpdateFailure) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: AppColors.error,
                   ),
-                ),
+                );
+              } else if (state is ProfileError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal memuat data: ${state.message}'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            // Tampilkan shimmer saat proses logout sedang berlangsung
+            if (authState is AuthLoading) {
+              return const ProfileShimmer();
+            }
+
+            // Jika user tidak authenticated/registered, jangan tampilkan apapun
+            if (authState is! Authenticated &&
+                authState is! RegistrationSuccess) {
+              return const Center(
+                child: CircularProgressIndicator(),
               );
             }
-            return const ProfileShimmer();
+
+            return BlocBuilder<ProfileBloc, ProfileState>(
+              builder: (context, profileState) {
+                print(
+                    "[PROFILE_PAGE_LOG] Building with ProfileState: ${profileState.runtimeType}");
+
+                // Kondisi untuk menampilkan shimmer - termasuk untuk auth loading dan account delete
+                if (profileState is ProfileInitial ||
+                    profileState is ProfileLoading ||
+                    profileState is AccountDeleteInProgress) {
+                  return const ProfileShimmer();
+                }
+
+                // Kondisi untuk menampilkan konten
+                if (profileState is ProfileLoaded ||
+                    profileState is ProfileUpdateSuccess ||
+                    profileState is ProfileUpdateInProgress ||
+                    profileState is ProfileUpdateFailure) {
+                  late final Profile profile;
+                  late final DashboardStats stats;
+
+                  if (profileState is ProfileLoaded) {
+                    profile = profileState.profile;
+                    stats = profileState.stats;
+                  } else if (profileState is ProfileUpdateSuccess) {
+                    profile = profileState.profile;
+                    stats = profileState.stats;
+                  } else if (profileState is ProfileUpdateInProgress) {
+                    profile = profileState.profile;
+                    stats = profileState.stats;
+                  } else if (profileState is ProfileUpdateFailure) {
+                    profile = profileState.profile;
+                    stats = profileState.stats;
+                  }
+
+                  return _buildProfileContent(context, profile, stats);
+                }
+
+                if (profileState is ProfileError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.error_outline_rounded,
+                              color: AppColors.error,
+                              size: 48,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Oops! Gagal Memuat Profil',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            profileState.message,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          CustomButton(
+                            text: 'Coba Lagi',
+                            onPressed: () => context
+                                .read<ProfileBloc>()
+                                .add(FetchProfileData()),
+                            icon: Icons.refresh,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                // Fallback - trigger fetch jika state tidak dikenal
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    print(
+                        "[PROFILE_PAGE_LOG] Unknown state, triggering fetch: ${profileState.runtimeType}");
+                    context.read<ProfileBloc>().add(FetchProfileData());
+                  }
+                });
+
+                return const ProfileShimmer();
+              },
+            );
           },
         ),
       ),
@@ -132,7 +267,7 @@ class ProfilePage extends StatelessWidget {
                           _buildDescriptionCard(profile.description!),
                           const SizedBox(height: 16),
                         ],
-                        _buildStatsSection(stats), // Bagian statistik
+                        _buildStatsSection(stats),
                         const SizedBox(height: 16),
                         _buildDonationQuotaCard(profile),
                         const SizedBox(height: 16),
@@ -148,7 +283,7 @@ class ProfilePage extends StatelessWidget {
                   const Spacer(),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    child: _buildActionSection(context), // Bagian tombol aksi
+                    child: _buildActionSection(context),
                   ),
                 ],
               ),
@@ -190,7 +325,7 @@ class ProfilePage extends StatelessWidget {
                             ? ClipOval(
                                 child: CachedNetworkImage(
                                   imageUrl: profile.photo!,
-                                  fit: BoxFit.cover, // Gunakan cover agar pas
+                                  fit: BoxFit.cover,
                                   placeholder: (context, url) =>
                                       const CircularProgressIndicator(
                                           color: Colors.white),
@@ -336,7 +471,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // --- WIDGET STATISTIK YANG SUDAH DIMODIFIKASI ---
   Widget _buildStatsSection(DashboardStats stats) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,7 +621,6 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // SESUDAH
           Text(
             'Reset pada: ${DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.parse(profile.quotaResetDate))}',
             style: const TextStyle(
@@ -653,7 +786,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  // --- WIDGET AKSI DENGAN LOGIKA LOGOUT YANG BENAR ---
   Widget _buildActionSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -691,126 +823,89 @@ class ProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, authState) {
-              return BlocBuilder<ProfileBloc, ProfileState>(
-                builder: (context, profileState) {
-                  final isAuthLoading = authState is AuthLoading;
-                  final isProfileLoading =
-                      profileState is AccountDeleteInProgress;
-                  final isLoading = isAuthLoading || isProfileLoading;
-
-                  return Column(
-                    children: [
-                      CustomButton(
-                        text: 'Logout',
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                showDialog(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    title: const Text('Logout'),
-                                    content: const Text(
-                                        'Apakah Anda yakin ingin keluar?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(dialogContext).pop(),
-                                        child: const Text('Batal'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          // Tutup dialog terlebih dahulu
-                                          Navigator.of(dialogContext).pop();
-
-                                          // 1. Reset state semua BLoC yang relevan
-                                          print(
-                                              "Resetting all user-specific BLoC states...");
-                                          context
-                                              .read<ProfileBloc>()
-                                              .add(ProfileReset());
-                                          context
-                                              .read<HistoryBloc>()
-                                              .add(HistoryReset());
-                                          context
-                                              .read<HomeBloc>()
-                                              .add(HomeReset());
-                                          context
-                                              .read<NotificationBloc>()
-                                              .add(NotificationReset());
-
-                                          // 2. Lanjutkan dengan proses logout
-                                          context
-                                              .read<AuthBloc>()
-                                              .add(LogoutButtonPressed());
-                                        },
-                                        child: const Text(
-                                          'Logout',
-                                          style: TextStyle(
-                                              color: AppColors.primary),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                        type: ButtonType.outline,
-                        width: double.infinity,
-                        icon: Icons.logout,
-                        isLoading: isAuthLoading,
+          Column(
+            children: [
+              CustomButton(
+                text: 'Logout',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 12),
-                      CustomButton(
-                        text: 'Hapus Akun',
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                showDialog(
-                                  context: context,
-                                  builder: (dialogContext) => AlertDialog(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    title: const Text('Hapus Akun'),
-                                    content: const Text(
-                                        'Tindakan ini tidak dapat diurungkan. Apakah Anda yakin?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(dialogContext).pop(),
-                                        child: const Text('Batal'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(dialogContext).pop();
-                                          context.read<ProfileBloc>().add(
-                                              DeleteAccountButtonPressed());
-                                        },
-                                        child: const Text(
-                                          'Hapus',
-                                          style:
-                                              TextStyle(color: AppColors.error),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                        type: ButtonType.text,
-                        textColor: AppColors.error,
-                        width: double.infinity,
-                        icon: Icons.delete_forever_outlined,
-                        isLoading: isProfileLoading,
-                      ),
-                    ],
+                      title: const Text('Logout'),
+                      content: const Text('Apakah Anda yakin ingin keluar?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            print("Resetting all user-specific BLoC states...");
+                            context.read<ProfileBloc>().add(ProfileReset());
+                            context.read<HistoryBloc>().add(HistoryReset());
+                            context.read<HomeBloc>().add(HomeReset());
+                            context
+                                .read<NotificationBloc>()
+                                .add(NotificationReset());
+                            context.read<AuthBloc>().add(LogoutButtonPressed());
+                          },
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
-              );
-            },
+                type: ButtonType.outline,
+                width: double.infinity,
+                icon: Icons.logout,
+              ),
+              const SizedBox(height: 12),
+              CustomButton(
+                text: 'Hapus Akun',
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      title: const Text('Hapus Akun'),
+                      content: const Text(
+                          'Tindakan ini tidak dapat diurungkan. Apakah Anda yakin?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Batal'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            context
+                                .read<ProfileBloc>()
+                                .add(DeleteAccountButtonPressed());
+                          },
+                          child: const Text(
+                            'Hapus',
+                            style: TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                type: ButtonType.text,
+                textColor: AppColors.error,
+                width: double.infinity,
+                icon: Icons.delete_forever_outlined,
+              ),
+            ],
           ),
         ],
       ),

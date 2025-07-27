@@ -39,7 +39,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginWithEmailButtonPressed>(_onLoginWithEmailButtonPressed);
     on<LoginWithGoogleButtonPressed>(_onLoginWithGoogleButtonPressed);
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
-    // --- TAMBAHKAN HANDLER INI ---
     on<UserDataUpdated>(_onUserDataUpdated);
 
     notificationService.onTokenRefresh().listen((newToken) {
@@ -50,7 +49,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
   }
 
-  // --- TAMBAHKAN METHOD INI ---
   void _onUserDataUpdated(UserDataUpdated event, Emitter<AuthState> emit) {
     final currentState = state;
     if (currentState is Authenticated) {
@@ -166,15 +164,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogoutButtonPressed(
       LogoutButtonPressed event, Emitter<AuthState> emit) async {
-    print('AuthBloc - Logout button pressed');
+    print("[AUTH_BLOC_LOG] Event LogoutButtonPressed diterima.");
     emit(AuthLoading());
     try {
       await _deleteToken();
+      print("[AUTH_BLOC_LOG] Memanggil logoutUseCase.");
       await logoutUseCase(NoParams());
-      print('AuthBloc - Logout successful, emitting Unauthenticated');
+      print(
+          "[AUTH_BLOC_LOG] LogoutUseCase selesai. Mengirim state Unauthenticated.");
       emit(Unauthenticated());
     } catch (e) {
-      print('AuthBloc - Logout failed: $e');
+      print(
+          "[AUTH_BLOC_LOG] Terjadi error saat logout: $e. Tetap mengirim state Unauthenticated.");
       emit(Unauthenticated());
     }
   }

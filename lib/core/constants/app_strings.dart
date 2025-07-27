@@ -60,8 +60,9 @@ class AppStrings {
   static const String emailInvalid = 'Format email tidak valid';
   static const String passwordTooShort = 'Password minimal 8 karakter';
   static const String passwordNotMatch = 'Password tidak cocok';
-  static const String phoneInvalid = 'Format nomor telepon tidak valid';
-  static const String nameInvalid = 'Nama minimal 2 karakter';
+  static const String phoneInvalid =
+      'Format nomor telepon tidak valid (contoh: 08123456789)';
+  static const String nameInvalid = 'Nama minimal 3 karakter';
 
   // Common
   static const String loading = 'Memuat...';
