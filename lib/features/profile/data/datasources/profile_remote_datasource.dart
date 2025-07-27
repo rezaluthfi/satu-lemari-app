@@ -59,12 +59,15 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
       if (request.phone != null) data['phone'] = request.phone!;
       if (request.address != null) data['address'] = request.address!;
       if (request.city != null) data['city'] = request.city!;
-      if (request.description != null)
+      if (request.description != null) {
         data['description'] = request.description!;
-      if (request.latitude != null)
+      }
+      if (request.latitude != null) {
         data['latitude'] = request.latitude!.toString();
-      if (request.longitude != null)
+      }
+      if (request.longitude != null) {
         data['longitude'] = request.longitude!.toString();
+      }
 
       // Jika ada file foto, tambahkan sebagai MultipartFile
       if (request.photoFile != null) {

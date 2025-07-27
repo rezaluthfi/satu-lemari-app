@@ -39,7 +39,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   void initState() {
     super.initState();
     // Gunakan lokasi awal dari widget.initialLocation jika ada
-    _selectedLocation = widget.initialLocation ?? LatLng(-6.2088, 106.8456);
+    _selectedLocation =
+        widget.initialLocation ?? const LatLng(-6.2088, 106.8456);
     if (widget.initialLocation != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _getAddressFromLatLng(_selectedLocation!);

@@ -398,7 +398,7 @@ class _NotificationPageState extends State<NotificationPage> {
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.circle_notifications_rounded,
             color: AppColors.info,
             size: 20,
@@ -408,7 +408,7 @@ class _NotificationPageState extends State<NotificationPage> {
           Flexible(
             child: Text(
               'Anda memiliki $unreadCount notifikasi yang belum dibaca',
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.info,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -427,13 +427,13 @@ class _NotificationPageState extends State<NotificationPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline_rounded,
             size: 64,
             color: AppColors.textHint,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'Oops! Terjadi Kesalahan',
             style: TextStyle(
               fontSize: 18,
@@ -447,7 +447,7 @@ class _NotificationPageState extends State<NotificationPage> {
             child: Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
               ),
@@ -474,7 +474,7 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -483,7 +483,7 @@ class _NotificationPageState extends State<NotificationPage> {
             size: 80,
             color: AppColors.textHint,
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Text(
             'Belum Ada Notifikasi',
             style: TextStyle(
@@ -492,9 +492,9 @@ class _NotificationPageState extends State<NotificationPage> {
               color: AppColors.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: EdgeInsets.symmetric(horizontal: 32),
             child: Text(
               'Notifikasi akan muncul di sini ketika ada aktivitas baru di akun Anda',
               textAlign: TextAlign.center,
@@ -620,7 +620,7 @@ class _NotificationPageState extends State<NotificationPage> {
                             padding: const EdgeInsets.only(top: 2),
                             child: Text(
                               _formatTime(notification.createdAt),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textHint,
                                 fontWeight: FontWeight.w400,
@@ -632,7 +632,7 @@ class _NotificationPageState extends State<NotificationPage> {
                       const SizedBox(height: 6),
                       Text(
                         notification.message,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textSecondary,
                           height: 1.3,
@@ -642,14 +642,14 @@ class _NotificationPageState extends State<NotificationPage> {
                       ),
                       if (canNavigate) ...[
                         const SizedBox(height: 8),
-                        Row(
+                        const Row(
                           children: [
                             Icon(
                               Icons.arrow_forward_rounded,
                               size: 12,
                               color: AppColors.primary,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Text(
                               'Lihat Detail',
                               style: TextStyle(
@@ -675,7 +675,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   )
                 else
                   IconButton(
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.close_rounded,
                       color: AppColors.textHint,
                       size: 18,

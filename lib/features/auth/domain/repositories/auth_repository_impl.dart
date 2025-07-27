@@ -83,8 +83,10 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, void>> logout() async {
     try {
       if (await networkInfo.isConnected) {
-        await remoteDataSource.logout();
+        // Panggilan logout ke remoteDataSource opsional, tergantung API Anda
+        // await remoteDataSource.logout();
       }
+      print("[AUTH_REPO_IMPL_LOG] Memanggil localDataSource.clearCache().");
       await localDataSource.clearCache();
       return const Right(null);
     } catch (e) {

@@ -1,15 +1,17 @@
+import 'package:satulemari/core/constants/app_strings.dart';
+
 class Validators {
   /// Memvalidasi format email.
   /// Mengembalikan pesan error jika tidak valid, atau null jika valid.
   static String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Email tidak boleh kosong';
+      return AppStrings.fieldRequired;
     }
     // Regex ini kuat dan menerima format seperti 'user8@example.com'
     final emailRegex =
         RegExp(r'^[a-zA-Z0-9.a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     if (!emailRegex.hasMatch(value)) {
-      return 'Format email tidak valid';
+      return AppStrings.emailInvalid;
     }
     return null;
   }
@@ -18,11 +20,11 @@ class Validators {
   /// Mengembalikan pesan error jika tidak valid, atau null jika valid.
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Password tidak boleh kosong';
+      return AppStrings.fieldRequired;
     }
     // Menggunakan aturan minimal 8 karakter agar konsisten dengan solusi sebelumnya.
     if (value.length < 8) {
-      return 'Password minimal harus 6 karakter';
+      return AppStrings.passwordTooShort;
     }
     return null;
   }
@@ -31,10 +33,10 @@ class Validators {
   /// Mengembalikan pesan error jika tidak cocok, atau null jika cocok.
   static String? validateConfirmPassword(String? value, String password) {
     if (value == null || value.isEmpty) {
-      return 'Konfirmasi password tidak boleh kosong';
+      return AppStrings.fieldRequired;
     }
     if (value != password) {
-      return 'Password tidak cocok';
+      return AppStrings.passwordNotMatch;
     }
     return null;
   }
@@ -43,10 +45,10 @@ class Validators {
   /// Mengembalikan pesan error jika tidak valid, atau null jika valid.
   static String? validateName(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Username tidak boleh kosong';
+      return AppStrings.fieldRequired;
     }
     if (value.length < 3) {
-      return 'Username minimal harus 3 karakter';
+      return AppStrings.nameInvalid;
     }
     return null;
   }
@@ -60,7 +62,7 @@ class Validators {
     // Regex sederhana untuk nomor telepon Indonesia (10-13 digit)
     final phoneRegex = RegExp(r'^(08)\d{8,11}$');
     if (!phoneRegex.hasMatch(value)) {
-      return 'Format nomor telepon tidak valid (contoh: 08123456789)';
+      return AppStrings.phoneInvalid;
     }
     return null;
   }

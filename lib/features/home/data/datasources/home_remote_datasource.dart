@@ -28,7 +28,7 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
     final List<dynamic>? recommendationsList =
         dataMap['recommendations'] ?? dataMap['trending_items'];
 
-    if (recommendationsList == null || recommendationsList is! List) {
+    if (recommendationsList == null) {
       // Kembalikan list kosong jika daftar tidak ditemukan atau bukan list
       return [];
     }

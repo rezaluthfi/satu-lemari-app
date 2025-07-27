@@ -1,5 +1,3 @@
-// lib/core/di/injection.dart
-
 // Flutter & External Packages
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,9 +46,7 @@ import 'package:satulemari/features/browse/domain/repositories/browse_repository
 import 'package:satulemari/features/browse/domain/repositories/browse_repository_impl.dart';
 import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
-// --- TAMBAHKAN IMPORT UNTUK USECASE BARU ---
 import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecase.dart';
-// ------------------------------------------
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 
 // History
@@ -109,7 +105,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // --- FEATURES ---
 
-  // Auth Feature
+  // Auth Feature (Singleton is correct)
   sl.registerLazySingleton(() => AuthBloc(
         registerUseCase: sl(),
         loginWithEmailUseCase: sl(),
@@ -137,8 +133,8 @@ Future<void> init() async {
   sl.registerLazySingleton<AuthLocalDataSource>(
       () => AuthLocalDataSourceImpl(sharedPreferences: sl()));
 
-  // Home Feature
-  sl.registerFactory(() => HomeBloc(
+  // Home Feature -> Singleton
+  sl.registerLazySingleton(() => HomeBloc(
         getCategories: sl(),
         getTrendingItems: sl(),
         getPersonalizedRecommendations: sl(),
@@ -153,8 +149,8 @@ Future<void> init() async {
   sl.registerLazySingleton<HomeRemoteDataSource>(
       () => HomeRemoteDataSourceImpl(dio: sl()));
 
-  // Browse Feature
-  sl.registerFactory(() => BrowseBloc(
+  // Browse Feature -> Singleton
+  sl.registerLazySingleton(() => BrowseBloc(
         searchItems: sl(),
         getAiSuggestions: sl(),
         analyzeIntent: sl(),
@@ -170,7 +166,7 @@ Future<void> init() async {
   sl.registerLazySingleton<BrowseRemoteDataSource>(
       () => BrowseRemoteDataSourceImpl(dio: sl()));
 
-  // Category Items Feature
+  // Category Items Feature -> Factory is acceptable
   sl.registerFactory(() => CategoryItemsBloc(getItemsByCategory: sl()));
   sl.registerLazySingleton(() => GetItemsByCategoryUseCase(sl()));
   sl.registerLazySingleton<CategoryItemsRepository>(() =>
@@ -178,7 +174,7 @@ Future<void> init() async {
   sl.registerLazySingleton<CategoryItemsRemoteDataSource>(
       () => CategoryItemsRemoteDataSourceImpl(dio: sl()));
 
-  // Item Detail Feature
+  // Item Detail Feature -> Factory is acceptable
   sl.registerFactory(() => ItemDetailBloc(
         getItemById: sl(),
         getMyRequests: sl(),
@@ -191,7 +187,7 @@ Future<void> init() async {
   sl.registerLazySingleton<ItemDetailRemoteDataSource>(
       () => ItemDetailRemoteDataSourceImpl(dio: sl()));
 
-  // Request Feature
+  // Request Feature -> Factory is acceptable
   sl.registerFactory(() => RequestBloc(createRequest: sl()));
   sl.registerLazySingleton(() => CreateRequestUseCase(sl()));
   sl.registerLazySingleton<RequestRepository>(
@@ -199,8 +195,9 @@ Future<void> init() async {
   sl.registerLazySingleton<RequestRemoteDataSource>(
       () => RequestRemoteDataSourceImpl(dio: sl()));
 
-  // History Feature
-  sl.registerFactory(() => HistoryBloc(getMyRequests: sl()));
+  // History Feature -> Singleton
+  sl.registerLazySingleton(() => HistoryBloc(getMyRequests: sl()));
+  // RequestDetailBloc is for a specific page, Factory is better here
   sl.registerFactory(
       () => RequestDetailBloc(getRequestDetail: sl(), deleteRequest: sl()));
   sl.registerLazySingleton(() => GetMyRequestsUseCase(sl()));
@@ -211,8 +208,8 @@ Future<void> init() async {
   sl.registerLazySingleton<HistoryRemoteDataSource>(
       () => HistoryRemoteDataSourceImpl(dio: sl()));
 
-  // Notification Feature
-  sl.registerFactory(() => NotificationBloc(
+  // Notification Feature -> Singleton
+  sl.registerLazySingleton(() => NotificationBloc(
         getMyNotifications: sl(),
         getNotificationStats: sl(),
         markAllAsRead: sl(),
@@ -233,8 +230,8 @@ Future<void> init() async {
   sl.registerLazySingleton<NotificationRemoteDataSource>(
       () => NotificationRemoteDataSourceImpl(dio: sl()));
 
-  // Profile Feature
-  sl.registerFactory(() => ProfileBloc(
+  // Profile Feature -> Singleton (MOST IMPORTANT CHANGE)
+  sl.registerLazySingleton(() => ProfileBloc(
         getProfile: sl(),
         getDashboardStats: sl(),
         updateProfile: sl(),

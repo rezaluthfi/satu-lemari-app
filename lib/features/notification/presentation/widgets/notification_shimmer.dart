@@ -38,14 +38,14 @@ class _ShimmerNotificationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade300),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      child: const Padding(
+        padding: EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Placeholder untuk ikon
-            const _ShimmerContainer(width: 48, height: 48, borderRadius: 12),
-            const SizedBox(width: 12),
+            _ShimmerContainer(width: 48, height: 48, borderRadius: 12),
+            SizedBox(width: 12),
             // Placeholder untuk teks
             Expanded(
               child: Column(
@@ -55,21 +55,21 @@ class _ShimmerNotificationCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const _ShimmerContainer(height: 16, width: 150),
-                      const _ShimmerContainer(height: 12, width: 50),
+                      _ShimmerContainer(height: 16, width: 150),
+                      _ShimmerContainer(height: 12, width: 50),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   // Placeholder untuk pesan notifikasi
-                  const _ShimmerContainer(height: 14),
-                  const SizedBox(height: 6),
-                  const _ShimmerContainer(height: 14, width: 200),
+                  _ShimmerContainer(height: 14),
+                  SizedBox(height: 6),
+                  _ShimmerContainer(height: 14, width: 200),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             // Placeholder untuk tombol close
-            const _ShimmerContainer(width: 24, height: 24, borderRadius: 12),
+            _ShimmerContainer(width: 24, height: 24, borderRadius: 12),
           ],
         ),
       ),
