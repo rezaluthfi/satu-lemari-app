@@ -137,3 +137,59 @@ T? _copyWith<T>(Object? value, T? fallback) {
   }
   return value as T?;
 }
+
+// State  untuk notifikasi. Ini mewarisi semua properti dari BrowseState
+// agar UI tidak kehilangan data saat state ini di-emit.
+class PriceFilterIgnoredNotification extends BrowseState {
+  const PriceFilterIgnoredNotification({
+    required super.donationStatus,
+    required super.donationItems,
+    super.donationError,
+    required super.rentalStatus,
+    required super.rentalItems,
+    super.rentalError,
+    required super.activeTab,
+    required super.suggestionStatus,
+    required super.suggestions,
+    super.suggestionError,
+    required super.query,
+    super.categoryId,
+    super.size,
+    super.sortBy,
+    super.sortOrder,
+    super.city,
+    super.minPrice,
+    super.maxPrice,
+  });
+
+  // Konstruktor factory untuk memudahkan pembuatan dari state yang ada.
+  factory PriceFilterIgnoredNotification.from(
+    BrowseState state, {
+    required String activeTab,
+    Object? minPrice,
+    Object? maxPrice,
+    Object? sortBy,
+    Object? sortOrder,
+  }) {
+    return PriceFilterIgnoredNotification(
+      donationStatus: state.donationStatus,
+      donationItems: state.donationItems,
+      donationError: state.donationError,
+      rentalStatus: state.rentalStatus,
+      rentalItems: state.rentalItems,
+      rentalError: state.rentalError,
+      activeTab: activeTab,
+      suggestionStatus: state.suggestionStatus,
+      suggestions: state.suggestions,
+      suggestionError: state.suggestionError,
+      query: state.query,
+      categoryId: state.categoryId,
+      size: state.size,
+      city: state.city,
+      minPrice: _copyWith(minPrice, state.minPrice),
+      maxPrice: _copyWith(maxPrice, state.maxPrice),
+      sortBy: _copyWith(sortBy, state.sortBy),
+      sortOrder: _copyWith(sortOrder, state.sortOrder),
+    );
+  }
+}

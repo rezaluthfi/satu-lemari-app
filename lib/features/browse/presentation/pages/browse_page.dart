@@ -1,5 +1,3 @@
-// lib/features/browse/presentation/pages/browse_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -25,7 +23,6 @@ class _BrowsePageState extends State<BrowsePage>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
-  // State untuk Speech Recognition
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _hintText = 'Cari fashion kesukaanmu...';
@@ -36,23 +33,29 @@ class _BrowsePageState extends State<BrowsePage>
   @override
   void initState() {
     super.initState();
-    // Inisialisasi Speech object
     _speech = stt.SpeechToText();
-    _tabController = TabController(length: 2, vsync: this);
     final browseBloc = context.read<BrowseBloc>();
 
+    _searchController.text = browseBloc.state.query;
+    _tabController = TabController(
+      initialIndex: browseBloc.state.activeTab == 'donation' ? 0 : 1,
+      length: 2,
+      vsync: this,
+    );
+
     _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
-      browseBloc.add(TabChanged(_tabController.index));
+      if (!_tabController.indexIsChanging) {
+        browseBloc.add(TabChanged(_tabController.index));
+      }
     });
 
-    if (browseBloc.state.status == BrowseStatus.initial) {
+    if (browseBloc.state.donationStatus == BrowseStatus.initial &&
+        browseBloc.state.rentalStatus == BrowseStatus.initial) {
       browseBloc.add(BrowseDataFetched());
     }
 
     _searchFocusNode.addListener(() {
       if (!_searchFocusNode.hasFocus) {
-        // Beri jeda sedikit agar onTap pada suggestion sempat berjalan
         Future.delayed(const Duration(milliseconds: 200), () {
           if (mounted && !_searchFocusNode.hasFocus) {
             context.read<BrowseBloc>().add(const SuggestionsRequested(''));
@@ -64,7 +67,6 @@ class _BrowsePageState extends State<BrowsePage>
 
   @override
   void dispose() {
-    // Hentikan listening saat widget di-dispose untuk mencegah memory leak
     _speech.stop();
     _tabController.dispose();
     _searchController.dispose();
@@ -72,7 +74,6 @@ class _BrowsePageState extends State<BrowsePage>
     super.dispose();
   }
 
-  // Logic untuk mendengarkan suara
   void _listen() async {
     if (!_isListening) {
       bool available = await _speech.initialize(
@@ -83,6 +84,13 @@ class _BrowsePageState extends State<BrowsePage>
               _hintText = 'Cari fashion kesukaanmu...';
             });
             _speech.stop();
+            final lastWords = _speech.lastRecognizedWords;
+            if (lastWords.isNotEmpty) {
+              _searchFocusNode.unfocus();
+              context
+                  .read<BrowseBloc>()
+                  .add(IntentAnalysisAndSearchRequested(lastWords));
+            }
           }
         },
         onError: (val) {
@@ -99,10 +107,8 @@ class _BrowsePageState extends State<BrowsePage>
           _hintText = 'Aku mendengarkan...';
         });
         _speech.listen(
-          localeId: 'id_ID', // Optimalkan untuk Bahasa Indonesia
-          onResult: (val) {
-            // Kita tidak langsung proses, tapi tunggu hasil akhir
-          },
+          localeId: 'id_ID',
+          onResult: (val) {},
         );
       }
     } else {
@@ -111,14 +117,6 @@ class _BrowsePageState extends State<BrowsePage>
         _hintText = 'Cari fashion kesukaanmu...';
       });
       _speech.stop();
-      final lastWords = _speech.lastRecognizedWords;
-      if (lastWords.isNotEmpty) {
-        _searchFocusNode.unfocus();
-        // Kirim event ke BLoC untuk dianalisis
-        context
-            .read<BrowseBloc>()
-            .add(IntentAnalysisAndSearchRequested(lastWords));
-      }
     }
   }
 
@@ -126,7 +124,6 @@ class _BrowsePageState extends State<BrowsePage>
     _searchFocusNode.unfocus();
     final homeState = context.read<HomeBloc>().state;
     final browseState = context.read<BrowseBloc>().state;
-
     if (homeState.categoriesStatus != DataStatus.loaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -134,14 +131,12 @@ class _BrowsePageState extends State<BrowsePage>
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
     }
-
     showModalBottomSheet<FilterResult>(
       context: context,
       isScrollControlled: true,
@@ -175,6 +170,7 @@ class _BrowsePageState extends State<BrowsePage>
       }
     });
   }
+  // --- Akhir dari kode yang tidak berubah ---
 
   @override
   Widget build(BuildContext context) {
@@ -182,35 +178,62 @@ class _BrowsePageState extends State<BrowsePage>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Jelajahi',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 28,
-            letterSpacing: -0.5,
-          ),
-        ),
+        title: const Text('Jelajahi',
+            style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 28,
+                letterSpacing: -0.5)),
         backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.dark,
-        ),
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark),
         centerTitle: false,
       ),
-      body: BlocListener<BrowseBloc, BrowseState>(
-        listenWhen: (previous, current) => previous.query != current.query,
-        listener: (context, state) {
-          if (_searchController.text != state.query) {
-            _searchController.text = state.query;
-            _searchController.selection = TextSelection.fromPosition(
-              TextPosition(offset: _searchController.text.length),
-            );
-          }
-        },
+      body: MultiBlocListener(
+        listeners: [
+          // Listener untuk sinkronisasi text controller
+          BlocListener<BrowseBloc, BrowseState>(
+            listenWhen: (previous, current) => previous.query != current.query,
+            listener: (context, state) {
+              if (_searchController.text != state.query) {
+                _searchController.text = state.query;
+                _searchController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: _searchController.text.length));
+              }
+            },
+          ),
+          // Listener baru untuk menampilkan SnackBar
+          BlocListener<BrowseBloc, BrowseState>(
+            listener: (context, state) {
+              if (state is PriceFilterIgnoredNotification) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded,
+                            color: Colors.white, size: 20),
+                        SizedBox(width: 12),
+                        Expanded(
+                            child: Text(
+                                'Filter harga/urutan harga diabaikan untuk Donasi.')),
+                      ],
+                    ),
+                    backgroundColor:
+                        AppColors.info, // Warna biru untuk informasi
+                    behavior: SnackBarBehavior.floating,
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
         child: Stack(
           children: [
             Column(
@@ -225,10 +248,7 @@ class _BrowsePageState extends State<BrowsePage>
                     ],
                   ),
                 ),
-                Container(
-                  height: 1,
-                  color: AppColors.divider.withOpacity(0.3),
-                ),
+                Container(height: 1, color: AppColors.divider.withOpacity(0.3)),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
@@ -247,6 +267,190 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
+  // --- PERBAIKI LOGIKA TAMPILAN FILTER DI SINI ---
+  Widget _buildActiveFiltersSection() {
+    return BlocBuilder<BrowseBloc, BrowseState>(
+      // Rebuild setiap kali filter atau tab berubah
+      buildWhen: (prev, curr) =>
+          prev.categoryId != curr.categoryId ||
+          prev.size != curr.size ||
+          prev.sortBy != curr.sortBy ||
+          prev.city != curr.city ||
+          prev.minPrice != curr.minPrice ||
+          prev.maxPrice != curr.maxPrice ||
+          prev.activeTab != curr.activeTab,
+      builder: (context, state) {
+        final homeState = context.read<HomeBloc>().state;
+        String? categoryName;
+
+        if (homeState.categoriesStatus == DataStatus.loaded &&
+            state.categoryId != null) {
+          try {
+            categoryName = homeState.categories
+                .firstWhere((cat) => cat.id == state.categoryId)
+                .name;
+          } catch (e) {
+            categoryName = null;
+          }
+        }
+
+        final hasPriceFilter = state.activeTab == 'rental' &&
+            (state.minPrice != null || state.maxPrice != null);
+        // Perbaiki pengecekan 'Urut berdasarkan Harga'
+        final hasSortByPriceFilter =
+            state.activeTab == 'rental' && state.sortBy == 'price';
+        final hasSortByOtherFilter =
+            state.sortBy != null && state.sortBy != 'price';
+
+        final hasAnyFilter = categoryName != null ||
+            state.size != null ||
+            hasSortByPriceFilter ||
+            hasSortByOtherFilter ||
+            (state.city != null && state.city!.isNotEmpty) ||
+            hasPriceFilter;
+
+        if (!hasAnyFilter) {
+          return const SizedBox.shrink();
+        }
+
+        final currencyFormatter = NumberFormat.currency(
+            locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
+        return Container(
+          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      if (categoryName != null)
+                        _buildFilterChip(
+                            label: categoryName,
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: null,
+                                  size: state.size,
+                                  sortBy: state.sortBy,
+                                  sortOrder: state.sortOrder,
+                                  city: state.city,
+                                  minPrice: state.minPrice,
+                                  maxPrice: state.maxPrice));
+                            }),
+                      if (state.size != null)
+                        _buildFilterChip(
+                            label: 'Ukuran: ${state.size}',
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: state.categoryId,
+                                  size: null,
+                                  sortBy: state.sortBy,
+                                  sortOrder: state.sortOrder,
+                                  city: state.city,
+                                  minPrice: state.minPrice,
+                                  maxPrice: state.maxPrice));
+                            }),
+                      // Tampilkan chip Urut selain harga
+                      if (hasSortByOtherFilter)
+                        _buildFilterChip(
+                            label:
+                                'Urut: ${state.sortBy == 'name' ? 'Nama' : 'Terbaru'}',
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: state.categoryId,
+                                  size: state.size,
+                                  sortBy: null,
+                                  sortOrder: null,
+                                  city: state.city,
+                                  minPrice: state.minPrice,
+                                  maxPrice: state.maxPrice));
+                            }),
+                      // Tampilkan chip Urut Harga HANYA di tab sewa
+                      if (hasSortByPriceFilter)
+                        _buildFilterChip(
+                            label: 'Urut: Harga',
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: state.categoryId,
+                                  size: state.size,
+                                  sortBy: null,
+                                  sortOrder: null,
+                                  city: state.city,
+                                  minPrice: state.minPrice,
+                                  maxPrice: state.maxPrice));
+                            }),
+                      if (state.city != null && state.city!.isNotEmpty)
+                        _buildFilterChip(
+                            label: 'Kota: ${state.city}',
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: state.categoryId,
+                                  size: state.size,
+                                  sortBy: state.sortBy,
+                                  sortOrder: state.sortOrder,
+                                  city: null,
+                                  minPrice: state.minPrice,
+                                  maxPrice: state.maxPrice));
+                            }),
+                      // Tampilkan chip Harga HANYA di tab sewa
+                      if (hasPriceFilter)
+                        _buildFilterChip(
+                            label:
+                                'Harga: ${state.minPrice != null ? currencyFormatter.format(state.minPrice) : '0'} - ${state.maxPrice != null ? currencyFormatter.format(state.maxPrice) : '∞'}',
+                            onDeleted: () {
+                              context.read<BrowseBloc>().add(FilterApplied(
+                                  categoryId: state.categoryId,
+                                  size: state.size,
+                                  sortBy: state.sortBy,
+                                  sortOrder: state.sortOrder,
+                                  city: state.city,
+                                  minPrice: null,
+                                  maxPrice: null));
+                            }),
+                    ],
+                  ),
+                ),
+              ),
+              if (hasAnyFilter) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    context.read<BrowseBloc>().add(ResetFilters());
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: AppColors.error.withOpacity(0.5), width: 1)),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.refresh_rounded,
+                            size: 16, color: AppColors.error),
+                        SizedBox(width: 4),
+                        Text('Reset',
+                            style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Sisa kode widget lainnya tidak perlu diubah.
+  // ... (salin sisa kode dari file Anda: _buildSearchTextField, _buildSuggestionsList, dst)
   Widget _buildSearchTextField() {
     return BlocBuilder<BrowseBloc, BrowseState>(
       buildWhen: (prev, curr) =>
@@ -255,14 +459,21 @@ class _BrowsePageState extends State<BrowsePage>
           prev.sortBy != curr.sortBy ||
           prev.city != curr.city ||
           prev.minPrice != curr.minPrice ||
-          prev.maxPrice != curr.maxPrice,
+          prev.maxPrice != curr.maxPrice ||
+          prev.activeTab != curr.activeTab,
       builder: (context, state) {
+        final hasPriceFilter = state.activeTab == 'rental' &&
+            (state.minPrice != null || state.maxPrice != null);
+        final hasSortByPriceFilter =
+            state.activeTab == 'rental' && state.sortBy == 'price';
+        final hasSortByOtherFilter =
+            state.sortBy != null && state.sortBy != 'price';
         final isFilterActive = state.categoryId != null ||
             state.size != null ||
-            state.sortBy != null ||
+            hasSortByPriceFilter ||
+            hasSortByOtherFilter ||
             (state.city != null && state.city!.isNotEmpty) ||
-            state.minPrice != null ||
-            state.maxPrice != null;
+            hasPriceFilter;
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -288,6 +499,7 @@ class _BrowsePageState extends State<BrowsePage>
                       context
                           .read<BrowseBloc>()
                           .add(SuggestionsRequested(query));
+                      context.read<BrowseBloc>().add(SearchTermChanged(query));
                     },
                     onSubmitted: (query) {
                       if (query.isNotEmpty) {
@@ -425,7 +637,6 @@ class _BrowsePageState extends State<BrowsePage>
             (state.suggestionStatus == SuggestionStatus.loading ||
                 (state.suggestionStatus == SuggestionStatus.success &&
                     state.suggestions.isNotEmpty));
-
         return Positioned(
           top: 64,
           left: 20,
@@ -497,7 +708,6 @@ class _BrowsePageState extends State<BrowsePage>
         ),
       );
     }
-
     return ListView.separated(
       shrinkWrap: true,
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -516,11 +726,8 @@ class _BrowsePageState extends State<BrowsePage>
                   const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
               child: Row(
                 children: [
-                  const Icon(
-                      Icons
-                          .manage_search_rounded, // Icon baru yang lebih relevan
-                      size: 20,
-                      color: AppColors.primary),
+                  const Icon(Icons.manage_search_rounded,
+                      size: 20, color: AppColors.primary),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
@@ -548,169 +755,6 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  Widget _buildActiveFiltersSection() {
-    return BlocBuilder<BrowseBloc, BrowseState>(
-      builder: (context, state) {
-        final homeState = context.read<HomeBloc>().state;
-        String? categoryName;
-
-        if (homeState.categoriesStatus == DataStatus.loaded &&
-            state.categoryId != null) {
-          try {
-            categoryName = homeState.categories
-                .firstWhere((cat) => cat.id == state.categoryId)
-                .name;
-          } catch (e) {
-            categoryName = null;
-          }
-        }
-
-        final hasAnyFilter = categoryName != null ||
-            state.size != null ||
-            state.sortBy != null ||
-            (state.city != null && state.city!.isNotEmpty) ||
-            state.minPrice != null ||
-            state.maxPrice != null;
-
-        if (!hasAnyFilter) {
-          return const SizedBox.shrink();
-        }
-
-        final currencyFormatter = NumberFormat.currency(
-            locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-
-        return Container(
-          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-          child: Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (categoryName != null)
-                        _buildFilterChip(
-                          label: categoryName,
-                          onDeleted: () {
-                            context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: null,
-                                size: state.size,
-                                sortBy: state.sortBy,
-                                sortOrder: state.sortOrder,
-                                city: state.city,
-                                minPrice: state.minPrice,
-                                maxPrice: state.maxPrice));
-                          },
-                        ),
-                      if (state.size != null)
-                        _buildFilterChip(
-                          label: 'Ukuran: ${state.size}',
-                          onDeleted: () {
-                            context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: state.categoryId,
-                                size: null,
-                                sortBy: state.sortBy,
-                                sortOrder: state.sortOrder,
-                                city: state.city,
-                                minPrice: state.minPrice,
-                                maxPrice: state.maxPrice));
-                          },
-                        ),
-                      if (state.sortBy != null)
-                        _buildFilterChip(
-                          label:
-                              'Urut: ${state.sortBy == 'price' ? 'Harga' : state.sortBy == 'name' ? 'Nama' : 'Terbaru'}',
-                          onDeleted: () {
-                            context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: state.categoryId,
-                                size: state.size,
-                                sortBy: null,
-                                sortOrder: null,
-                                city: state.city,
-                                minPrice: state.minPrice,
-                                maxPrice: state.maxPrice));
-                          },
-                        ),
-                      if (state.city != null && state.city!.isNotEmpty)
-                        _buildFilterChip(
-                          label: 'Kota: ${state.city}',
-                          onDeleted: () {
-                            context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: state.categoryId,
-                                size: state.size,
-                                sortBy: state.sortBy,
-                                sortOrder: state.sortOrder,
-                                city: null,
-                                minPrice: state.minPrice,
-                                maxPrice: state.maxPrice));
-                          },
-                        ),
-                      if (state.activeTab == 'rental' &&
-                          (state.minPrice != null || state.maxPrice != null))
-                        _buildFilterChip(
-                          label:
-                              'Harga: ${state.minPrice != null ? currencyFormatter.format(state.minPrice) : '0'} - ${state.maxPrice != null ? currencyFormatter.format(state.maxPrice) : '∞'}',
-                          onDeleted: () {
-                            context.read<BrowseBloc>().add(FilterApplied(
-                                categoryId: state.categoryId,
-                                size: state.size,
-                                sortBy: state.sortBy,
-                                sortOrder: state.sortOrder,
-                                city: state.city,
-                                minPrice: null,
-                                maxPrice: null));
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              if (hasAnyFilter) ...[
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () {
-                    context.read<BrowseBloc>().add(ResetFilters());
-                  },
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.error.withOpacity(0.5),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh_rounded,
-                          size: 16,
-                          color: AppColors.error,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Reset',
-                          style: TextStyle(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildTabSection() {
     return Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -730,14 +774,10 @@ class _BrowsePageState extends State<BrowsePage>
             ),
             labelColor: AppColors.textLight,
             unselectedLabelColor: AppColors.textSecondary,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w500,
-              fontSize: 15,
-            ),
+            labelStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            unselectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
             dividerColor: Colors.transparent,
             indicatorSize: TabBarIndicatorSize.tab,
             indicatorPadding: const EdgeInsets.all(2),
@@ -746,13 +786,11 @@ class _BrowsePageState extends State<BrowsePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.favorite_rounded,
-                      size: 18,
-                      color: _tabController.index == 0
-                          ? AppColors.textLight
-                          : AppColors.donation,
-                    ),
+                    Icon(Icons.favorite_rounded,
+                        size: 18,
+                        color: _tabController.index == 0
+                            ? AppColors.textLight
+                            : AppColors.donation),
                     const SizedBox(width: 8),
                     const Text('Donasi'),
                   ],
@@ -762,13 +800,11 @@ class _BrowsePageState extends State<BrowsePage>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.shopping_bag_rounded,
-                      size: 18,
-                      color: _tabController.index == 1
-                          ? AppColors.textLight
-                          : AppColors.rental,
-                    ),
+                    Icon(Icons.shopping_bag_rounded,
+                        size: 18,
+                        color: _tabController.index == 1
+                            ? AppColors.textLight
+                            : AppColors.rental),
                     const SizedBox(width: 8),
                     const Text('Sewa'),
                   ],
@@ -781,10 +817,8 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  Widget _buildFilterChip({
-    required String label,
-    required VoidCallback onDeleted,
-  }) {
+  Widget _buildFilterChip(
+      {required String label, required VoidCallback onDeleted}) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: Container(
@@ -811,11 +845,8 @@ class _BrowsePageState extends State<BrowsePage>
             const SizedBox(width: 8),
             GestureDetector(
               onTap: onDeleted,
-              child: const Icon(
-                Icons.close_rounded,
-                size: 16,
-                color: AppColors.primary,
-              ),
+              child: const Icon(Icons.close_rounded,
+                  size: 16, color: AppColors.primary),
             ),
           ],
         ),
