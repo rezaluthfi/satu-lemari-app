@@ -64,6 +64,7 @@ class EmptyStateWidget extends StatelessWidget {
                 icon: const Icon(Icons.refresh_rounded, size: 20),
                 label: Text(buttonText!),
                 style: ElevatedButton.styleFrom(
+                  elevation: 0,
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding:

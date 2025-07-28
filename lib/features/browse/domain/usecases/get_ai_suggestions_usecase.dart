@@ -28,7 +28,9 @@ class GetAiSuggestionsUseCase implements UseCase<AiSuggestions, String> {
         'lebih',
         'kata kunci',
         'mungkin maksud anda',
-        'dengan'
+        'dengan',
+        'lihat',
+        'filter'
       ];
 
       // Filter daftar saran. Hanya simpan saran yang TIDAK mengandung kata kunci di atas.

@@ -1,4 +1,4 @@
-// lib/features/browse/domain/repositories/browse_repository_impl.dart
+// lib/features/browse/data/repositories/browse_repository_impl.dart
 
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/services/category_cache_service.dart';
@@ -56,11 +56,14 @@ class BrowseRepositoryImpl implements BrowseRepository {
       SearchItemsParams params) async {
     if (await networkInfo.isConnected) {
       try {
+        // Teruskan semua parameter baru ke remoteDataSource
         final remoteModels = await remoteDataSource.searchItems(
           type: params.type,
           query: params.query,
           categoryId: params.categoryId,
           size: params.size,
+          color: params.color,
+          condition: params.condition,
           sortBy: params.sortBy,
           sortOrder: params.sortOrder,
           city: params.city,
@@ -99,7 +102,6 @@ class BrowseRepositoryImpl implements BrowseRepository {
         final remoteModel = await remoteDataSource.analyzeIntent(query);
         final data = remoteModel.data;
 
-        // Logika penting: Konversi nama kategori dari AI ke ID kategori aplikasi
         String? categoryId;
         if (data.entities.category != null &&
             data.entities.category!.isNotEmpty) {
@@ -107,14 +109,16 @@ class BrowseRepositoryImpl implements BrowseRepository {
               categoryCache.getCategoryIdByName(data.entities.category!);
         }
 
-        // Mapping dari Model ke Entity
+        // Mapping dari Model ke Entity, sekarang sertakan semua filter dari AI
         final entity = IntentAnalysis(
           query: data.query,
           filters: IntentFilters(
             search: data.filters.search,
             size: data.filters.size,
+            color: data.filters.color, // Ambil color dari AI
+            condition: data.filters.condition, // Ambil condition dari AI
             maxPrice: data.filters.maxPrice,
-            categoryId: categoryId, // Gunakan ID yang sudah dikonversi
+            categoryId: categoryId,
           ),
         );
         return Right(entity);

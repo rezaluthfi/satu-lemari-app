@@ -13,6 +13,8 @@ abstract class BrowseRemoteDataSource {
     String? query,
     String? categoryId,
     String? size,
+    String? color,
+    String? condition,
     String? sortBy,
     String? sortOrder,
     String? city,
@@ -35,6 +37,8 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     String? query,
     String? categoryId,
     String? size,
+    String? color,
+    String? condition,
     String? sortBy,
     String? sortOrder,
     String? city,
@@ -47,6 +51,8 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
         if (query != null && query.isNotEmpty) 'q': query,
         if (categoryId != null) 'category_id': categoryId,
         if (size != null) 'size': size,
+        if (color != null) 'color': color,
+        if (condition != null) 'condition': condition,
         if (sortBy != null) 'sort_by': sortBy,
         if (sortOrder != null) 'sort_order': sortOrder,
         if (city != null && city.isNotEmpty) 'city': city,
@@ -59,13 +65,26 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
         queryParameters: queryParams,
       );
 
-      final List<dynamic> data = response.data['data'] is List
-          ? response.data['data']
-          : response.data['data']['items'];
-      return data.map((json) => ItemModel.fromJson(json)).toList();
+      // Untuk menangani payload yang mungkin berbeda
+      final dynamic responseData = response.data['data'];
+      final List<dynamic> itemList = responseData is List
+          ? responseData
+          : (responseData is Map &&
+                  responseData.containsKey('items') &&
+                  responseData['items'] is List)
+              ? responseData['items']
+              : [];
+
+      return itemList.map((json) => ItemModel.fromJson(json)).toList();
     } on DioException catch (e) {
-      final message = e.response?.data['message'] ?? 'Gagal mencari item';
+      // Lebih baik menangkap pesan error spesifik dari backend jika ada
+      final message = e.response?.data?['error']?['message'] ??
+          e.response?.data?['message'] ??
+          'Gagal mencari item';
       throw ServerException(message: message);
+    } catch (e) {
+      // Menangkap error lainnya (misal: parsing)
+      throw ServerException(message: 'Terjadi kesalahan tidak terduga');
     }
   }
 
@@ -78,7 +97,7 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
       );
       return AiSuggestionsModel.fromJson(response.data);
     } on DioException catch (e) {
-      final message = e.response?.data['message'] ?? 'Gagal memuat saran';
+      final message = e.response?.data?['message'] ?? 'Gagal memuat saran';
       throw ServerException(message: message);
     }
   }
@@ -93,7 +112,7 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
       return IntentAnalysisResponseModel.fromJson(response.data);
     } on DioException catch (e) {
       final message =
-          e.response?.data['message'] ?? 'Gagal menganalisis permintaan';
+          e.response?.data?['message'] ?? 'Gagal menganalisis permintaan';
       throw ServerException(message: message);
     }
   }

@@ -27,8 +27,11 @@ class BrowseState extends Equatable {
 
   // Properti untuk filter dan pencarian
   final String query;
+  final String lastPerformedQuery; // Menyimpan query terakhir yang dieksekusi
   final String? categoryId;
   final String? size;
+  final String? color;
+  final String? condition;
   final String? sortBy;
   final String? sortOrder;
   final String? city;
@@ -48,8 +51,11 @@ class BrowseState extends Equatable {
     this.suggestions = const [],
     this.suggestionError,
     this.query = '',
+    this.lastPerformedQuery = '',
     this.categoryId,
     this.size,
+    this.color,
+    this.condition,
     this.sortBy,
     this.sortOrder,
     this.city,
@@ -74,8 +80,11 @@ class BrowseState extends Equatable {
     List<String>? suggestions,
     String? suggestionError,
     String? query,
+    String? lastPerformedQuery,
     Object? categoryId = _notProvided,
     Object? size = _notProvided,
+    Object? color = _notProvided,
+    Object? condition = _notProvided,
     Object? sortBy = _notProvided,
     Object? sortOrder = _notProvided,
     Object? city = _notProvided,
@@ -95,8 +104,11 @@ class BrowseState extends Equatable {
       suggestions: suggestions ?? this.suggestions,
       suggestionError: suggestionError ?? this.suggestionError,
       query: query ?? this.query,
+      lastPerformedQuery: lastPerformedQuery ?? this.lastPerformedQuery,
       categoryId: _copyWith(categoryId, this.categoryId),
       size: _copyWith(size, this.size),
+      color: _copyWith(color, this.color),
+      condition: _copyWith(condition, this.condition),
       sortBy: _copyWith(sortBy, this.sortBy),
       sortOrder: _copyWith(sortOrder, this.sortOrder),
       city: _copyWith(city, this.city),
@@ -119,8 +131,11 @@ class BrowseState extends Equatable {
         suggestions,
         suggestionError,
         query,
+        lastPerformedQuery,
         categoryId,
         size,
+        color,
+        condition,
         sortBy,
         sortOrder,
         city,
@@ -138,8 +153,6 @@ T? _copyWith<T>(Object? value, T? fallback) {
   return value as T?;
 }
 
-// State  untuk notifikasi. Ini mewarisi semua properti dari BrowseState
-// agar UI tidak kehilangan data saat state ini di-emit.
 class PriceFilterIgnoredNotification extends BrowseState {
   const PriceFilterIgnoredNotification({
     required super.donationStatus,
@@ -153,8 +166,11 @@ class PriceFilterIgnoredNotification extends BrowseState {
     required super.suggestions,
     super.suggestionError,
     required super.query,
+    required super.lastPerformedQuery,
     super.categoryId,
     super.size,
+    super.color,
+    super.condition,
     super.sortBy,
     super.sortOrder,
     super.city,
@@ -162,7 +178,6 @@ class PriceFilterIgnoredNotification extends BrowseState {
     super.maxPrice,
   });
 
-  // Konstruktor factory untuk memudahkan pembuatan dari state yang ada.
   factory PriceFilterIgnoredNotification.from(
     BrowseState state, {
     required String activeTab,
@@ -183,8 +198,11 @@ class PriceFilterIgnoredNotification extends BrowseState {
       suggestions: state.suggestions,
       suggestionError: state.suggestionError,
       query: state.query,
+      lastPerformedQuery: state.lastPerformedQuery,
       categoryId: state.categoryId,
       size: state.size,
+      color: state.color,
+      condition: state.condition,
       city: state.city,
       minPrice: _copyWith(minPrice, state.minPrice),
       maxPrice: _copyWith(maxPrice, state.maxPrice),

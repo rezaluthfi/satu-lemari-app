@@ -17,20 +17,28 @@ class IntentAnalysis extends Equatable {
 
 class IntentFilters extends Equatable {
   final String? search;
-  final String? categoryId; // Diubah dari nama kategori menjadi ID
+  final String? categoryId;
   final String? size;
+  final String? color;
+  final String? condition;
   final int? maxPrice;
-  // Anda bisa tambahkan properti lain seperti color atau condition jika akan digunakan di filter
-  // final String? color;
-  // final String? condition;
 
   const IntentFilters({
     this.search,
     this.categoryId,
     this.size,
+    this.color,
+    this.condition,
     this.maxPrice,
   });
 
   @override
-  List<Object?> get props => [search, categoryId, size, maxPrice];
+  List<Object?> get props => [
+        search,
+        categoryId,
+        size,
+        color,
+        condition,
+        maxPrice,
+      ];
 }
