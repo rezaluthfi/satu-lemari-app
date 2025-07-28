@@ -172,8 +172,10 @@ class _HomePageState extends State<HomePage>
   Widget _buildAppBar() {
     return SliverAppBar(
       pinned: true,
-      floating: true,
+      floating: false,
+      snap: false,
       expandedHeight: _appBarHeight,
+      collapsedHeight: 56.0, // Standard AppBar height when collapsed
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -186,6 +188,22 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         child: FlexibleSpaceBar(
+          // Hanya menampilkan greeting saat collapsed
+          title: LayoutBuilder(
+            builder: (context, constraints) {
+              // Deteksi apakah app bar dalam keadaan collapsed
+              final isCollapsed = constraints.biggest.height <= 80;
+
+              if (isCollapsed) {
+                // Tampilkan hanya greeting saat collapsed
+                return _buildCollapsedGreeting();
+              } else {
+                // Return empty container saat expanded, karena content ada di background
+                return const SizedBox.shrink();
+              }
+            },
+          ),
+          titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
           background: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -523,6 +541,31 @@ class _HomePageState extends State<HomePage>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+        );
+      },
+    );
+  }
+
+  // Widget khusus untuk greeting saat collapsed
+  Widget _buildCollapsedGreeting() {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        String name = 'Pengguna';
+        if (state is Authenticated) {
+          name =
+              (state.user.username != null && state.user.username!.isNotEmpty)
+                  ? state.user.username!
+                  : 'Pengguna';
+        }
+        return Text(
+          'Halo, $name!',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         );
       },
     );
