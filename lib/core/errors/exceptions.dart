@@ -16,3 +16,7 @@ class NetworkException implements Exception {
 
   NetworkException(this.message);
 }
+
+class NotFoundException extends ServerException {
+  NotFoundException({required super.message});
+}

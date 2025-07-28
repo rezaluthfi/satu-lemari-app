@@ -36,7 +36,7 @@ class HistoryRepositoryImpl implements HistoryRepository {
         return Left(ServerFailure(e.message));
       }
     } else {
-      return Left(ConnectionFailure('No Internet Connection'));
+      return Left(ConnectionFailure('Tidak ada koneksi internet'));
     }
   }
 
@@ -70,11 +70,17 @@ class HistoryRepositoryImpl implements HistoryRepository {
           returnDate: model.returnDate,
         );
         return Right(entity);
-      } on ServerException catch (e) {
+      }
+      // Tangkap NotFoundException secara spesifik
+      on NotFoundException catch (e) {
+        return Left(NotFoundFailure(e.message));
+      }
+      // Tangkap ServerException lainnya
+      on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
     } else {
-      return Left(ConnectionFailure('No Internet Connection'));
+      return Left(ConnectionFailure('Tidak ada koneksi internet'));
     }
   }
 
@@ -88,7 +94,7 @@ class HistoryRepositoryImpl implements HistoryRepository {
         return Left(ServerFailure(e.message));
       }
     } else {
-      return Left(ConnectionFailure('No Internet Connection'));
+      return Left(ConnectionFailure('Tidak ada koneksi internet'));
     }
   }
 }

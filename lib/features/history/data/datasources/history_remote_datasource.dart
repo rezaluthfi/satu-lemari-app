@@ -35,6 +35,13 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
       final response = await dio.get('${AppUrls.requests}/$id');
       return RequestDetailModel.fromJson(response.data['data']);
     } on DioException catch (e) {
+      // Periksa apakah error disebabkan oleh status code 404 (Not Found)
+      if (e.response?.statusCode == 404) {
+        throw NotFoundException(
+            message: e.response?.data['message'] ??
+                'Detail permintaan tidak ditemukan');
+      }
+      // Jika bukan 404, lempar ServerException seperti biasa
       throw ServerException(
           message: e.response?.data['message'] ?? 'Gagal memuat detail');
     }

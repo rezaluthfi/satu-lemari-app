@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/date_symbol_data_local.dart'; // Add this import
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
@@ -123,18 +123,24 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
           },
           child: BlocBuilder<RequestDetailBloc, RequestDetailState>(
             builder: (context, state) {
-              // Show shimmer while locale is initializing or data is loading
               if (!_localeInitialized ||
                   state is RequestDetailLoading ||
                   state is RequestDetailInitial) {
                 return const RequestDetailShimmer();
               }
+
+              if (state is RequestDetailNotFound) {
+                return _buildNotFoundState();
+              }
+
               if (state is RequestDetailError) {
                 return _buildErrorState(state.message);
               }
+
               if (state is RequestDetailLoaded) {
                 return _buildContent(context, state.detail);
               }
+
               return const SizedBox.shrink();
             },
           ),
@@ -185,6 +191,50 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
             child: const Text('Hapus'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotFoundState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Permintaan Tidak Ditemukan',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Permintaan ini mungkin sudah dihapus atau tidak ada lagi.',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

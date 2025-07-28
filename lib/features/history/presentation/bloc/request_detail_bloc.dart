@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/domain/usecases/delete_request_usecase.dart';
 import 'package:satulemari/features/history/domain/usecases/get_request_detail_usecase.dart';
@@ -23,8 +24,15 @@ class RequestDetailBloc extends Bloc<RequestDetailEvent, RequestDetailState> {
       FetchRequestDetail event, Emitter<RequestDetailState> emit) async {
     emit(RequestDetailLoading());
     final result = await getRequestDetail(GetRequestDetailParams(id: event.id));
+
     result.fold(
-      (failure) => emit(RequestDetailError(failure.message)),
+      (failure) {
+        if (failure is NotFoundFailure) {
+          emit(RequestDetailNotFound());
+        } else {
+          emit(RequestDetailError(failure.message));
+        }
+      },
       (detail) => emit(RequestDetailLoaded(detail)),
     );
   }

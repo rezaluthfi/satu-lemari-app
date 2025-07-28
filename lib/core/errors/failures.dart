@@ -19,3 +19,7 @@ class ConnectionFailure extends Failure {
 class ValidationFailure extends Failure {
   ValidationFailure(super.message);
 }
+
+class NotFoundFailure extends Failure {
+  NotFoundFailure(super.message);
+}

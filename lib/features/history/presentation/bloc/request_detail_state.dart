@@ -25,3 +25,5 @@ class RequestDetailError extends RequestDetailState {
 }
 
 class RequestDeleteSuccess extends RequestDetailState {}
+
+class RequestDetailNotFound extends RequestDetailState {}
