@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:satulemari/features/auth/data/models/auth_response.dart'; // <-- Import baru
 import 'package:satulemari/features/auth/domain/entities/user.dart';
 import '../../../../core/errors/failures.dart';
 
@@ -19,4 +20,8 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> logout();
 
   Future<Either<Failure, User>> getCurrentUser();
+
+  // --- METHOD BARU DITAMBAHKAN DI SINI ---
+  Future<Either<Failure, AuthResponseModel>> refreshToken();
+  // --- AKHIR PENAMBAHAN ---
 }

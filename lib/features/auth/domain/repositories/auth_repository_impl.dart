@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/network_info.dart';
@@ -9,7 +8,6 @@ import '../../data/models/auth_response.dart';
 import '../entities/user.dart';
 import 'auth_repository.dart';
 
-// Implementation of authentication repository
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final AuthLocalDataSource localDataSource;
@@ -21,7 +19,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.networkInfo,
   });
 
-  // Helper function to handle authentication logic
+  // ... (semua method lain tetap sama, tidak perlu diubah)
+
   Future<Either<Failure, User>> _authenticate(
     Future<AuthResponseModel> Function() getAuthResponse,
   ) async {
@@ -46,7 +45,6 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // Register user with email
   @override
   Future<Either<Failure, User>> registerWithEmail({
     required String username,
@@ -60,7 +58,6 @@ class AuthRepositoryImpl implements AuthRepository {
         ));
   }
 
-  // Login user with email
   @override
   Future<Either<Failure, User>> loginWithEmail({
     required String email,
@@ -72,21 +69,17 @@ class AuthRepositoryImpl implements AuthRepository {
         ));
   }
 
-  // Login user with Google
   @override
   Future<Either<Failure, User>> loginWithGoogle() async {
     return _authenticate(() => remoteDataSource.loginWithGoogle());
   }
 
-  // Log out user
   @override
   Future<Either<Failure, void>> logout() async {
     try {
       if (await networkInfo.isConnected) {
-        // Panggilan logout ke remoteDataSource opsional, tergantung API Anda
-        // await remoteDataSource.logout();
+        await remoteDataSource.logout();
       }
-      print("[AUTH_REPO_IMPL_LOG] Memanggil localDataSource.clearCache().");
       await localDataSource.clearCache();
       return const Right(null);
     } catch (e) {
@@ -94,7 +87,6 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // Retrieve current user from cache
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
@@ -107,6 +99,32 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } on CacheException {
       return Left(CacheFailure('User is not logged in.'));
+    }
+  }
+
+  // --- PERBAIKAN ADA DI DALAM METHOD INI ---
+  @override
+  Future<Either<Failure, AuthResponseModel>> refreshToken() async {
+    if (await networkInfo.isConnected) {
+      try {
+        final newAuthResponse = await remoteDataSource.refreshToken();
+
+        // **PERBAIKAN:** Cek apakah accessToken tidak null sebelum caching
+        final newAccessToken = newAuthResponse.data?.accessToken;
+        if (newAccessToken != null) {
+          await localDataSource
+              .cacheNewAccessToken(newAccessToken); // Sekarang aman
+          return Right(newAuthResponse);
+        } else {
+          // Jika backend mengembalikan response sukses tapi tanpa token, itu adalah error
+          return Left(ServerFailure(newAuthResponse.message ??
+              'Refresh token failed: No access token received.'));
+        }
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ConnectionFailure('No internet connection.'));
     }
   }
 }

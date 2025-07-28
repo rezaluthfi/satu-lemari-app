@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:google_sign_in/google_sign_in.dart';
-
 import '../../../../core/constants/app_urls.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../models/auth_request.dart';
@@ -22,6 +21,8 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponseModel> loginWithGoogle();
 
   Future<void> logout();
+
+  Future<AuthResponseModel> refreshToken();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -39,17 +40,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<AuthResponseModel> _verifyTokenToBackend(
       AuthRequestModel request) async {
     try {
-      // Dio will automatically prepend the baseUrl configured in injection.dart.
       final response = await dio.post(
-        AppUrls.authVerify, // This is now a relative path like '/auth/verify'
+        AppUrls.authVerify,
         data: request.toJson(),
       );
-
       return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ??
-          e.message ??
-          'An unknown error occurred';
+      final responseData = e.response?.data;
+      String errorMessage = 'An unknown error occurred';
+      if (responseData is Map<String, dynamic> &&
+          responseData.containsKey('message')) {
+        errorMessage = responseData['message'];
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
       throw ServerException(message: errorMessage);
     } catch (e) {
       throw ServerException(message: e.toString());
@@ -156,5 +160,37 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> logout() async {
     await firebaseAuth.signOut();
     await googleSignIn.signOut();
+  }
+
+  @override
+  Future<AuthResponseModel> refreshToken() async {
+    print('🔄 [REMOTE_DATASOURCE] Memulai method refreshToken...');
+    try {
+      // Gunakan instance `dio` yang sudah di-inject. CookieManager akan bekerja otomatis.
+      print(
+          '🚀 [REMOTE_DATASOURCE] Mengirim request POST ke: ${AppUrls.authRefresh}');
+
+      final response = await dio.post(
+        AppUrls.authRefresh,
+        data: {}, // Body kosong sesuai Postman
+      );
+
+      print(
+          '✅ [REMOTE_DATASOURCE] Request SUKSES dengan status: ${response.statusCode}');
+      print('📝 [REMOTE_DATASOURCE] Data response mentah: ${response.data}');
+
+      return AuthResponseModel.fromJson(response.data);
+    } on DioException catch (e) {
+      print('❌ [REMOTE_DATASOURCE] Terjadi DioException saat refresh token!');
+      print('   - Status Code: ${e.response?.statusCode}');
+      print('   - Response Data: ${e.response?.data}');
+
+      final errorMessage =
+          e.response?.data['message'] ?? e.message ?? 'Token refresh failed';
+      throw ServerException(message: errorMessage);
+    } catch (e) {
+      print('💥 [REMOTE_DATASOURCE] Terjadi Exception umum: $e');
+      throw ServerException(message: e.toString());
+    }
   }
 }

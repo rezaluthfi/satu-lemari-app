@@ -8,7 +8,7 @@ abstract class AuthLocalDataSource {
   Future<AuthResponseModel> getLastAuthResponse();
   Future<void> clearCache();
   Future<String?> getAccessToken();
-
+  Future<void> cacheNewAccessToken(String accessToken);
   Future<void> setOnboardingCompleted();
   Future<bool> hasSeenOnboarding();
 }
@@ -16,13 +16,11 @@ abstract class AuthLocalDataSource {
 const CACHED_AUTH_RESPONSE = 'CACHED_AUTH_RESPONSE';
 const HAS_SEEN_ONBOARDING = 'HAS_SEEN_ONBOARDING';
 
-// Implementation of local data source for authentication
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final SharedPreferences sharedPreferences;
 
   AuthLocalDataSourceImpl({required this.sharedPreferences});
 
-  // Cache authentication response as JSON string
   @override
   Future<void> cacheAuthResponse(AuthResponseModel authResponse) {
     return sharedPreferences.setString(
@@ -31,7 +29,6 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     );
   }
 
-  // Retrieve cached authentication response
   @override
   Future<AuthResponseModel> getLastAuthResponse() {
     final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
@@ -42,13 +39,11 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     }
   }
 
-  // Clear cached authentication data
   @override
   Future<void> clearCache() {
     return sharedPreferences.remove(CACHED_AUTH_RESPONSE);
   }
 
-  // Get access token from cached response
   @override
   Future<String?> getAccessToken() async {
     try {
@@ -56,6 +51,25 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       return authResponse.data?.accessToken;
     } on CacheException {
       return null;
+    }
+  }
+
+  @override
+  Future<void> cacheNewAccessToken(String accessToken) async {
+    final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
+    if (jsonString != null) {
+      final authData = json.decode(jsonString) as Map<String, dynamic>;
+      if (authData['data'] is Map) {
+        (authData['data'] as Map<String, dynamic>)['access_token'] =
+            accessToken;
+      }
+      await sharedPreferences.setString(
+        CACHED_AUTH_RESPONSE,
+        json.encode(authData),
+      );
+    } else {
+      throw CacheException(
+          'Cannot update token, no cached auth response found.');
     }
   }
 

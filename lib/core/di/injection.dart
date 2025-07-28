@@ -1,5 +1,7 @@
 // Flutter & External Packages
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get_it/get_it.dart';
@@ -253,6 +255,10 @@ Future<void> init() async {
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton(() => AuthInterceptor(sl()));
 
+  // --- REGISTRASI BARU UNTUK COOKIE MANAGER ---
+  sl.registerLazySingleton(() => CookieJar());
+  sl.registerLazySingleton(() => CookieManager(sl<CookieJar>()));
+
   // --- EXTERNAL ---
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
@@ -278,6 +284,10 @@ Future<void> init() async {
 
     final dio = Dio(options);
 
+    // --- TAMBAHKAN COOKIE MANAGER SEBAGAI INTERCEPTOR PERTAMA ---
+    dio.interceptors.add(sl<CookieManager>());
+
+    // Tambahkan interceptor lain setelahnya
     dio.interceptors.add(sl<AuthInterceptor>());
     dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
 
