@@ -60,7 +60,7 @@ class ProductCard extends StatelessWidget {
   }
 }
 
-// Konten untuk Carousel (menggunakan spaceBetween)
+// Konten untuk Carousel
 class _CarouselContent extends StatelessWidget {
   final Item item;
   const _CarouselContent({required this.item});
@@ -68,20 +68,24 @@ class _CarouselContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(10.0),
+      padding: const EdgeInsets.all(8.0), // Sedikit kurangi padding
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _TopInfo(item: item),
-          _BottomInfo(item: item),
+
+          // Spacer yang fleksibel untuk mendorong bottom info ke bawah
+          const Spacer(),
+
+          // Bottom info - di bagian bawah
+          _BottomInfo(item: item, isCarousel: true),
         ],
       ),
     );
   }
 }
 
-// Konten untuk Grid (menggunakan SizedBox manual)
+// Konten untuk Grid (tidak berubah)
 class _GridContent extends StatelessWidget {
   final Item item;
   const _GridContent({required this.item});
@@ -96,14 +100,14 @@ class _GridContent extends StatelessWidget {
         children: [
           _TopInfo(item: item),
           const SizedBox(height: 8),
-          _BottomInfo(item: item),
+          _BottomInfo(item: item, isCarousel: false),
         ],
       ),
     );
   }
 }
 
-// Info Atas: Kategori dan Judul (Reusable)
+// Info Atas: Kategori dan Judul (kembali ke ukuran normal)
 class _TopInfo extends StatelessWidget {
   final Item item;
   const _TopInfo({required this.item});
@@ -142,10 +146,12 @@ class _TopInfo extends StatelessWidget {
   }
 }
 
-// Info Bawah: Harga, Chip, Stok (Reusable)
+// Info Bawah: Harga, Chip, Stok (dengan parameter isCarousel)
 class _BottomInfo extends StatelessWidget {
   final Item item;
-  const _BottomInfo({required this.item});
+  final bool isCarousel;
+
+  const _BottomInfo({required this.item, required this.isCarousel});
 
   @override
   Widget build(BuildContext context) {
@@ -160,14 +166,10 @@ class _BottomInfo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ===================================
-        // PERBAIKAN FINAL
-        // Hanya tampilkan jika ada harga. Tidak ada 'else'.
-        // ===================================
+        // Harga
         if (hasPrice)
           Padding(
-            // Tambahkan padding bawah agar jaraknya sama dengan jarak saat harga tidak ada.
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: EdgeInsets.only(bottom: isCarousel ? 6.0 : 8.0),
             child: Text(
               NumberFormat.currency(
                       locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
@@ -181,36 +183,37 @@ class _BottomInfo extends StatelessWidget {
             ),
           ),
 
-        // Jarak ini hanya akan muncul jika tidak ada harga,
-        // menciptakan ruang sebelum chip info.
-        if (!hasPrice) const SizedBox(height: 8),
+        // Jarak ini hanya akan muncul jika tidak ada harga
+        if (!hasPrice) SizedBox(height: isCarousel ? 6.0 : 8.0),
 
-        Row(
-          children: [
-            if (item.size != null && item.size!.isNotEmpty) ...[
-              _buildInfoChip(Icons.straighten_rounded, item.size),
-              const SizedBox(width: 6),
-            ],
-            if (item.condition != null && item.condition!.isNotEmpty)
-              Flexible(
-                child: _buildInfoChip(Icons.verified_outlined,
-                    item.condition!.toFormattedCondition()),
-              ),
-          ],
-        ),
+        // Info chips dengan layout yang lebih smart
+        _buildChipsRow(),
 
-        // ===================================
-        // PERBAIKAN FINAL
-        // Hanya tampilkan jika stok terbatas. Tidak ada 'else'.
-        // ===================================
+        // Stok terbatas
         if (hasLimitedStock)
-          const Padding(
-            padding: EdgeInsets.only(top: 8.0),
+          Padding(
+            padding: EdgeInsets.only(top: isCarousel ? 6.0 : 8.0),
             child: Text('Stok Terbatas!',
-                style: TextStyle(
+                style: const TextStyle(
                     color: AppColors.premium,
                     fontSize: 12,
                     fontWeight: FontWeight.w600)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildChipsRow() {
+    return Row(
+      children: [
+        if (item.size != null && item.size!.isNotEmpty) ...[
+          _buildInfoChip(Icons.straighten_rounded, item.size),
+          const SizedBox(width: 6),
+        ],
+        if (item.condition != null && item.condition!.isNotEmpty)
+          Flexible(
+            child: _buildInfoChip(Icons.verified_outlined,
+                item.condition!.toFormattedCondition()),
           ),
       ],
     );
@@ -246,7 +249,7 @@ class _BottomInfo extends StatelessWidget {
   }
 }
 
-// Widget Gambar (Tidak berubah)
+// Widget Gambar (tidak berubah)
 class _ProductImage extends StatelessWidget {
   final String? imageUrl;
   final ItemType type;

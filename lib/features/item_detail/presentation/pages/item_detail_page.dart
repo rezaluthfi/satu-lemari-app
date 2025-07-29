@@ -3,10 +3,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart'; // <-- PERUBAHAN: Import untuk format harga
+import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/core/utils/string_extensions.dart';
+import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
@@ -16,6 +17,7 @@ import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart'
 import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
 import 'package:satulemari/features/request/presentation/widgets/rental_request_sheet.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
+import 'package:satulemari/shared/widgets/product_card.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -82,24 +84,40 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
               ),
             ),
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(item),
-                    _buildPrice(item), // <-- PERUBAHAN: Menampilkan harga
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildInfoSection(item),
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildDescription(item),
-                    const Divider(height: 40, color: AppColors.divider),
-                    _buildPartnerInfo(context, item),
-                    const SizedBox(height: 120),
-                  ],
-                ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(item),
+                        _buildPrice(item),
+                        const Divider(height: 40, color: AppColors.divider),
+                        _buildInfoSection(item),
+                        const Divider(height: 40, color: AppColors.divider),
+                        _buildDescription(item),
+                        const Divider(height: 40, color: AppColors.divider),
+                        _buildPartnerInfo(context, item),
+                      ],
+                    ),
+                  ),
+                  BlocBuilder<ItemDetailBloc, ItemDetailState>(
+                    buildWhen: (previous, current) =>
+                        current is ItemDetailLoaded,
+                    builder: (context, state) {
+                      if (state is ItemDetailLoaded) {
+                        return _buildSimilarItemsSection(state);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
               ),
             ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 120),
+            )
           ],
         ),
         Positioned(
@@ -108,6 +126,97 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
           right: 0,
           child: _buildBottomBar(context, state),
         )
+      ],
+    );
+  }
+
+  Widget _buildSimilarItemsSection(ItemDetailLoaded state) {
+    if (state.similarItemsStatus == SimilarItemsStatus.initial) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 40, color: AppColors.divider),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Text("Kamu Mungkin Juga Suka",
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary)),
+        ),
+        const SizedBox(height: 16),
+        Builder(builder: (context) {
+          switch (state.similarItemsStatus) {
+            case SimilarItemsStatus.loading:
+            case SimilarItemsStatus.initial:
+              return SizedBox(
+                height: 300,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: 3,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: SizedBox(
+                      width: 160,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            case SimilarItemsStatus.error:
+              return Container(
+                height: 100,
+                alignment: Alignment.center,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Text(
+                    state.similarItemsError ?? 'Gagal memuat barang serupa.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              );
+            case SimilarItemsStatus.loaded:
+              if (state.similarItems.isEmpty) {
+                return Container(
+                  height: 100,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Tidak ada barang serupa yang ditemukan.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                );
+              }
+              return SizedBox(
+                height:
+                    280, // Tingkatkan dari 250 ke 280 untuk memberi ruang lebih
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: state.similarItems.length,
+                  itemBuilder: (context, index) {
+                    final similarItem = state.similarItems[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      child: SizedBox(
+                        width: 160,
+                        child: ProductCard(item: similarItem, isCarousel: true),
+                      ),
+                    );
+                  },
+                ),
+              );
+          }
+        }),
       ],
     );
   }
@@ -388,8 +497,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     );
   }
 
-  // Improved _buildPrice widget with better UI design
-
   Widget _buildPrice(ItemDetail item) {
     if (item.type.toLowerCase() == 'rental' &&
         item.price != null &&
@@ -631,12 +738,14 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                         await launchUrl(waUrl,
                             mode: LaunchMode.externalApplication);
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tidak dapat membuka WhatsApp.'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tidak dapat membuka WhatsApp.'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
                       }
                     },
                   ),
@@ -658,12 +767,14 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                       if (await canLaunchUrl(mapUrl)) {
                         await launchUrl(mapUrl);
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Tidak dapat membuka peta.'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tidak dapat membuka peta.'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
                       }
                     },
                   ),

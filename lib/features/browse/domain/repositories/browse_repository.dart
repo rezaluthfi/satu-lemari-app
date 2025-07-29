@@ -11,4 +11,5 @@ abstract class BrowseRepository {
   Future<Either<Failure, List<Item>>> searchItems(SearchItemsParams params);
   Future<Either<Failure, AiSuggestions>> getAiSuggestions(String query);
   Future<Either<Failure, IntentAnalysis>> analyzeIntent(String query);
+  Future<Either<Failure, List<Item>>> getSimilarItems(String itemId);
 }

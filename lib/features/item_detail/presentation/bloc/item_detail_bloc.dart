@@ -1,13 +1,16 @@
 import 'package:bloc/bloc.dart';
-import 'package:dartz/dartz.dart'; // --- PERBAIKAN: Pastikan dartz diimpor
+import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
-import 'package:satulemari/core/errors/failures.dart'; // --- PERBAIKAN: Pastikan Failure diimpor
+import 'package:flutter/material.dart';
+import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
-import 'package:satulemari/features/history/domain/entities/request_item.dart'; // --- PERBAIKAN: Pastikan RequestItem diimpor
+import 'package:satulemari/features/browse/domain/usecases/get_similar_items_usecase.dart';
+import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
+import 'package:satulemari/features/history/domain/entities/request_item.dart';
 import 'package:satulemari/features/history/domain/usecases/get_my_requests_usecase.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/domain/usecases/get_item_by_id_usecase.dart';
-import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart'; // --- PERBAIKAN: Pastikan DashboardStats diimpor
+import 'package:satulemari/features/profile/domain/entities/dashboard_stats.dart';
 import 'package:satulemari/features/profile/domain/usecases/get_dashboard_stats_usecase.dart';
 
 part 'item_detail_event.dart';
@@ -17,13 +20,16 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
   final GetItemByIdUseCase getItemById;
   final GetMyRequestsUseCase getMyRequests;
   final GetDashboardStatsUseCase getDashboardStats;
+  final GetSimilarItemsUseCase getSimilarItems;
 
   ItemDetailBloc({
     required this.getItemById,
     required this.getMyRequests,
     required this.getDashboardStats,
+    required this.getSimilarItems,
   }) : super(ItemDetailInitial()) {
     on<FetchItemDetail>(_onFetchItemDetail);
+    on<FetchSimilarItems>(_onFetchSimilarItems);
   }
 
   Future<void> _onFetchItemDetail(
@@ -31,73 +37,130 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
     Emitter<ItemDetailState> emit,
   ) async {
     emit(ItemDetailLoading());
+    try {
+      debugPrint("[ItemDetailBloc] 1. Fetching item detail...");
+      final itemResult = await getItemById(GetItemByIdParams(id: event.id));
 
-    // Panggil semua data yang dibutuhkan secara paralel.
-    // getMyRequests dipanggil dua kali untuk 'donation' dan 'rental'.
-    final results = await Future.wait([
-      getItemById(GetItemByIdParams(id: event.id)),
-      getMyRequests(const GetMyRequestsParams(type: 'donation')),
-      getMyRequests(const GetMyRequestsParams(type: 'rental')),
-      getDashboardStats(NoParams()),
-    ]);
+      await itemResult.fold(
+        (failure) async {
+          debugPrint(
+              "[ItemDetailBloc] X. FAILED to fetch item detail: ${failure.message}");
+          emit(ItemDetailError(
+              'Gagal memuat detail barang: ${failure.message}'));
+        },
+        (item) async {
+          debugPrint(
+              "[ItemDetailBloc] 2. SUCCESS fetching item detail. Name: ${item.name}");
 
-    // Ambil hasil utama (detail item). Jika ini gagal, seluruh halaman gagal.
-    final itemResult = results[0] as Either<Failure, ItemDetail>;
+          // LANGSUNG EMIT STATE LOADED DENGAN DATA UTAMA
+          // Gunakan state tombol default/aman untuk sementara.
+          // Ini akan menghilangkan shimmer SEGERA.
+          emit(ItemDetailLoaded(item,
+              buttonState: ItemDetailButtonState.active));
 
-    itemResult.fold(
-      (failure) {
-        // Jika gagal mendapatkan item, tampilkan error dan hentikan proses.
-        emit(ItemDetailError('Gagal memuat detail barang: ${failure.message}'));
-      },
-      (item) {
-        // Jika item berhasil didapat, proses data sekunder.
-        final donationRequestsResult =
-            results[1] as Either<Failure, List<RequestItem>>;
-        final rentalRequestsResult =
-            results[2] as Either<Failure, List<RequestItem>>;
-        final statsResult = results[3] as Either<Failure, DashboardStats>;
+          // Panggil similar items segera.
+          add(FetchSimilarItems(item.id));
 
-        // Gabungkan semua request menjadi satu list.
-        // `fold` digunakan agar jika salah satu gagal, list tetap bisa diproses.
-        final List<RequestItem> allRequests = [];
-        donationRequestsResult.fold(
-            (_) => null, (list) => allRequests.addAll(list));
-        rentalRequestsResult.fold(
-            (_) => null, (list) => allRequests.addAll(list));
+          // Sekarang, jalankan pemrosesan data sekunder di latar belakang.
+          // Kita tidak akan 'await' di sini agar UI tidak terblokir.
+          _processSecondaryData(item);
+        },
+      );
+    } catch (e, stacktrace) {
+      debugPrint("[ItemDetailBloc] FATAL ERROR in _onFetchItemDetail: $e");
+      debugPrint(stacktrace.toString());
+      emit(ItemDetailError('Terjadi kesalahan tidak terduga: $e'));
+    }
+  }
 
-        // Ambil data statistik. Jika gagal, `stats` akan null.
-        DashboardStats? stats;
-        statsResult.fold((_) => stats = null, (s) => stats = s);
+  // Method baru untuk memproses data sekunder secara terpisah
+  void _processSecondaryData(ItemDetail item) async {
+    try {
+      debugPrint(
+          "[ItemDetailBloc] 3. Processing secondary data in background...");
+      final results = await Future.wait([
+        getMyRequests(const GetMyRequestsParams(type: 'donation')),
+        getMyRequests(const GetMyRequestsParams(type: 'rental')),
+        getDashboardStats(NoParams()),
+      ]);
 
-        // Tentukan state tombol berdasarkan kondisi item.
-        ItemDetailButtonState buttonState;
+      debugPrint("[ItemDetailBloc] 4. All secondary data fetched.");
+      // Pastikan state saat ini masih Loaded sebelum melanjutkan
+      if (state is! ItemDetailLoaded) return;
 
-        // Prioritas 1: Stok habis (paling penting)
-        if (item.availableQuantity <= 0) {
-          buttonState = ItemDetailButtonState.outOfStock;
-        }
-        // Prioritas 2: Ada request pending untuk item ini
-        // Mencocokkan berdasarkan `itemName` karena `RequestItem` tidak punya `itemId`.
-        // Ini asumsi yang paling aman berdasarkan struktur entitas yang diberikan.
-        else if (allRequests.any((req) =>
-            req.itemName == item.name &&
-            req.status.toLowerCase() == 'pending')) {
-          buttonState = ItemDetailButtonState.pendingRequest;
-        }
-        // Prioritas 3: Kuota donasi habis (hanya berlaku untuk item donasi)
-        // Cek juga apakah `stats` tidak null untuk menghindari error.
-        else if (item.type.toLowerCase() == 'donation' &&
-            stats != null &&
-            (stats?.weeklyQuotaRemaining ?? 0) <= 0) {
-          buttonState = ItemDetailButtonState.quotaExceeded;
-        }
-        // Kondisi default: Tombol aktif
-        else {
-          buttonState = ItemDetailButtonState.active;
-        }
+      final currentState = state as ItemDetailLoaded;
 
-        emit(ItemDetailLoaded(item, buttonState: buttonState));
-      },
-    );
+      // Pastikan item ID masih sama, untuk menghindari update halaman yang salah
+      if (currentState.item.id != item.id) return;
+
+      final donationRequestsResult =
+          results[0] as Either<Failure, List<RequestItem>>;
+      final rentalRequestsResult =
+          results[1] as Either<Failure, List<RequestItem>>;
+      final statsResult = results[2] as Either<Failure, DashboardStats>;
+
+      final List<RequestItem> allRequests = [];
+      donationRequestsResult.fold((_) {}, (list) => allRequests.addAll(list));
+      rentalRequestsResult.fold((_) {}, (list) => allRequests.addAll(list));
+
+      DashboardStats? stats;
+      statsResult.fold((_) => stats = null, (s) => stats = s);
+
+      debugPrint("[ItemDetailBloc] 5. Determining final button state...");
+      ItemDetailButtonState buttonState;
+
+      if (item.availableQuantity <= 0) {
+        buttonState = ItemDetailButtonState.outOfStock;
+      } else if (allRequests.any((req) =>
+          req.itemName == item.name && req.status.toLowerCase() == 'pending')) {
+        buttonState = ItemDetailButtonState.pendingRequest;
+      } else if (item.type.toLowerCase() == 'donation' &&
+          (stats?.weeklyQuotaRemaining ?? 0) <= 0) {
+        buttonState = ItemDetailButtonState.quotaExceeded;
+      } else {
+        buttonState = ItemDetailButtonState.active;
+      }
+
+      debugPrint(
+          "[ItemDetailBloc] 6. Emitting updated ItemDetailLoaded with final button state: $buttonState");
+      // Emit state baru dengan buttonState yang sudah diperbarui
+      emit(currentState.copyWith(buttonState: buttonState));
+    } catch (e, stacktrace) {
+      debugPrint("[ItemDetailBloc] FATAL ERROR in _processSecondaryData: $e");
+      debugPrint(stacktrace.toString());
+      // Di sini kita tidak emit error, karena halaman utama sudah tampil.
+      // Cukup log errornya saja.
+    }
+  }
+
+  Future<void> _onFetchSimilarItems(
+    FetchSimilarItems event,
+    Emitter<ItemDetailState> emit,
+  ) async {
+    if (state is! ItemDetailLoaded) return;
+
+    final currentState = state as ItemDetailLoaded;
+    emit(currentState.copyWith(similarItemsStatus: SimilarItemsStatus.loading));
+
+    final result =
+        await getSimilarItems(GetSimilarItemsParams(itemId: event.itemId));
+
+    if (state is ItemDetailLoaded) {
+      final latestState = state as ItemDetailLoaded;
+      result.fold(
+        (failure) {
+          emit(latestState.copyWith(
+            similarItemsStatus: SimilarItemsStatus.error,
+            similarItemsError: failure.message,
+          ));
+        },
+        (items) {
+          emit(latestState.copyWith(
+            similarItemsStatus: SimilarItemsStatus.loaded,
+            similarItems: items,
+          ));
+        },
+      );
+    }
   }
 }
