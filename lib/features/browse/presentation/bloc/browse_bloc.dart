@@ -10,6 +10,33 @@ import 'dart:async';
 part 'browse_event.dart';
 part 'browse_state.dart';
 
+/// Class untuk menyimpan snapshot parameter pencarian
+class SearchParamsSnapshot {
+  final String query;
+  final String? categoryId;
+  final String? size;
+  final String? color;
+  final String? condition;
+  final String? sortBy;
+  final String? sortOrder;
+  final String? city;
+  final double? minPrice;
+  final double? maxPrice;
+
+  const SearchParamsSnapshot({
+    required this.query,
+    this.categoryId,
+    this.size,
+    this.color,
+    this.condition,
+    this.sortBy,
+    this.sortOrder,
+    this.city,
+    this.minPrice,
+    this.maxPrice,
+  });
+}
+
 class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   final SearchItemsUseCase searchItems;
   final GetAiSuggestionsUseCase getAiSuggestions;
@@ -63,10 +90,12 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     _searchSubscription = null;
     final newTab = event.index == 0 ? 'donation' : 'rental';
     if (state.activeTab == newTab) return;
+
     BrowseState intermediateState;
     final bool hadPriceFilter = state.minPrice != null ||
         state.maxPrice != null ||
         state.sortBy == 'price';
+
     if (newTab == 'donation' && hadPriceFilter) {
       intermediateState = PriceFilterIgnoredNotification.from(
         state,
@@ -79,8 +108,76 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     } else {
       intermediateState = state.copyWith(activeTab: newTab);
     }
+
     emit(intermediateState);
-    await _performSearch(emit, state);
+
+    // Cek apakah data untuk tab yang dipilih sudah ada dan sesuai dengan filter saat ini
+    final shouldRefreshData = _shouldRefreshDataForTab(newTab);
+
+    if (shouldRefreshData) {
+      await _performSearch(emit, state);
+    }
+  }
+
+  /// Menentukan apakah data perlu di-refresh untuk tab yang dipilih
+  bool _shouldRefreshDataForTab(String tabType) {
+    // Cek apakah query/filter saat ini sama dengan query terakhir yang dijalankan untuk tab tersebut
+    final currentSearchParams = _getCurrentSearchParams(tabType);
+
+    if (tabType == 'donation') {
+      // Refresh jika belum ada data, status error, atau parameter pencarian berubah
+      return state.donationItems.isEmpty ||
+          state.donationStatus == BrowseStatus.error ||
+          !_isSearchParamsEqual(
+              state.lastDonationSearchParams, currentSearchParams);
+    } else {
+      // Refresh jika belum ada data, status error, atau parameter pencarian berubah
+      return state.rentalItems.isEmpty ||
+          state.rentalStatus == BrowseStatus.error ||
+          !_isSearchParamsEqual(
+              state.lastRentalSearchParams, currentSearchParams);
+    }
+  }
+
+  /// Mendapatkan parameter pencarian saat ini untuk tab tertentu
+  SearchParamsSnapshot _getCurrentSearchParams(String tabType) {
+    // Untuk tab donasi, abaikan filter harga dan sorting harga
+    final minPrice = tabType == 'donation' ? null : state.minPrice;
+    final maxPrice = tabType == 'donation' ? null : state.maxPrice;
+    final sortBy = (tabType == 'donation' && state.sortBy == 'price')
+        ? null
+        : state.sortBy;
+    final sortOrder = (tabType == 'donation' && state.sortBy == 'price')
+        ? null
+        : state.sortOrder;
+
+    return SearchParamsSnapshot(
+      query: state.query,
+      categoryId: state.categoryId,
+      size: state.size,
+      color: state.color,
+      condition: state.condition,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      city: state.city,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+    );
+  }
+
+  /// Membandingkan dua parameter pencarian
+  bool _isSearchParamsEqual(SearchParamsSnapshot? a, SearchParamsSnapshot? b) {
+    if (a == null || b == null) return false;
+    return a.query == b.query &&
+        a.categoryId == b.categoryId &&
+        a.size == b.size &&
+        a.color == b.color &&
+        a.condition == b.condition &&
+        a.sortBy == b.sortBy &&
+        a.sortOrder == b.sortOrder &&
+        a.city == b.city &&
+        a.minPrice == b.minPrice &&
+        a.maxPrice == b.maxPrice;
   }
 
   Future<void> _onFilterApplied(
@@ -186,6 +283,16 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     final minPrice = currentTab == 'donation' ? null : stateWithMemory.minPrice;
     final maxPrice = currentTab == 'donation' ? null : stateWithMemory.maxPrice;
 
+    // Untuk tab donasi, abaikan sorting berdasarkan harga
+    final sortBy =
+        (currentTab == 'donation' && stateWithMemory.sortBy == 'price')
+            ? null
+            : stateWithMemory.sortBy;
+    final sortOrder =
+        (currentTab == 'donation' && stateWithMemory.sortBy == 'price')
+            ? null
+            : stateWithMemory.sortOrder;
+
     final singleWordQuery = stateWithMemory.query.split(' ').first;
 
     final params = SearchItemsParams(
@@ -195,8 +302,22 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       size: stateWithMemory.size,
       color: stateWithMemory.color,
       condition: stateWithMemory.condition,
-      sortBy: stateWithMemory.sortBy,
-      sortOrder: stateWithMemory.sortOrder,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      city: stateWithMemory.city,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+    );
+
+    // Simpan parameter pencarian untuk tab ini
+    final searchSnapshot = SearchParamsSnapshot(
+      query: stateWithMemory.query,
+      categoryId: stateWithMemory.categoryId,
+      size: stateWithMemory.size,
+      color: stateWithMemory.color,
+      condition: stateWithMemory.condition,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
       city: stateWithMemory.city,
       minPrice: minPrice,
       maxPrice: maxPrice,
@@ -218,6 +339,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             donationError: failure.message,
             donationItems: [],
             lastPerformedQuery: stateWithMemory.lastPerformedQuery,
+            lastDonationSearchParams: searchSnapshot,
           ));
         } else {
           emit(latestState.copyWith(
@@ -225,6 +347,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             rentalError: failure.message,
             rentalItems: [],
             lastPerformedQuery: stateWithMemory.lastPerformedQuery,
+            lastRentalSearchParams: searchSnapshot,
           ));
         }
       },
@@ -234,12 +357,14 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             donationStatus: BrowseStatus.success,
             donationItems: items,
             lastPerformedQuery: stateWithMemory.lastPerformedQuery,
+            lastDonationSearchParams: searchSnapshot,
           ));
         } else {
           emit(latestState.copyWith(
             rentalStatus: BrowseStatus.success,
             rentalItems: items,
             lastPerformedQuery: stateWithMemory.lastPerformedQuery,
+            lastRentalSearchParams: searchSnapshot,
           ));
         }
       },

@@ -38,6 +38,10 @@ class BrowseState extends Equatable {
   final double? minPrice;
   final double? maxPrice;
 
+  // Menyimpan parameter pencarian terakhir untuk setiap tab
+  final SearchParamsSnapshot? lastDonationSearchParams;
+  final SearchParamsSnapshot? lastRentalSearchParams;
+
   const BrowseState({
     this.status = BrowseStatus.initial,
     this.donationStatus = BrowseStatus.initial,
@@ -61,6 +65,8 @@ class BrowseState extends Equatable {
     this.city,
     this.minPrice,
     this.maxPrice,
+    this.lastDonationSearchParams,
+    this.lastRentalSearchParams,
   });
 
   factory BrowseState.initial() {
@@ -90,6 +96,8 @@ class BrowseState extends Equatable {
     Object? city = _notProvided,
     Object? minPrice = _notProvided,
     Object? maxPrice = _notProvided,
+    SearchParamsSnapshot? lastDonationSearchParams,
+    SearchParamsSnapshot? lastRentalSearchParams,
   }) {
     return BrowseState(
       status: status ?? this.status,
@@ -114,6 +122,10 @@ class BrowseState extends Equatable {
       city: _copyWith(city, this.city),
       minPrice: _copyWith(minPrice, this.minPrice),
       maxPrice: _copyWith(maxPrice, this.maxPrice),
+      lastDonationSearchParams:
+          lastDonationSearchParams ?? this.lastDonationSearchParams,
+      lastRentalSearchParams:
+          lastRentalSearchParams ?? this.lastRentalSearchParams,
     );
   }
 
@@ -141,6 +153,8 @@ class BrowseState extends Equatable {
         city,
         minPrice,
         maxPrice,
+        lastDonationSearchParams,
+        lastRentalSearchParams,
       ];
 }
 
@@ -176,6 +190,8 @@ class PriceFilterIgnoredNotification extends BrowseState {
     super.city,
     super.minPrice,
     super.maxPrice,
+    super.lastDonationSearchParams,
+    super.lastRentalSearchParams,
   });
 
   factory PriceFilterIgnoredNotification.from(
@@ -208,6 +224,8 @@ class PriceFilterIgnoredNotification extends BrowseState {
       maxPrice: _copyWith(maxPrice, state.maxPrice),
       sortBy: _copyWith(sortBy, state.sortBy),
       sortOrder: _copyWith(sortOrder, state.sortOrder),
+      lastDonationSearchParams: state.lastDonationSearchParams,
+      lastRentalSearchParams: state.lastRentalSearchParams,
     );
   }
 }
