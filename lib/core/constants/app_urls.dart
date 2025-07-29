@@ -15,6 +15,7 @@ class AppUrls {
   static const String trendingRecommendations = '/ai/recommendations/trending';
   static const String personalizedRecommendations =
       '/ai/recommendations/personalized';
+  static const String aiSimilarItems = '/ai/recommendations/similar';
 
   // --- TAMBAHKAN URL INI ---
   // User Profile & Dashboard

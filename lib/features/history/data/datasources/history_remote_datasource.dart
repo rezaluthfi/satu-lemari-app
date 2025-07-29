@@ -1,4 +1,7 @@
+// lib/features/history/data/datasources/history_remote_datasource.dart
+
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart'; // Import untuk debugPrint
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/features/history/data/models/request_detail_model.dart';
@@ -14,6 +17,7 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
   final Dio dio;
   HistoryRemoteDataSourceImpl({required this.dio});
 
+  // --- PERBAIKAN UTAMA DI SINI ---
   @override
   Future<List<RequestItemModel>> getMyRequests({required String type}) async {
     try {
@@ -21,13 +25,37 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
         AppUrls.myRequests,
         queryParameters: {'type': type},
       );
-      final List<dynamic> data = response.data['data'];
-      return data.map((json) => RequestItemModel.fromJson(json)).toList();
+
+      // 1. Pengecekan keamanan untuk respons data.
+      //    Pastikan field 'data' ada dan merupakan sebuah List.
+      final dynamic responseData = response.data['data'];
+      if (responseData is! List) {
+        // Jika backend mengembalikan null atau bukan list saat kosong,
+        // kita anggap saja sebagai list kosong untuk mencegah crash.
+        debugPrint(
+            "[HistoryDataSource] 'data' field is not a List for type '$type'. Returning empty list.");
+        return [];
+      }
+
+      final List<dynamic> data = responseData;
+
+      // 2. Parsing yang aman di dalam List.from.
+      //    Ini lebih eksplisit daripada .map().toList()
+      return List<RequestItemModel>.from(
+          data.map((json) => RequestItemModel.fromJson(json)));
     } on DioException catch (e) {
-      throw ServerException(
-          message: e.response?.data['message'] ?? 'Gagal memuat riwayat');
+      // Menangkap error dari server (seperti 4xx, 5xx)
+      final message = e.response?.data?['message'] ?? 'Gagal memuat riwayat';
+      throw ServerException(message: message);
+    } catch (e, stacktrace) {
+      // 3. Menangkap SEMUA error lainnya, terutama error parsing (misal: TypeError, FormatException)
+      //    dan mengubahnya menjadi ServerException yang bisa ditangani oleh Repository dan BLoC.
+      debugPrint("[HistoryDataSource] Parsing error for type '$type': $e");
+      debugPrint(stacktrace.toString());
+      throw ServerException(message: 'Gagal memproses data riwayat.');
     }
   }
+  // --- AKHIR PERBAIKAN ---
 
   @override
   Future<RequestDetailModel> getRequestDetail(String id) async {
@@ -35,13 +63,11 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
       final response = await dio.get('${AppUrls.requests}/$id');
       return RequestDetailModel.fromJson(response.data['data']);
     } on DioException catch (e) {
-      // Periksa apakah error disebabkan oleh status code 404 (Not Found)
       if (e.response?.statusCode == 404) {
         throw NotFoundException(
             message: e.response?.data['message'] ??
                 'Detail permintaan tidak ditemukan');
       }
-      // Jika bukan 404, lempar ServerException seperti biasa
       throw ServerException(
           message: e.response?.data['message'] ?? 'Gagal memuat detail');
     }

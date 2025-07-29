@@ -14,6 +14,8 @@ enum ItemDetailButtonState {
   quotaExceeded,
 }
 
+enum SimilarItemsStatus { initial, loading, loaded, error }
+
 abstract class ItemDetailState extends Equatable {
   const ItemDetailState();
   @override
@@ -26,13 +28,46 @@ class ItemDetailLoading extends ItemDetailState {}
 
 class ItemDetailLoaded extends ItemDetailState {
   final ItemDetail item;
-
   final ItemDetailButtonState buttonState;
 
-  const ItemDetailLoaded(this.item, {required this.buttonState});
+  final SimilarItemsStatus similarItemsStatus;
+  final List<Item> similarItems;
+  final String? similarItemsError;
+
+  const ItemDetailLoaded(
+    this.item, {
+    required this.buttonState,
+    this.similarItemsStatus = SimilarItemsStatus.initial,
+    this.similarItems = const [],
+    this.similarItemsError,
+  });
+
+  // --- TAMBAHKAN METHOD COPYWITH ---
+  ItemDetailLoaded copyWith({
+    ItemDetail? item,
+    ItemDetailButtonState? buttonState,
+    SimilarItemsStatus? similarItemsStatus,
+    List<Item>? similarItems,
+    String? similarItemsError,
+  }) {
+    return ItemDetailLoaded(
+      item ?? this.item,
+      buttonState: buttonState ?? this.buttonState,
+      similarItemsStatus: similarItemsStatus ?? this.similarItemsStatus,
+      similarItems: similarItems ?? this.similarItems,
+      similarItemsError: similarItemsError ?? this.similarItemsError,
+    );
+  }
+  // --- AKHIR TAMBAHAN ---
 
   @override
-  List<Object> get props => [item, buttonState];
+  List<Object> get props => [
+        item,
+        buttonState,
+        similarItemsStatus,
+        similarItems,
+        similarItemsError ?? ''
+      ];
 }
 
 class ItemDetailError extends ItemDetailState {

@@ -13,14 +13,18 @@ import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.
 import 'package:satulemari/features/category_items/data/models/item_model.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/domain/entities/recommendation.dart';
+import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
+import 'package:satulemari/features/item_detail/data/models/item_detail_model.dart';
 
 class BrowseRepositoryImpl implements BrowseRepository {
   final BrowseRemoteDataSource remoteDataSource;
+  final ItemDetailRemoteDataSource itemDetailRemoteDataSource;
   final NetworkInfo networkInfo;
   final CategoryCacheService categoryCache;
 
   BrowseRepositoryImpl({
     required this.remoteDataSource,
+    required this.itemDetailRemoteDataSource,
     required this.networkInfo,
     required this.categoryCache,
   });
@@ -56,7 +60,6 @@ class BrowseRepositoryImpl implements BrowseRepository {
       SearchItemsParams params) async {
     if (await networkInfo.isConnected) {
       try {
-        // Teruskan semua parameter baru ke remoteDataSource
         final remoteModels = await remoteDataSource.searchItems(
           type: params.type,
           query: params.query,
@@ -109,14 +112,13 @@ class BrowseRepositoryImpl implements BrowseRepository {
               categoryCache.getCategoryIdByName(data.entities.category!);
         }
 
-        // Mapping dari Model ke Entity, sekarang sertakan semua filter dari AI
         final entity = IntentAnalysis(
           query: data.query,
           filters: IntentFilters(
             search: data.filters.search,
             size: data.filters.size,
-            color: data.filters.color, // Ambil color dari AI
-            condition: data.filters.condition, // Ambil condition dari AI
+            color: data.filters.color,
+            condition: data.filters.condition,
             maxPrice: data.filters.maxPrice,
             categoryId: categoryId,
           ),
@@ -124,6 +126,61 @@ class BrowseRepositoryImpl implements BrowseRepository {
         return Right(entity);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
+      }
+    } else {
+      return Left(ConnectionFailure('No Internet Connection'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Item>>> getSimilarItems(String itemId) async {
+    if (await networkInfo.isConnected) {
+      try {
+        final similarItemsResponse =
+            await remoteDataSource.getSimilarItems(itemId);
+
+        final List<String> similarItemIds = similarItemsResponse
+            .data.similarItems
+            .map((item) => item.data.itemId)
+            .toList();
+
+        if (similarItemIds.isEmpty) {
+          return const Right([]);
+        }
+
+        final List<ItemDetailModel> detailedItemModels =
+            await itemDetailRemoteDataSource.getItemsByIds(similarItemIds);
+
+        // Mapping yang aman (null-safe) dari List<ItemDetailModel> ke List<Item>
+        final entities = detailedItemModels.map((detailModel) {
+          ItemType type = ItemType.unknown;
+          if (detailModel.type?.toLowerCase() == 'donation') {
+            type = ItemType.donation;
+          } else if (detailModel.type?.toLowerCase() == 'rental') {
+            type = ItemType.rental;
+          }
+
+          return Item(
+            id: detailModel.id,
+            // Berikan nilai fallback jika properti bisa null
+            name: detailModel.name ?? 'Tanpa Nama',
+            imageUrl:
+                detailModel.images.isNotEmpty ? detailModel.images.first : null,
+            type: type,
+            size: detailModel.size,
+            condition: detailModel.condition,
+            availableQuantity: detailModel.availableQuantity,
+            price: detailModel.price,
+            // Gunakan null-aware operator (?) untuk mengakses 'name' dengan aman
+            categoryName: detailModel.category?.name,
+          );
+        }).toList();
+
+        return Right(entities);
+      } on ServerException catch (e) {
+        return Left(ServerFailure(e.message));
+      } catch (e) {
+        return Left(ServerFailure('Gagal memproses barang serupa.'));
       }
     } else {
       return Left(ConnectionFailure('No Internet Connection'));

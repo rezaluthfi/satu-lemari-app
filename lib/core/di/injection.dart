@@ -51,6 +51,28 @@ import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.
 import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecase.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 
+// Category Items
+import 'package:satulemari/features/category_items/data/datasources/category_items_remote_datasource.dart';
+import 'package:satulemari/features/category_items/domain/repositories/category_items_repository.dart';
+import 'package:satulemari/features/category_items/domain/repositories/category_items_repository_impl.dart';
+import 'package:satulemari/features/category_items/domain/usecases/get_items_by_category_usecase.dart';
+import 'package:satulemari/features/category_items/presentation/bloc/category_items_bloc.dart';
+
+// Item Detail
+import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
+import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository.dart';
+import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository_impl.dart';
+import 'package:satulemari/features/item_detail/domain/usecases/get_item_by_id_usecase.dart';
+import 'package:satulemari/features/browse/domain/usecases/get_similar_items_usecase.dart';
+import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
+
+// Request
+import 'package:satulemari/features/request/data/datasources/request_remote_datasource.dart';
+import 'package:satulemari/features/request/domain/repositories/request_repository.dart';
+import 'package:satulemari/features/request/domain/repositories/request_repository_impl.dart';
+import 'package:satulemari/features/request/domain/usecases/create_request_usecase.dart';
+import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
+
 // History
 import 'package:satulemari/features/history/data/datasources/history_remote_datasource.dart';
 import 'package:satulemari/features/history/domain/repositories/history_repository.dart';
@@ -81,43 +103,21 @@ import 'package:satulemari/features/profile/domain/usecases/get_profile_usecase.
 import 'package:satulemari/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 
-// Request
-import 'package:satulemari/features/request/data/datasources/request_remote_datasource.dart';
-import 'package:satulemari/features/request/domain/repositories/request_repository.dart';
-import 'package:satulemari/features/request/domain/repositories/request_repository_impl.dart';
-import 'package:satulemari/features/request/domain/usecases/create_request_usecase.dart';
-import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
-
-// Item Detail
-import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
-import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository.dart';
-import 'package:satulemari/features/item_detail/domain/repositories/item_detail_repository_impl.dart';
-import 'package:satulemari/features/item_detail/domain/usecases/get_item_by_id_usecase.dart';
-import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
-
-// Category Items
-import 'package:satulemari/features/category_items/data/datasources/category_items_remote_datasource.dart';
-import 'package:satulemari/features/category_items/domain/repositories/category_items_repository.dart';
-import 'package:satulemari/features/category_items/domain/repositories/category_items_repository_impl.dart';
-import 'package:satulemari/features/category_items/domain/usecases/get_items_by_category_usecase.dart';
-import 'package:satulemari/features/category_items/presentation/bloc/category_items_bloc.dart';
-
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // --- FEATURES ---
 
-  // Auth Feature (Singleton is correct)
+  // Auth
   sl.registerLazySingleton(() => AuthBloc(
-        registerUseCase: sl(),
-        loginWithEmailUseCase: sl(),
-        loginWithGoogleUseCase: sl(),
-        logoutUseCase: sl(),
-        getCurrentUserUseCase: sl(),
-        notificationService: sl(),
-        registerFCMTokenUseCase: sl(),
-        deleteFCMTokenUseCase: sl(),
-      ));
+      registerUseCase: sl(),
+      loginWithEmailUseCase: sl(),
+      loginWithGoogleUseCase: sl(),
+      logoutUseCase: sl(),
+      getCurrentUserUseCase: sl(),
+      notificationService: sl(),
+      registerFCMTokenUseCase: sl(),
+      deleteFCMTokenUseCase: sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithEmailUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
@@ -126,23 +126,19 @@ Future<void> init() async {
   sl.registerLazySingleton(() => RegisterFCMTokenUseCase(sl()));
   sl.registerLazySingleton(() => DeleteFCMTokenUseCase(sl()));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
-        remoteDataSource: sl(),
-        localDataSource: sl(),
-        networkInfo: sl(),
-      ));
+      remoteDataSource: sl(), localDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(
       dio: sl(), firebaseAuth: sl(), googleSignIn: sl()));
   sl.registerLazySingleton<AuthLocalDataSource>(
       () => AuthLocalDataSourceImpl(sharedPreferences: sl()));
 
-  // Home Feature -> Singleton
+  // Home
   sl.registerLazySingleton(() => HomeBloc(
-        getCategories: sl(),
-        getTrendingItems: sl(),
-        getPersonalizedRecommendations: sl(),
-        getItemsByIds: sl(),
-        categoryCache: sl(),
-      ));
+      getCategories: sl(),
+      getTrendingItems: sl(),
+      getPersonalizedRecommendations: sl(),
+      getItemsByIds: sl(),
+      categoryCache: sl()));
   sl.registerLazySingleton(() => GetCategoriesUseCase(sl()));
   sl.registerLazySingleton(() => GetTrendingItemsUseCase(sl()));
   sl.registerLazySingleton(() => GetPersonalizedRecommendationsUseCase(sl()));
@@ -151,24 +147,29 @@ Future<void> init() async {
   sl.registerLazySingleton<HomeRemoteDataSource>(
       () => HomeRemoteDataSourceImpl(dio: sl()));
 
-  // Browse Feature -> Singleton
-  sl.registerLazySingleton(() => BrowseBloc(
-        searchItems: sl(),
-        getAiSuggestions: sl(),
-        analyzeIntent: sl(),
-      ));
+  // Browse
+  sl.registerLazySingleton(
+    () => BrowseBloc(
+      searchItems: sl(),
+      getAiSuggestions: sl(),
+      analyzeIntent: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => SearchItemsUseCase(sl()));
   sl.registerLazySingleton(() => GetAiSuggestionsUseCase(sl()));
   sl.registerLazySingleton(() => AnalyzeIntentUseCase(sl()));
+  // --- REGISTRASI USE CASE BARU ---
+  sl.registerLazySingleton(() => GetSimilarItemsUseCase(sl()));
+  // --- AKHIR REGISTRASI ---
   sl.registerLazySingleton<BrowseRepository>(() => BrowseRepositoryImpl(
-        remoteDataSource: sl(),
-        networkInfo: sl(),
-        categoryCache: sl(),
-      ));
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+      categoryCache: sl(),
+      itemDetailRemoteDataSource: sl()));
   sl.registerLazySingleton<BrowseRemoteDataSource>(
       () => BrowseRemoteDataSourceImpl(dio: sl()));
 
-  // Category Items Feature -> Factory is acceptable
+  // Category Items
   sl.registerFactory(() => CategoryItemsBloc(getItemsByCategory: sl()));
   sl.registerLazySingleton(() => GetItemsByCategoryUseCase(sl()));
   sl.registerLazySingleton<CategoryItemsRepository>(() =>
@@ -176,12 +177,15 @@ Future<void> init() async {
   sl.registerLazySingleton<CategoryItemsRemoteDataSource>(
       () => CategoryItemsRemoteDataSourceImpl(dio: sl()));
 
-  // Item Detail Feature -> Factory is acceptable
+  // Item Detail
+  // --- PERBARUI REGISTRASI BLOC ---
   sl.registerFactory(() => ItemDetailBloc(
         getItemById: sl(),
         getMyRequests: sl(),
         getDashboardStats: sl(),
+        getSimilarItems: sl(), // <-- Tambahkan dependency baru
       ));
+  // --- AKHIR PERBARUAN ---
   sl.registerLazySingleton(() => GetItemByIdUseCase(sl()));
   sl.registerLazySingleton(() => GetItemsByIdsUseCase(sl()));
   sl.registerLazySingleton<ItemDetailRepository>(() =>
@@ -189,7 +193,7 @@ Future<void> init() async {
   sl.registerLazySingleton<ItemDetailRemoteDataSource>(
       () => ItemDetailRemoteDataSourceImpl(dio: sl()));
 
-  // Request Feature -> Factory is acceptable
+  // Request
   sl.registerFactory(() => RequestBloc(createRequest: sl()));
   sl.registerLazySingleton(() => CreateRequestUseCase(sl()));
   sl.registerLazySingleton<RequestRepository>(
@@ -197,9 +201,8 @@ Future<void> init() async {
   sl.registerLazySingleton<RequestRemoteDataSource>(
       () => RequestRemoteDataSourceImpl(dio: sl()));
 
-  // History Feature -> Singleton
+  // History
   sl.registerLazySingleton(() => HistoryBloc(getMyRequests: sl()));
-  // RequestDetailBloc is for a specific page, Factory is better here
   sl.registerFactory(
       () => RequestDetailBloc(getRequestDetail: sl(), deleteRequest: sl()));
   sl.registerLazySingleton(() => GetMyRequestsUseCase(sl()));
@@ -210,16 +213,15 @@ Future<void> init() async {
   sl.registerLazySingleton<HistoryRemoteDataSource>(
       () => HistoryRemoteDataSourceImpl(dio: sl()));
 
-  // Notification Feature -> Singleton
+  // Notification
   sl.registerLazySingleton(() => NotificationBloc(
-        getMyNotifications: sl(),
-        getNotificationStats: sl(),
-        markAllAsRead: sl(),
-        markAsRead: sl(),
-        deleteNotification: sl(),
-        deleteMultipleNotifications: sl(),
-        markMultipleAsRead: sl(),
-      ));
+      getMyNotifications: sl(),
+      getNotificationStats: sl(),
+      markAllAsRead: sl(),
+      markAsRead: sl(),
+      deleteNotification: sl(),
+      deleteMultipleNotifications: sl(),
+      markMultipleAsRead: sl()));
   sl.registerLazySingleton(() => GetMyNotificationsUseCase(sl()));
   sl.registerLazySingleton(() => GetNotificationStatsUseCase(sl()));
   sl.registerLazySingleton(() => MarkAllNotificationsAsReadUseCase(sl()));
@@ -232,14 +234,13 @@ Future<void> init() async {
   sl.registerLazySingleton<NotificationRemoteDataSource>(
       () => NotificationRemoteDataSourceImpl(dio: sl()));
 
-  // Profile Feature -> Singleton (MOST IMPORTANT CHANGE)
+  // Profile
   sl.registerLazySingleton(() => ProfileBloc(
-        getProfile: sl(),
-        getDashboardStats: sl(),
-        updateProfile: sl(),
-        deleteAccount: sl(),
-        authBloc: sl(),
-      ));
+      getProfile: sl(),
+      getDashboardStats: sl(),
+      updateProfile: sl(),
+      deleteAccount: sl(),
+      authBloc: sl()));
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetDashboardStatsUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
@@ -249,48 +250,35 @@ Future<void> init() async {
   sl.registerLazySingleton<ProfileRemoteDataSource>(
       () => ProfileRemoteDataSourceImpl(dio: sl()));
 
-  // --- CORE ---
+  // --- CORE & EXTERNAL (Tidak ada perubahan di sini) ---
   sl.registerLazySingleton(() => NotificationService());
   sl.registerLazySingleton(() => CategoryCacheService());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton(() => AuthInterceptor(sl()));
-
-  // --- REGISTRASI BARU UNTUK COOKIE MANAGER ---
   sl.registerLazySingleton(() => CookieJar());
   sl.registerLazySingleton(() => CookieManager(sl<CookieJar>()));
-
-  // --- EXTERNAL ---
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
   sl.registerLazySingleton(() => FirebaseAuth.instance);
   sl.registerLazySingleton(() => GoogleSignIn());
   sl.registerLazySingleton(() => InternetConnectionChecker.createInstance());
-
-  // Dio
   sl.registerLazySingleton(() {
     final baseUrl = dotenv.env['API_BASE_URL'];
     if (baseUrl == null) {
       throw Exception("API_BASE_URL not found in .env file");
     }
     final options = BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-    );
-
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        });
     final dio = Dio(options);
-
-    // --- TAMBAHKAN COOKIE MANAGER SEBAGAI INTERCEPTOR PERTAMA ---
     dio.interceptors.add(sl<CookieManager>());
-
-    // Tambahkan interceptor lain setelahnya
     dio.interceptors.add(sl<AuthInterceptor>());
     dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
-
     return dio;
   });
 }

@@ -5,6 +5,7 @@ import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/features/browse/data/models/ai_suggestions_model.dart';
 import 'package:satulemari/features/browse/data/models/intent_analysis_model.dart';
+import 'package:satulemari/features/browse/data/models/similar_items_model.dart';
 import 'package:satulemari/features/category_items/data/models/item_model.dart';
 
 abstract class BrowseRemoteDataSource {
@@ -25,6 +26,8 @@ abstract class BrowseRemoteDataSource {
   Future<AiSuggestionsModel> getAiSuggestions(String query);
 
   Future<IntentAnalysisResponseModel> analyzeIntent(String query);
+
+  Future<SimilarItemsResponseModel> getSimilarItems(String itemId);
 }
 
 class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
@@ -114,6 +117,22 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
       final message =
           e.response?.data?['message'] ?? 'Gagal menganalisis permintaan';
       throw ServerException(message: message);
+    }
+  }
+
+  @override
+  Future<SimilarItemsResponseModel> getSimilarItems(String itemId) async {
+    try {
+      final response = await dio.get(
+        '${AppUrls.aiSimilarItems}/$itemId',
+      );
+      return SimilarItemsResponseModel.fromJson(response.data);
+    } on DioException catch (e) {
+      final message =
+          e.response?.data?['message'] ?? 'Gagal memuat item serupa';
+      throw ServerException(message: message);
+    } catch (e) {
+      throw ServerException(message: 'Terjadi kesalahan tidak terduga');
     }
   }
 }

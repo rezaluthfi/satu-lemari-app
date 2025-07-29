@@ -12,3 +12,10 @@ class FetchItemDetail extends ItemDetailEvent {
   @override
   List<Object> get props => [id];
 }
+
+class FetchSimilarItems extends ItemDetailEvent {
+  final String itemId;
+  const FetchSimilarItems(this.itemId);
+  @override
+  List<Object> get props => [itemId];
+}
