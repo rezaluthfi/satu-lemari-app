@@ -1,8 +1,7 @@
-// File: features/request/presentation/widgets/donation_request_sheet.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/core/utils/validators.dart';
 import 'package:satulemari/features/request/data/models/create_request_model.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:satulemari/shared/widgets/custom_button.dart';
@@ -17,15 +16,18 @@ class DonationRequestSheet extends StatefulWidget {
 }
 
 class _DonationRequestSheetState extends State<DonationRequestSheet> {
+  final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
 
   void _submit() {
-    final request = CreateRequestModel(
-      itemId: widget.itemId,
-      quantity: 1,
-      reason: _reasonController.text.trim(),
-    );
-    context.read<RequestBloc>().add(SubmitRequest(request));
+    if (_formKey.currentState!.validate()) {
+      final request = CreateRequestModel(
+        itemId: widget.itemId,
+        quantity: 1,
+        reason: _reasonController.text.trim(),
+      );
+      context.read<RequestBloc>().add(SubmitRequest(request));
+    }
   }
 
   @override
@@ -43,41 +45,45 @@ class _DonationRequestSheetState extends State<DonationRequestSheet> {
         color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: BlocBuilder<RequestBloc, RequestState>(
-        builder: (context, state) {
-          // --- PERBAIKAN: Gunakan nama state yang benar ---
-          final bool isLoading = state is RequestInProgress;
+      child: Form(
+        key: _formKey,
+        child: BlocBuilder<RequestBloc, RequestState>(
+          builder: (context, state) {
+            final bool isLoading = state is RequestInProgress;
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Ajukan Permintaan Donasi',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary)),
-              const SizedBox(height: 8),
-              const Text(
-                  'Tuliskan alasan singkat mengapa Anda membutuhkan barang ini (opsional).',
-                  style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 20),
-              CustomTextField(
-                label: 'Alasan',
-                controller: _reasonController,
-                maxLines: 4,
-                hint: 'Contoh: Untuk wawancara kerja...',
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'Kirim Permintaan',
-                onPressed: isLoading ? null : _submit,
-                width: double.infinity,
-                isLoading: isLoading,
-              ),
-            ],
-          );
-        },
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Ajukan Permintaan Donasi',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 8),
+                const Text(
+                    'Tuliskan alasan mengapa Anda membutuhkan barang ini.',
+                    style: TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  label: 'Alasan Permintaan', // Label yang lebih jelas
+                  controller: _reasonController,
+                  maxLines: 4,
+                  hint: 'Contoh: Untuk wawancara kerja...',
+                  validator: (value) =>
+                      Validators.validateRequired(value, 'Alasan'),
+                ),
+                const SizedBox(height: 24),
+                CustomButton(
+                  text: 'Kirim Permintaan',
+                  onPressed: isLoading ? null : _submit,
+                  width: double.infinity,
+                  isLoading: isLoading,
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
