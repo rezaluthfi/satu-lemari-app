@@ -56,11 +56,30 @@ class _HomePageState extends State<HomePage>
   // FAB Position Manager
   final FabPositionManager _positionManager = FabPositionManager();
 
+  // Map untuk ikon kategori
+  final Map<String, IconData> _categoryIcons = {
+    'aksesoris': Icons.watch,
+    'alas kaki': Icons.snowshoeing,
+    'celana': Icons.style_outlined,
+    'pakaian anak': Icons.child_care,
+    'pakaian formal': Icons.business_center,
+    'pakaian kasual': Icons.weekend,
+    'pakaian luar': Icons.ac_unit,
+    'pakaian olahraga': Icons.sports_soccer,
+    'pakaian tradisional': Icons.fort,
+  };
+
+  // Helper Method untuk mendapatkan ikon
+  IconData _getIconForCategory(String categoryName) {
+    // Mengubah nama kategori menjadi lowercase untuk pencocokan yang tidak case-sensitive
+    final normalizedName = categoryName.toLowerCase();
+    return _categoryIcons[normalizedName] ?? Icons.category;
+  }
+
   @override
   void initState() {
     super.initState();
-
-    _setupScrollListener(); // Setup listener untuk scroll
+    _setupScrollListener();
     _fetchInitialData();
     _setupFCMListener();
   }
@@ -68,8 +87,7 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _searchController.dispose();
-    _scrollController.dispose(); // Dispose scroll controller
-    // Simpan posisi sebelum dispose
+    _scrollController.dispose();
     if (_fabInitialized) {
       _positionManager.savePosition(
         FabPositionManager.homePageKey,
@@ -82,21 +100,15 @@ class _HomePageState extends State<HomePage>
 
   void _setupScrollListener() {
     _scrollController.addListener(() {
-      // Hitung apakah app bar dalam keadaan collapsed
-      // App bar mulai collapse ketika scroll offset > (expandedHeight - collapsedHeight)
       const double collapseThreshold = _appBarHeight - 56.0;
-
       final bool shouldBeCollapsed = _scrollController.hasClients &&
           _scrollController.offset > collapseThreshold;
-
       if (shouldBeCollapsed != _isAppBarCollapsed) {
         setState(() {
           _isAppBarCollapsed = shouldBeCollapsed;
           _currentTopSafeZone =
               _isAppBarCollapsed ? _collapsedTopSafeZone : _expandedTopSafeZone;
         });
-
-        // Update posisi FAB jika sudah diinisialisasi dan berada di zona yang berubah
         if (_fabInitialized) {
           _updateFabPositionForTopSafeZoneChange();
         }
@@ -106,18 +118,13 @@ class _HomePageState extends State<HomePage>
 
   void _updateFabPositionForTopSafeZoneChange() {
     final screenSize = MediaQuery.of(context).size;
-
-    // Jika FAB berada di zona yang terpengaruh perubahan top safe zone
     if (_fabY < _expandedTopSafeZone) {
       setState(() {
-        // Pastikan FAB tidak keluar dari batas atas yang baru
         _fabY = _fabY.clamp(
           _currentTopSafeZone,
           screenSize.height - _bottomSafeZone - _fabSize,
         );
       });
-
-      // Simpan posisi yang sudah disesuaikan
       _positionManager.savePosition(
         FabPositionManager.homePageKey,
         _fabX,
@@ -155,25 +162,20 @@ class _HomePageState extends State<HomePage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           final screenSize = MediaQuery.of(context).size;
-
-          // Coba ambil posisi yang tersimpan
           final savedPosition = _positionManager.getPosition(
             FabPositionManager.homePageKey,
           );
-
           setState(() {
             if (savedPosition != null) {
-              // Gunakan posisi tersimpan, tapi pastikan masih dalam batas layar
               _fabX = savedPosition.x.clamp(
                 _sidePadding,
                 screenSize.width - _fabSize - _sidePadding,
               );
               _fabY = savedPosition.y.clamp(
-                _currentTopSafeZone, // Gunakan current top safe zone
+                _currentTopSafeZone,
                 screenSize.height - _bottomSafeZone - _fabSize,
               );
             } else {
-              // Gunakan posisi default
               final defaultPosition = _positionManager.getDefaultPosition(
                 FabPositionManager.homePageKey,
                 screenSize.width,
@@ -181,7 +183,7 @@ class _HomePageState extends State<HomePage>
               );
               _fabX = defaultPosition.x;
               _fabY = defaultPosition.y.clamp(
-                _currentTopSafeZone, // Pastikan default position juga menggunakan current top safe zone
+                _currentTopSafeZone,
                 screenSize.height - _bottomSafeZone - _fabSize,
               );
             }
@@ -194,19 +196,16 @@ class _HomePageState extends State<HomePage>
 
   void _onFabPanUpdate(DragUpdateDetails details) {
     final screenSize = MediaQuery.of(context).size;
-
     setState(() {
       _fabX = (_fabX + details.delta.dx).clamp(
         _sidePadding,
         screenSize.width - _fabSize - _sidePadding,
       );
       _fabY = (_fabY + details.delta.dy).clamp(
-        _currentTopSafeZone, // Gunakan current top safe zone yang dinamis
+        _currentTopSafeZone,
         screenSize.height - _bottomSafeZone - _fabSize,
       );
     });
-
-    // Simpan posisi secara real-time
     _positionManager.savePosition(
       FabPositionManager.homePageKey,
       _fabX,
@@ -221,12 +220,10 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     super.build(context);
     _initializeFabPosition();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Main content
           RefreshIndicator(
             onRefresh: () async {
               context.read<HomeBloc>().add(FetchAllHomeData());
@@ -248,7 +245,6 @@ class _HomePageState extends State<HomePage>
               ],
             ),
           ),
-          // Draggable FAB
           if (_fabInitialized)
             Positioned(
               left: _fabX,
@@ -291,11 +287,8 @@ class _HomePageState extends State<HomePage>
         ),
       );
     }
-
     final screenWidth = MediaQuery.of(context).size.width;
-
     const double carouselHeight = 300;
-
     return SizedBox(
       height: carouselHeight,
       child: ListView.builder(
@@ -329,7 +322,6 @@ class _HomePageState extends State<HomePage>
         ),
       );
     }
-
     return MasonryGridView.count(
       padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
       crossAxisCount: 2,
@@ -340,7 +332,6 @@ class _HomePageState extends State<HomePage>
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         final item = items[index];
-        // isCarousel di sini false (default)
         return ProductCard(item: item);
       },
     );
@@ -352,7 +343,7 @@ class _HomePageState extends State<HomePage>
       floating: false,
       snap: false,
       expandedHeight: _appBarHeight,
-      collapsedHeight: 56.0, // Standard AppBar height when collapsed
+      collapsedHeight: 56.0,
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -365,17 +356,12 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         child: FlexibleSpaceBar(
-          // Hanya menampilkan greeting saat collapsed
           title: LayoutBuilder(
             builder: (context, constraints) {
-              // Deteksi apakah app bar dalam keadaan collapsed
               final isCollapsed = constraints.biggest.height <= 80;
-
               if (isCollapsed) {
-                // Tampilkan hanya greeting saat collapsed
                 return _buildCollapsedGreeting();
               } else {
-                // Return empty container saat expanded, karena content ada di background
                 return const SizedBox.shrink();
               }
             },
@@ -723,7 +709,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // Widget khusus untuk greeting saat collapsed
   Widget _buildCollapsedGreeting() {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
@@ -838,7 +823,6 @@ class _HomePageState extends State<HomePage>
         ),
       );
     }
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: _defaultPadding),
       child: LayoutBuilder(
@@ -865,6 +849,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // --- PERUBAHAN 3: Sesuaikan _buildCategoryCard ---
   Widget _buildCategoryCard(Category category) {
     return InkWell(
       onTap: () {
@@ -887,8 +872,9 @@ class _HomePageState extends State<HomePage>
                 color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.local_offer_rounded,
+              // Gunakan helper method untuk mendapatkan ikon dinamis
+              child: Icon(
+                _getIconForCategory(category.name),
                 color: AppColors.primary,
                 size: 20,
               ),
