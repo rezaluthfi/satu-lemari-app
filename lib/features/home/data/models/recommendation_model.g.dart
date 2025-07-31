@@ -25,7 +25,7 @@ Map<String, dynamic> _$RecommendationModelToJson(
       'description': instance.description,
       'reason': instance.reason,
       'score': instance.score,
-      'data': instance.data,
+      'data': instance.data.toJson(),
     };
 
 RecommendationDataModel _$RecommendationDataModelFromJson(

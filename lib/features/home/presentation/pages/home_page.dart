@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/core/utils/fab_position_manager.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
+import 'package:satulemari/features/chat/presentation/pages/chat_sessions_page.dart';
 import 'package:satulemari/features/home/domain/entities/category.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
@@ -25,17 +27,40 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin {
-  late TextEditingController _searchController;
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  // FAB position variables
+  double _fabX = 0;
+  double _fabY = 0;
+  bool _fabInitialized = false;
 
   static const double _defaultPadding = 16.0;
   static const double _sectionSpacing = 24.0;
   static const double _cardRadius = 12.0;
   static const double _appBarHeight = 100.0;
+  static const double _fabSize = 56.0;
+
+  // Safe area constraints for FAB
+  static const double _expandedTopSafeZone =
+      120.0; // App bar + status bar (expanded)
+  static const double _collapsedTopSafeZone =
+      80.0; // App bar collapsed + status bar
+  static const double _bottomSafeZone = 64.0; // Bottom navigation area
+  static const double _sidePadding = 16.0;
+
+  // Variabel untuk tracking scroll position
+  double _currentTopSafeZone = _expandedTopSafeZone;
+  bool _isAppBarCollapsed = false;
+
+  // FAB Position Manager
+  final FabPositionManager _positionManager = FabPositionManager();
 
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
+
+    _setupScrollListener(); // Setup listener untuk scroll
     _fetchInitialData();
     _setupFCMListener();
   }
@@ -43,7 +68,62 @@ class _HomePageState extends State<HomePage>
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose(); // Dispose scroll controller
+    // Simpan posisi sebelum dispose
+    if (_fabInitialized) {
+      _positionManager.savePosition(
+        FabPositionManager.homePageKey,
+        _fabX,
+        _fabY,
+      );
+    }
     super.dispose();
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      // Hitung apakah app bar dalam keadaan collapsed
+      // App bar mulai collapse ketika scroll offset > (expandedHeight - collapsedHeight)
+      const double collapseThreshold = _appBarHeight - 56.0;
+
+      final bool shouldBeCollapsed = _scrollController.hasClients &&
+          _scrollController.offset > collapseThreshold;
+
+      if (shouldBeCollapsed != _isAppBarCollapsed) {
+        setState(() {
+          _isAppBarCollapsed = shouldBeCollapsed;
+          _currentTopSafeZone =
+              _isAppBarCollapsed ? _collapsedTopSafeZone : _expandedTopSafeZone;
+        });
+
+        // Update posisi FAB jika sudah diinisialisasi dan berada di zona yang berubah
+        if (_fabInitialized) {
+          _updateFabPositionForTopSafeZoneChange();
+        }
+      }
+    });
+  }
+
+  void _updateFabPositionForTopSafeZoneChange() {
+    final screenSize = MediaQuery.of(context).size;
+
+    // Jika FAB berada di zona yang terpengaruh perubahan top safe zone
+    if (_fabY < _expandedTopSafeZone) {
+      setState(() {
+        // Pastikan FAB tidak keluar dari batas atas yang baru
+        _fabY = _fabY.clamp(
+          _currentTopSafeZone,
+          screenSize.height - _bottomSafeZone - _fabSize,
+        );
+      });
+
+      // Simpan posisi yang sudah disesuaikan
+      _positionManager.savePosition(
+        FabPositionManager.homePageKey,
+        _fabX,
+        _fabY,
+      );
+    }
   }
 
   void _fetchInitialData() {
@@ -70,33 +150,130 @@ class _HomePageState extends State<HomePage>
     FocusScope.of(context).unfocus();
   }
 
+  void _initializeFabPosition() {
+    if (!_fabInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final screenSize = MediaQuery.of(context).size;
+
+          // Coba ambil posisi yang tersimpan
+          final savedPosition = _positionManager.getPosition(
+            FabPositionManager.homePageKey,
+          );
+
+          setState(() {
+            if (savedPosition != null) {
+              // Gunakan posisi tersimpan, tapi pastikan masih dalam batas layar
+              _fabX = savedPosition.x.clamp(
+                _sidePadding,
+                screenSize.width - _fabSize - _sidePadding,
+              );
+              _fabY = savedPosition.y.clamp(
+                _currentTopSafeZone, // Gunakan current top safe zone
+                screenSize.height - _bottomSafeZone - _fabSize,
+              );
+            } else {
+              // Gunakan posisi default
+              final defaultPosition = _positionManager.getDefaultPosition(
+                FabPositionManager.homePageKey,
+                screenSize.width,
+                screenSize.height,
+              );
+              _fabX = defaultPosition.x;
+              _fabY = defaultPosition.y.clamp(
+                _currentTopSafeZone, // Pastikan default position juga menggunakan current top safe zone
+                screenSize.height - _bottomSafeZone - _fabSize,
+              );
+            }
+            _fabInitialized = true;
+          });
+        }
+      });
+    }
+  }
+
+  void _onFabPanUpdate(DragUpdateDetails details) {
+    final screenSize = MediaQuery.of(context).size;
+
+    setState(() {
+      _fabX = (_fabX + details.delta.dx).clamp(
+        _sidePadding,
+        screenSize.width - _fabSize - _sidePadding,
+      );
+      _fabY = (_fabY + details.delta.dy).clamp(
+        _currentTopSafeZone, // Gunakan current top safe zone yang dinamis
+        screenSize.height - _bottomSafeZone - _fabSize,
+      );
+    });
+
+    // Simpan posisi secara real-time
+    _positionManager.savePosition(
+      FabPositionManager.homePageKey,
+      _fabX,
+      _fabY,
+    );
+  }
+
   @override
   bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    _initializeFabPosition();
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          context.read<HomeBloc>().add(FetchAllHomeData());
-          context.read<NotificationBloc>().add(FetchNotificationStats());
-        },
-        color: AppColors.primary,
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(),
-            _buildSearchBar(),
-            _buildPromotionalBanner(),
-            _buildCategories(),
-            _buildTrending(),
-            _buildPersonalized(),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 80),
+      body: Stack(
+        children: [
+          // Main content
+          RefreshIndicator(
+            onRefresh: () async {
+              context.read<HomeBloc>().add(FetchAllHomeData());
+              context.read<NotificationBloc>().add(FetchNotificationStats());
+            },
+            color: AppColors.primary,
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                _buildAppBar(),
+                _buildSearchBar(),
+                _buildPromotionalBanner(),
+                _buildCategories(),
+                _buildTrending(),
+                _buildPersonalized(),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 80),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Draggable FAB
+          if (_fabInitialized)
+            Positioned(
+              left: _fabX,
+              top: _fabY,
+              child: GestureDetector(
+                onPanUpdate: _onFabPanUpdate,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ChatSessionsPage(),
+                      ),
+                    );
+                  },
+                  backgroundColor: AppColors.primary,
+                  elevation: 6,
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

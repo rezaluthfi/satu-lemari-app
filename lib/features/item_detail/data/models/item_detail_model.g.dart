@@ -41,8 +41,8 @@ Map<String, dynamic> _$ItemDetailModelToJson(ItemDetailModel instance) =>
       'available_quantity': instance.availableQuantity,
       'condition': instance.condition,
       'price': instance.price,
-      'partner': instance.partner,
-      'category': instance.category,
+      'partner': instance.partner?.toJson(),
+      'category': instance.category?.toJson(),
       'images': instance.images,
     };
 

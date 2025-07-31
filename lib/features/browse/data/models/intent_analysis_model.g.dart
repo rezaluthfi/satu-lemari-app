@@ -20,7 +20,7 @@ Map<String, dynamic> _$IntentAnalysisResponseModelToJson(
     <String, dynamic>{
       'success': instance.success,
       'message': instance.message,
-      'data': instance.data,
+      'data': instance.data.toJson(),
     };
 
 IntentAnalysisDataModel _$IntentAnalysisDataModelFromJson(
@@ -43,8 +43,8 @@ Map<String, dynamic> _$IntentAnalysisDataModelToJson(
     <String, dynamic>{
       'intent': instance.intent,
       'confidence': instance.confidence,
-      'entities': instance.entities,
-      'filters': instance.filters,
+      'entities': instance.entities.toJson(),
+      'filters': instance.filters.toJson(),
       'query': instance.query,
       'suggestions': instance.suggestions,
     };
