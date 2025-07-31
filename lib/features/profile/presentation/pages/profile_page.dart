@@ -219,7 +219,7 @@ class _ProfilePageState extends State<ProfilePage>
                             onPressed: () => context
                                 .read<ProfileBloc>()
                                 .add(FetchProfileData()),
-                            icon: Icons.refresh,
+                            icon: const Icon(Icons.refresh),
                           ),
                         ],
                       ),
@@ -779,7 +779,7 @@ class _ProfilePageState extends State<ProfilePage>
               }
             },
             type: ButtonType.outline,
-            icon: Icons.map_outlined,
+            icon: const Icon(Icons.map_outlined),
           ),
         ],
       ),
@@ -864,7 +864,7 @@ class _ProfilePageState extends State<ProfilePage>
                 },
                 type: ButtonType.outline,
                 width: double.infinity,
-                icon: Icons.logout,
+                icon: const Icon(Icons.logout),
               ),
               const SizedBox(height: 12),
               CustomButton(
@@ -903,7 +903,7 @@ class _ProfilePageState extends State<ProfilePage>
                 type: ButtonType.text,
                 textColor: AppColors.error,
                 width: double.infinity,
-                icon: Icons.delete_forever_outlined,
+                icon: const Icon(Icons.delete_forever_outlined),
               ),
             ],
           ),

@@ -48,7 +48,7 @@ class NetworkErrorWidget extends StatelessWidget {
             CustomButton(
               text: 'Coba Lagi',
               onPressed: onRetry,
-              icon: Icons.refresh,
+              icon: const Icon(Icons.refresh),
             ),
           ],
         ),

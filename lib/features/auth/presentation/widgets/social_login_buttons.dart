@@ -20,6 +20,7 @@ class SocialLoginButtons extends StatelessWidget {
             // Google login button
             CustomButton(
               text: AppStrings.continueWithGoogle,
+              isLoading: isLoading,
               onPressed: isLoading
                   ? null
                   : () {
@@ -28,7 +29,10 @@ class SocialLoginButtons extends StatelessWidget {
                           .add(LoginWithGoogleButtonPressed());
                     },
               type: ButtonType.outline,
-              icon: Icons.g_mobiledata,
+              // Menggunakan widget Image.asset sebagai ikon
+              icon: Image.asset(
+                'assets/icons/png/ic_google.png',
+              ),
               width: double.infinity,
               backgroundColor: Colors.white,
               textColor: AppColors.textPrimary,
@@ -40,6 +44,7 @@ class SocialLoginButtons extends StatelessWidget {
             if (Theme.of(context).platform == TargetPlatform.iOS)
               CustomButton(
                 text: AppStrings.continueWithApple,
+                isLoading: isLoading,
                 onPressed: isLoading
                     ? null
                     : () {
@@ -49,7 +54,7 @@ class SocialLoginButtons extends StatelessWidget {
                         );
                       },
                 type: ButtonType.primary,
-                icon: Icons.apple,
+                icon: const Icon(Icons.apple, color: Colors.white),
                 width: double.infinity,
                 backgroundColor: Colors.black,
                 textColor: Colors.white,

@@ -1,3 +1,5 @@
+// lib/shared/widgets/custom_button.dart
+
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -8,7 +10,7 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final ButtonType type;
   final bool isLoading;
-  final IconData? icon;
+  final Widget? icon;
   final double? width;
   final double? height;
   final double? fontSize;
@@ -22,7 +24,7 @@ class CustomButton extends StatelessWidget {
     this.onPressed,
     this.type = ButtonType.primary,
     this.isLoading = false,
-    this.icon,
+    this.icon, // <-- PERUBAHAN 2: Menghapus tipe IconData?
     this.width,
     this.height,
     this.fontSize,
@@ -40,12 +42,13 @@ class CustomButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: _getButtonStyle(),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                      _getLoadingIndicatorColor()),
                 ),
               )
             : _buildButtonContent(),
@@ -53,15 +56,29 @@ class CustomButton extends StatelessWidget {
     );
   }
 
+  // Helper untuk warna loading indicator agar konsisten dengan teks
+  Color _getLoadingIndicatorColor() {
+    switch (type) {
+      case ButtonType.primary:
+      case ButtonType.secondary:
+        return Colors.white;
+      default:
+        return AppColors.primary;
+    }
+  }
+
   Widget _buildButtonContent() {
     if (icon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: _getTextColor(),
+          // --- PERUBAHAN 3: Render widget ikon secara langsung ---
+          // Kita tidak lagi membungkusnya dengan widget Icon,
+          // karena `icon` itu sendiri sudah merupakan widget.
+          SizedBox(
+            width: 24, // Beri batasan ukuran pada ikon
+            height: 24,
+            child: icon!,
           ),
           const SizedBox(width: 8),
           Text(
@@ -112,7 +129,7 @@ class CustomButton extends StatelessWidget {
           foregroundColor: textColor ?? AppColors.primary,
           elevation: 0,
           side: BorderSide(
-            color: borderColor ?? AppColors.primary,
+            color: borderColor ?? AppColors.divider,
             width: 1,
           ),
           shape: RoundedRectangleBorder(
@@ -141,7 +158,9 @@ class CustomButton extends StatelessWidget {
         return Colors.white;
       case ButtonType.outline:
       case ButtonType.text:
-        return AppColors.primary;
+        // Gunakan warna dari style jika ada, atau default ke AppColors.primary
+        return _getButtonStyle().foregroundColor?.resolve({}) ??
+            AppColors.primary;
     }
   }
 }

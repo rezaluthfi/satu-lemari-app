@@ -362,7 +362,7 @@ class _EditProfilePageState extends State<EditProfilePage>
                 text: 'Pilih Lokasi di Peta',
                 onPressed: _openLocationPicker,
                 type: ButtonType.outline,
-                icon: Icons.map_outlined,
+                icon: const Icon(Icons.map_outlined),
               ),
               const SizedBox(height: 16),
               CustomTextField(
