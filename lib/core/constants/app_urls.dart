@@ -17,7 +17,19 @@ class AppUrls {
       '/ai/recommendations/personalized';
   static const String aiSimilarItems = '/ai/recommendations/similar';
 
-  // --- TAMBAHKAN URL INI ---
+  // --- CHATBOT URLS ---
+  static const String chatStart = '/chat/start';
+  static const String chatSend = '/chat/send';
+  static const String chatHistoryBase = '/chat/history'; // /:id
+  static const String chatSessions = '/chat/sessions';
+  static const String chatDeleteSessionBase = '/chat/sessions'; // /:id
+  static const String chatDeleteMessagesBase =
+      '/chat/sessions'; // /:id/messages
+  static const String chatDeleteAllMessagesBase =
+      '/chat/sessions'; // /:id/messages/all
+  static const String chatDeleteAllUserHistory = '/chat/history/all';
+  static const String chatSuggestions = '/chat/suggestions';
+
   // User Profile & Dashboard
   static const String userProfile = '/users/me';
   static const String userDashboard = '/users/dashboard';

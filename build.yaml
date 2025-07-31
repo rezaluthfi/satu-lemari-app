@@ -1,0 +1,23 @@
+targets:
+  $default:
+    builders:
+      # Konfigurasi untuk json_serializable
+      # Ini akan berlaku untuk SEMUA file yang di-annotasi dengan @JsonSerializable
+      json_serializable:
+        options:
+          # Secara otomatis mengubah field camelCase (contoh: userId) di Dart
+          # menjadi snake_case (contoh: user_id) saat membaca/menulis JSON.
+          # Ini menghilangkan kebutuhan untuk menulis @JsonKey(name: '...') di banyak tempat.
+          field_rename: snake
+
+          # Memastikan toJson() dipanggil pada objek bersarang.
+          explicit_to_json: true
+
+      # Konfigurasi untuk retrofit_generator
+      # Kita batasi agar hanya berjalan pada file yang kita inginkan.
+      retrofit_generator:
+        # PENTING: Bagian ini memberitahu retrofit_generator
+        # untuk HANYA berjalan pada file-file yang cocok dengan pola ini.
+        generate_for:
+          - lib/features/**_datasource.dart
+          - lib/features/**_api.dart

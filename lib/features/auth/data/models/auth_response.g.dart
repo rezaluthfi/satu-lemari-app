@@ -18,7 +18,7 @@ AuthResponseModel _$AuthResponseModelFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$AuthResponseModelToJson(AuthResponseModel instance) =>
     <String, dynamic>{
       'success': instance.success,
-      'data': instance.data,
+      'data': instance.data?.toJson(),
       'message': instance.message,
     };
 
@@ -32,7 +32,7 @@ AuthDataModel _$AuthDataModelFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$AuthDataModelToJson(AuthDataModel instance) =>
     <String, dynamic>{
-      'user': instance.user,
+      'user': instance.user.toJson(),
       'access_token': instance.accessToken,
       'token_type': instance.tokenType,
       'expires_in': instance.expiresIn,
