@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
+import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
 import 'package:satulemari/features/chat/domain/usecases/delete_all_message_in_session.dart';
 import 'package:satulemari/features/chat/domain/usecases/delete_specific_message.dart';
@@ -70,17 +71,15 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         _getChatSuggestions(NoParams()),
       ]);
 
-      final historyResult = results[0] as Either<dynamic, List<ChatMessage>>;
+      final historyResult = results[0] as Either<Failure, List<ChatMessage>>;
       final initialMessages = historyResult.fold(
         (failure) =>
             throw Exception("Gagal memuat riwayat: ${failure.message}"),
-        // PERBAIKAN: Gunakan data langsung dari server tanpa membalik
-        // karena server sudah mengirim dalam urutan yang benar
         (messages) => messages,
       );
 
       final suggestionsResult =
-          results[1] as Either<dynamic, List<ChatSuggestion>>;
+          results[1] as Either<Failure, List<ChatSuggestion>>;
       final suggestions = suggestionsResult.getOrElse(() => []);
 
       emit(ChatLoaded(
@@ -106,12 +105,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       timestamp: DateTime.now(),
     );
 
-    // PERBAIKAN: Tambahkan pesan baru di AKHIR list (urutan normal)
+    // 1. Tampilkan pesan user, set loading, DAN HAPUS SUGGESTIONS
     emit(currentState.copyWith(
       messages: [...currentState.messages, userMessage],
       isBotTyping: true,
       quickReplies: [],
-      suggestions: [],
+      suggestions: [], // <-- TAMBAHKAN BARIS INI!
     ));
 
     final result = await _sendChatMessage(SendMessageParams(
@@ -119,37 +118,37 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       message: event.text,
     ));
 
-    await result.fold(
-      (failure) async {
+    result.fold(
+      (failure) {
         final errorMessage = ChatMessage(
           id: const Uuid().v4(),
-          sessionId: (state as ChatLoaded).sessionId,
+          sessionId: currentState.sessionId,
           role: 'assistant',
-          content: "Oops, terjadi kesalahan: ${failure.message}",
+          content: "Oops, terjadi kesalahan. Coba lagi nanti.",
           timestamp: DateTime.now(),
         );
-        // PERBAIKAN: Tambahkan error message di akhir list
-        emit((state as ChatLoaded).copyWith(
-            messages: [...(state as ChatLoaded).messages, errorMessage],
-            isBotTyping: false));
+
+        emit(currentState.copyWith(
+          messages: [...currentState.messages, userMessage, errorMessage],
+          isBotTyping: false,
+        ));
       },
-      (response) async {
-        final historyResult = await _getChatHistory(
-            HistoryParams(sessionId: currentState.sessionId));
-        historyResult.fold(
-          (failure) {
-            emit((state as ChatLoaded).copyWith(isBotTyping: false));
-            emit(ChatError("Gagal menyinkronkan pesan: ${failure.message}"));
-          },
-          (freshMessages) {
-            // PERBAIKAN: Gunakan data langsung dari server
-            emit((state as ChatLoaded).copyWith(
-              messages: freshMessages,
-              quickReplies: response.quickReplies,
-              isBotTyping: false,
-            ));
-          },
+      (response) {
+        final aiMessage = ChatMessage(
+          id: const Uuid().v4(),
+          sessionId: response.sessionId,
+          role: 'assistant',
+          content: response.message,
+          timestamp: response.timestamp,
         );
+
+        emit(currentState.copyWith(
+          messages: [...currentState.messages, userMessage, aiMessage],
+          quickReplies: response.quickReplies,
+          isBotTyping: false,
+          // Pastikan suggestions tetap kosong di sini juga
+          suggestions: [],
+        ));
       },
     );
   }
@@ -165,10 +164,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final currentState = state;
     if (currentState is! ChatLoaded) return;
 
+    emit(currentState.copyWith(messages: []));
+
     final result = await _deleteAllMessagesInSession(
         SessionIdParams(sessionId: currentState.sessionId));
+
     result.fold(
       (failure) {
+        emit(currentState.copyWith(isBotTyping: false));
         emit(ChatError("Gagal menghapus pesan: ${failure.message}"));
       },
       (_) {
@@ -187,28 +190,19 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       messageIds: event.messageIds,
     ));
 
-    await result.fold(
-      (failure) async {
+    result.fold(
+      (failure) {
         emit(ChatError("Gagal menghapus pesan: ${failure.message}"));
       },
-      (_) async {
-        final historyResult = await _getChatHistory(
-            HistoryParams(sessionId: currentState.sessionId));
+      (_) {
+        final updatedMessages = currentState.messages
+            .where((msg) => !event.messageIds.contains(msg.id))
+            .toList();
 
-        historyResult.fold(
-          (failure) {
-            emit(ChatError(
-                "Pesan dihapus, tapi gagal memuat ulang: ${failure.message}"));
-          },
-          (freshMessages) {
-            // PERBAIKAN: Gunakan data langsung dari server
-            emit(currentState.copyWith(
-              messages: freshMessages,
-              successMessage:
-                  "${event.messageIds.length} pesan berhasil dihapus.",
-            ));
-          },
-        );
+        emit(currentState.copyWith(
+          messages: updatedMessages,
+          successMessage: "${event.messageIds.length} pesan berhasil dihapus.",
+        ));
       },
     );
   }

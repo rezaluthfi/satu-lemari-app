@@ -5,13 +5,13 @@ import '../../domain/entities/send_message_response.dart';
 
 part 'send_message_response_model.g.dart';
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class SendMessageResponseModel extends SendMessageResponse {
+  @JsonKey(defaultValue: [])
   @override
   final List<QuickReplyModel> quickReplies;
 
   const SendMessageResponseModel({
-    // Semua @JsonKey tidak diperlukan lagi
     required String sessionId,
     required String message,
     required String messageType,

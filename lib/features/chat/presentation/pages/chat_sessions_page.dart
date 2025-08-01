@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
-import 'package:satulemari/core/utils/fab_position_manager.dart'; // Import manager
+import 'package:satulemari/core/utils/fab_position_manager.dart';
 import 'package:satulemari/features/chat/domain/entities/chat_session.dart';
 import 'package:satulemari/features/chat/presentation/bloc/sessions_bloc.dart';
 import 'package:satulemari/features/chat/presentation/pages/chat_page.dart';
@@ -46,7 +46,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
 
   @override
   void dispose() {
-    // Simpan posisi sebelum dispose
     if (_fabInitialized) {
       _positionManager.savePosition(
         FabPositionManager.chatSessionsPageKey,
@@ -72,7 +71,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
       ),
     );
     if (context.mounted) {
-      // Selalu refresh setelah membuat chat baru
       context.read<SessionsBloc>().add(const FetchSessions(forceRefresh: true));
     }
   }
@@ -84,7 +82,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
         builder: (_) => ChatPage(args: ChatPageArguments(sessionId: sessionId)),
       ),
     );
-    // Hanya refresh jika ada aktivitas
     if (context.mounted) {
       _handleNavigationResult(context, result);
     }
@@ -127,25 +124,15 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           final screenSize = MediaQuery.of(context).size;
-
-          // Coba ambil posisi yang tersimpan
-          final savedPosition = _positionManager.getPosition(
-            FabPositionManager.chatSessionsPageKey,
-          );
-
+          final savedPosition = _positionManager
+              .getPosition(FabPositionManager.chatSessionsPageKey);
           setState(() {
             if (savedPosition != null) {
-              // Gunakan posisi tersimpan, tapi pastikan masih dalam batas layar
               _fabX = savedPosition.x.clamp(
-                _sidePadding,
-                screenSize.width - _fabSize - _sidePadding,
-              );
+                  _sidePadding, screenSize.width - _fabSize - _sidePadding);
               _fabY = savedPosition.y.clamp(
-                _topSafeZone,
-                screenSize.height - _bottomSafeZone - _fabSize,
-              );
+                  _topSafeZone, screenSize.height - _bottomSafeZone - _fabSize);
             } else {
-              // Gunakan posisi default
               final defaultPosition = _positionManager.getDefaultPosition(
                 FabPositionManager.chatSessionsPageKey,
                 screenSize.width,
@@ -163,19 +150,12 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
 
   void _onFabPanUpdate(DragUpdateDetails details) {
     final screenSize = MediaQuery.of(context).size;
-
     setState(() {
-      _fabX = (_fabX + details.delta.dx).clamp(
-        _sidePadding,
-        screenSize.width - _fabSize - _sidePadding,
-      );
-      _fabY = (_fabY + details.delta.dy).clamp(
-        _topSafeZone,
-        screenSize.height - _bottomSafeZone - _fabSize,
-      );
+      _fabX = (_fabX + details.delta.dx)
+          .clamp(_sidePadding, screenSize.width - _fabSize - _sidePadding);
+      _fabY = (_fabY + details.delta.dy)
+          .clamp(_topSafeZone, screenSize.height - _bottomSafeZone - _fabSize);
     });
-
-    // Simpan posisi secara real-time
     _positionManager.savePosition(
       FabPositionManager.chatSessionsPageKey,
       _fabX,
@@ -238,34 +218,41 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
       ),
       body: Stack(
         children: [
-          // Main content
+          // --- BLOC CONSUMER YANG SUDAH DISESUAIKAN ---
           BlocConsumer<SessionsBloc, SessionsState>(
             listener: (context, state) {
-              if (state is SessionsActionSuccess) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: AppColors.success,
-                    behavior: SnackBarBehavior.floating,
-                    elevation: 0,
-                    margin: const EdgeInsets.all(12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              if (state is SessionsLoaded) {
+                const double fabBottomClearance = 92.0;
+
+                if (state.successMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.successMessage!),
+                      backgroundColor: AppColors.success,
+                      behavior: SnackBarBehavior.floating,
+                      elevation: 0,
+                      margin: const EdgeInsets.fromLTRB(
+                          12, 12, 12, fabBottomClearance),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                );
-              } else if (state is SessionsActionFailure) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: AppColors.error,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.all(12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  );
+                } else if (state.failureMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.failureMessage!),
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
+                      // <-- PERBAIKAN: Beri margin bawah yang lebih besar
+                      margin: const EdgeInsets.fromLTRB(
+                          12, 12, 12, fabBottomClearance),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                  ),
-                );
+                  );
+                }
               }
             },
             builder: (context, state) {
@@ -319,20 +306,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
                                 color: AppColors.textSecondary,
                                 fontSize: 16,
                                 height: 1.5)),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                            onPressed: () => _startNewChat(context),
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            label: const Text('Mulai Percakapan',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8))))
                       ]));
                 }
                 return RefreshIndicator(
@@ -353,7 +326,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
               return const SizedBox.shrink();
             },
           ),
-          // Draggable FAB
           if (_fabInitialized)
             Positioned(
               left: _fabX,
@@ -375,11 +347,10 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
 
   Widget _buildSessionTile(
       BuildContext context, ChatSession session, int index) {
-    final localCreatedAt = session.createdAt.toLocal();
     final localLastActivity = session.lastActivity.toLocal();
-    final isToday = DateFormat.yMd().format(localCreatedAt) ==
+    final isToday = DateFormat.yMd().format(localLastActivity) ==
         DateFormat.yMd().format(DateTime.now());
-    final isYesterday = DateFormat.yMd().format(localCreatedAt) ==
+    final isYesterday = DateFormat.yMd().format(localLastActivity) ==
         DateFormat.yMd()
             .format(DateTime.now().subtract(const Duration(days: 1)));
     final String titleText;
@@ -389,7 +360,7 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
       titleText = 'Percakapan Kemarin';
     } else {
       titleText =
-          'Percakapan ${DateFormat.yMMMd('id_ID').format(localCreatedAt)}';
+          'Percakapan ${DateFormat.yMMMd('id_ID').format(localLastActivity)}';
     }
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

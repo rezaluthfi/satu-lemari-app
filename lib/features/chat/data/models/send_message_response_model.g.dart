@@ -12,9 +12,10 @@ SendMessageResponseModel _$SendMessageResponseModelFromJson(
       sessionId: json['session_id'] as String,
       message: json['message'] as String,
       messageType: json['message_type'] as String,
-      quickReplies: (json['quick_replies'] as List<dynamic>)
-          .map((e) => QuickReplyModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      quickReplies: (json['quick_replies'] as List<dynamic>?)
+              ?.map((e) => QuickReplyModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       timestamp: DateTime.parse(json['timestamp'] as String),
       canContinue: json['can_continue'] as bool,
       sessionActive: json['session_active'] as bool,

@@ -32,16 +32,12 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
   Future<void> _onFetchSessions(
       FetchSessions event, Emitter<SessionsState> emit) async {
     final currentState = state;
-    // --- LOGIKA CERDAS DIMULAI DI SINI ---
-    // Jika state sudah `SessionsLoaded` dan tidak ada paksaan refresh,
-    // maka cukup emit state yang ada (ambil dari cache BLoC).
     if (currentState is SessionsLoaded && !event.forceRefresh) {
-      emit(currentState);
+      // Jika state sebelumnya memiliki pesan, bersihkan saat fetch baru
+      emit(currentState.copyWith(clearMessages: true));
       return;
     }
-    // ---------------------------------
 
-    // Jika belum ada data atau dipaksa refresh, lanjutkan fetch.
     emit(SessionsLoading());
     final result = await _getUserSessions(const GetUserSessionsParams());
     result.fold(
@@ -50,14 +46,17 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
     );
   }
 
+  // --- METHOD INI DIPERBAIKI DENGAN POLA BARU ---
   Future<void> _onDeleteAllUserHistory(
       DeleteAllUserHistoryEvent event, Emitter<SessionsState> emit) async {
     final result = await _deleteAllUserHistory(NoParams());
     result.fold(
-      (failure) => emit(SessionsActionFailure(failure.message)),
+      (failure) => emit(SessionsLoaded([],
+          failureMessage: failure.message)), // Kirim pesan error
       (_) {
-        emit(const SessionsActionSuccess("Semua riwayat berhasil dihapus."));
-        // Setelah hapus, PAKSA refresh untuk mendapatkan list kosong
+        emit(const SessionsLoaded([],
+            successMessage:
+                "Semua riwayat berhasil dihapus.")); // Kirim pesan sukses
         add(const FetchSessions(forceRefresh: true));
       },
     );
@@ -65,14 +64,46 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
 
   Future<void> _onDeleteSpecificSession(
       DeleteSpecificSessionEvent event, Emitter<SessionsState> emit) async {
+    final currentState = state;
+    if (currentState is! SessionsLoaded) return;
+
+    final List<ChatSession> originalList = List.from(currentState.sessions);
+    late ChatSession sessionToDelete;
+    try {
+      sessionToDelete = originalList.firstWhere((s) => s.id == event.sessionId);
+    } catch (e) {
+      return;
+    }
+    final int originalIndex = originalList.indexOf(sessionToDelete);
+
+    final List<ChatSession> optimisticList = List.from(originalList)
+      ..remove(sessionToDelete);
+
+    // Emit state optimis, tapi bersihkan pesan sebelumnya
+    emit(currentState.copyWith(sessions: optimisticList, clearMessages: true));
+
     final result =
         await _deleteChatSession(SessionIdParams(sessionId: event.sessionId));
+
+    final lastState = state;
+    if (lastState is! SessionsLoaded) return;
+
     result.fold(
-      (failure) => emit(SessionsActionFailure(failure.message)),
+      (failure) {
+        // Gagal, kembalikan list dan tambahkan pesan error
+        final List<ChatSession> rolledBackList = List.from(lastState.sessions)
+          ..insert(originalIndex, sessionToDelete);
+
+        emit(lastState.copyWith(
+          sessions: rolledBackList,
+          failureMessage: "Gagal menghapus sesi: ${failure.message}",
+        ));
+      },
       (_) {
-        emit(const SessionsActionSuccess("Sesi berhasil dihapus."));
-        // Setelah hapus, PAKSA refresh untuk mendapatkan list yang terupdate
-        add(const FetchSessions(forceRefresh: true));
+        // Sukses, state UI sudah benar, cukup tambahkan pesan sukses
+        emit(lastState.copyWith(
+          successMessage: "Sesi berhasil dihapus.",
+        ));
       },
     );
   }

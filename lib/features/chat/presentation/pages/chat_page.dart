@@ -243,10 +243,13 @@ class _ChatViewState extends State<ChatView> {
     if (_isSelectionMode) {
       return AppBar(
         elevation: 1,
-        backgroundColor: AppColors.primary.withOpacity(0.05),
+        backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textPrimary,
         leading: IconButton(
-          icon: const Icon(Icons.close),
+          icon: const Icon(
+            Icons.close,
+            color: Colors.white,
+          ),
           onPressed: _exitSelectionMode,
         ),
         title: Text('${_selectedMessageIds.length} dipilih',
@@ -350,7 +353,6 @@ class _ChatViewState extends State<ChatView> {
                 SnackBar(
                   content: Text(state.message),
                   backgroundColor: AppColors.error,
-                  // --- PERBAIKAN GAYA SNACKBAR ---
                   behavior: SnackBarBehavior.floating,
                   margin: const EdgeInsets.fromLTRB(12, 12, 12, 24),
                   shape: RoundedRectangleBorder(
