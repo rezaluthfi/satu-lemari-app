@@ -36,6 +36,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required this.googleSignIn,
   });
 
+  // Helper function to get user-friendly error messages from Firebase error codes
+  String _getFirebaseErrorMessage(String errorCode) {
+    switch (errorCode) {
+      case 'user-not-found':
+        return 'Email tidak terdaftar. Silakan periksa email Anda atau daftar akun baru.';
+      case 'wrong-password':
+        return 'Password salah. Silakan periksa password Anda.';
+      case 'invalid-email':
+        return 'Format email tidak valid. Silakan masukkan email yang benar.';
+      case 'user-disabled':
+        return 'Akun Anda telah dinonaktifkan. Hubungi customer service untuk bantuan.';
+      case 'too-many-requests':
+        return 'Terlalu banyak percobaan login. Silakan coba lagi dalam beberapa menit.';
+      case 'operation-not-allowed':
+        return 'Metode login ini tidak diizinkan. Hubungi administrator.';
+      case 'weak-password':
+        return 'Password terlalu lemah. Gunakan password yang lebih kuat dengan minimal 6 karakter.';
+      case 'email-already-in-use':
+        return 'Email sudah terdaftar. Silakan login atau gunakan email lain.';
+      case 'invalid-credential':
+        return 'Email atau password salah. Silakan periksa kembali data Anda.';
+      case 'account-exists-with-different-credential':
+        return 'Akun dengan email ini sudah ada dengan metode login berbeda.';
+      case 'invalid-verification-code':
+        return 'Kode verifikasi tidak valid.';
+      case 'invalid-verification-id':
+        return 'ID verifikasi tidak valid.';
+      case 'network-request-failed':
+        return 'Gagal terhubung ke internet. Periksa koneksi Anda dan coba lagi.';
+      case 'requires-recent-login':
+        return 'Operasi ini memerlukan login ulang untuk keamanan.';
+      default:
+        return 'Terjadi kesalahan saat autentikasi. Silakan coba lagi.';
+    }
+  }
+
   // Helper function to verify token with backend
   Future<AuthResponseModel> _verifyTokenToBackend(
       AuthRequestModel request) async {
@@ -47,16 +83,71 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e) {
       final responseData = e.response?.data;
-      String errorMessage = 'An unknown error occurred';
+      String errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi.';
+
+      // Check if backend provides specific error message
       if (responseData is Map<String, dynamic> &&
           responseData.containsKey('message')) {
-        errorMessage = responseData['message'];
+        final backendMessage = responseData['message'] as String;
+
+        // Map common backend error messages to user-friendly Indonesian messages
+        if (backendMessage.toLowerCase().contains('invalid') ||
+            backendMessage.toLowerCase().contains('unauthorized')) {
+          errorMessage =
+              'Data login tidak valid. Silakan periksa email dan password Anda.';
+        } else if (backendMessage.toLowerCase().contains('expired')) {
+          errorMessage = 'Sesi telah berakhir. Silakan login ulang.';
+        } else if (backendMessage.toLowerCase().contains('network') ||
+            backendMessage.toLowerCase().contains('connection')) {
+          errorMessage =
+              'Gagal terhubung ke server. Periksa koneksi internet Anda.';
+        } else if (backendMessage.toLowerCase().contains('server error') ||
+            e.response?.statusCode == 500) {
+          errorMessage =
+              'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.';
+        } else {
+          // Use backend message if it's already in Indonesian or user-friendly
+          errorMessage = backendMessage;
+        }
       } else {
-        errorMessage = e.message ?? errorMessage;
+        // Handle specific HTTP status codes
+        switch (e.response?.statusCode) {
+          case 400:
+            errorMessage =
+                'Data yang dikirim tidak valid. Silakan periksa kembali.';
+            break;
+          case 401:
+            errorMessage = 'Email atau password salah. Silakan coba lagi.';
+            break;
+          case 403:
+            errorMessage = 'Akses ditolak. Hubungi administrator.';
+            break;
+          case 404:
+            errorMessage = 'Service tidak ditemukan. Silakan coba lagi.';
+            break;
+          case 429:
+            errorMessage =
+                'Terlalu banyak percobaan. Silakan tunggu beberapa menit.';
+            break;
+          case 500:
+            errorMessage =
+                'Terjadi kesalahan pada server. Silakan coba beberapa saat lagi.';
+            break;
+          default:
+            if (e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout) {
+              errorMessage =
+                  'Koneksi timeout. Periksa internet Anda dan coba lagi.';
+            } else if (e.type == DioExceptionType.connectionError) {
+              errorMessage =
+                  'Gagal terhubung ke server. Periksa koneksi internet Anda.';
+            }
+        }
       }
       throw ServerException(message: errorMessage);
     } catch (e) {
-      throw ServerException(message: e.toString());
+      throw ServerException(
+          message: 'Terjadi kesalahan yang tidak terduga. Silakan coba lagi.');
     }
   }
 
@@ -88,8 +179,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return await _verifyTokenToBackend(backendRequest);
     } on firebase.FirebaseAuthException catch (e) {
+      final userFriendlyMessage = _getFirebaseErrorMessage(e.code);
+      throw ServerException(message: userFriendlyMessage);
+    } catch (e) {
       throw ServerException(
-          message: e.message ?? 'Firebase registration failed.');
+          message: 'Gagal mendaftar akun. Silakan coba lagi.');
     }
   }
 
@@ -116,7 +210,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return await _verifyTokenToBackend(backendRequest);
     } on firebase.FirebaseAuthException catch (e) {
-      throw ServerException(message: e.message ?? 'Firebase login failed.');
+      final userFriendlyMessage = _getFirebaseErrorMessage(e.code);
+      throw ServerException(message: userFriendlyMessage);
+    } catch (e) {
+      throw ServerException(message: 'Gagal masuk ke akun. Silakan coba lagi.');
     }
   }
 
@@ -126,7 +223,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        throw ServerException(message: "Google Sign-In was cancelled by user.");
+        throw ServerException(message: "Login dengan Google dibatalkan.");
       }
 
       final GoogleSignInAuthentication googleAuth =
@@ -143,15 +240,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (idToken == null) {
         throw ServerException(
-            message: "Could not retrieve Firebase token from Google Sign-In.");
+            message: "Gagal mendapatkan token dari Google Sign-In.");
       }
 
       final backendRequest = AuthRequestModel(token: idToken, type: 'google');
 
       return await _verifyTokenToBackend(backendRequest);
+    } on firebase.FirebaseAuthException catch (e) {
+      await googleSignIn.signOut();
+      final userFriendlyMessage = _getFirebaseErrorMessage(e.code);
+      throw ServerException(message: userFriendlyMessage);
     } catch (e) {
       await googleSignIn.signOut();
-      throw ServerException(message: e.toString());
+      if (e is ServerException) {
+        rethrow; // Preserve ServerException with user-friendly message
+      }
+      throw ServerException(
+          message: 'Gagal login dengan Google. Silakan coba lagi.');
     }
   }
 
