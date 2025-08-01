@@ -142,4 +142,28 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ConnectionFailure('No internet connection.'));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateCachedUserData(User updatedUser) async {
+    try {
+      // Convert User entity to Map for local storage
+      final userMap = {
+        'id': updatedUser.id,
+        'username': updatedUser.username,
+        'full_name': updatedUser.fullName,
+        'phone': updatedUser.phone,
+        'address': updatedUser.address,
+        'city': updatedUser.city,
+        'photo': updatedUser.photo,
+        'description': updatedUser.description,
+        'role': updatedUser.role,
+        'created_at': updatedUser.createdAt,
+      };
+
+      await localDataSource.updateCachedUserData(userMap);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure('Failed to update cached user data: $e'));
+    }
+  }
 }

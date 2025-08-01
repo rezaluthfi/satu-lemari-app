@@ -10,6 +10,7 @@ abstract class AuthLocalDataSource {
   Future<String?> getAccessToken();
   Future<void> cacheNewAccessToken(String accessToken);
   Future<void> cacheRefreshedAuthResponse(AuthResponseModel newAuthResponse);
+  Future<void> updateCachedUserData(Map<String, dynamic> updatedUserData);
   Future<void> setOnboardingCompleted();
   Future<bool> hasSeenOnboarding();
 }
@@ -112,6 +113,37 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
       await cacheAuthResponse(newAuthResponse);
       print(
           '✅ [LOCAL_DATASOURCE] New auth response berhasil di-cache (first time)');
+    }
+  }
+
+  @override
+  Future<void> updateCachedUserData(Map<String, dynamic> updatedUserData) async {
+    print('💾 [LOCAL_DATASOURCE] Updating cached user data...');
+    final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
+    if (jsonString != null) {
+      final authData = json.decode(jsonString) as Map<String, dynamic>;
+      
+      // Update user data di dalam auth response
+      if (authData['data'] is Map) {
+        final data = authData['data'] as Map<String, dynamic>;
+        if (data['user'] is Map) {
+          final userData = data['user'] as Map<String, dynamic>;
+          // Update fields yang berubah
+          updatedUserData.forEach((key, value) {
+            userData[key] = value;
+          });
+          
+          // Simpan kembali ke cache
+          await sharedPreferences.setString(
+            CACHED_AUTH_RESPONSE,
+            json.encode(authData),
+          );
+          print('✅ [LOCAL_DATASOURCE] User data berhasil diupdate di cache');
+        }
+      }
+    } else {
+      print('❌ [LOCAL_DATASOURCE] Tidak ada cached auth response yang ditemukan');
+      throw CacheException('Cannot update user data, no cached auth response found.');
     }
   }
 

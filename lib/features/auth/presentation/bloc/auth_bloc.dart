@@ -10,6 +10,7 @@ import 'package:satulemari/features/auth/domain/usecases/login_with_google_useca
 import 'package:satulemari/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:satulemari/features/auth/domain/usecases/register_fcm_token_usecase.dart';
 import 'package:satulemari/features/auth/domain/usecases/register_usecase.dart';
+import 'package:satulemari/features/auth/domain/usecases/update_cached_user_usecase.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -20,6 +21,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginWithGoogleUseCase loginWithGoogleUseCase;
   final LogoutUseCase logoutUseCase;
   final GetCurrentUserUseCase getCurrentUserUseCase;
+  final UpdateCachedUserUseCase updateCachedUserUseCase;
   final NotificationService notificationService;
   final RegisterFCMTokenUseCase registerFCMTokenUseCase;
   final DeleteFCMTokenUseCase deleteFCMTokenUseCase;
@@ -30,6 +32,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.loginWithGoogleUseCase,
     required this.logoutUseCase,
     required this.getCurrentUserUseCase,
+    required this.updateCachedUserUseCase,
     required this.notificationService,
     required this.registerFCMTokenUseCase,
     required this.deleteFCMTokenUseCase,
@@ -55,6 +58,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (currentState is Authenticated) {
       print(
           'AuthBloc: User data updated internally. New username: ${event.updatedUser.username}');
+
+      // Update cache dengan data user yang baru
+      updateCachedUserUseCase(UpdateCachedUserParams(user: event.updatedUser));
+
       emit(Authenticated(user: event.updatedUser));
     }
   }

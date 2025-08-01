@@ -57,9 +57,20 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       return;
     }
 
+    final currentState = state;
+
+    // Jika state adalah ProfileUpdateSuccess, artinya data sudah fresh dari server
+    // tidak perlu fetch ulang untuk menghindari overwrite data yang baru diupdate
+    if (currentState is ProfileUpdateSuccess) {
+      print("[PROFILE_BLOC_LOG] Data sudah fresh dari update, skip fetch");
+      // Langsung emit ProfileLoaded dengan data yang sudah ada
+      emit(ProfileLoaded(
+          profile: currentState.profile, stats: currentState.stats));
+      return;
+    }
+
     _isFetching = true;
 
-    final currentState = state;
     // Only show loading if not already loaded
     if (currentState is! ProfileLoaded) {
       emit(ProfileLoading());
@@ -84,8 +95,34 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       if (profileResult.isRight() && statsResult.isRight()) {
         print(
             "[PROFILE_BLOC_LOG] Both results successful, emitting ProfileLoaded");
+
+        final fetchedProfile = (profileResult as Right).value as Profile;
+
+        // Gunakan data dari AuthBloc untuk field-field tertentu jika tersedia
+        Profile finalProfile = fetchedProfile;
+        final currentAuthState = authBloc.state;
+        if (currentAuthState is Authenticated) {
+          final authUser = currentAuthState.user;
+          print(
+              "[PROFILE_BLOC_LOG] Merging profile data dengan data dari AuthBloc");
+
+          // Override dengan data terbaru dari AuthBloc
+          finalProfile = fetchedProfile.copyWith(
+            username: authUser.username ?? fetchedProfile.username,
+            fullName: authUser.fullName ?? fetchedProfile.fullName,
+            phone: authUser.phone ?? fetchedProfile.phone,
+            address: authUser.address ?? fetchedProfile.address,
+            city: authUser.city ?? fetchedProfile.city,
+            photo: authUser.photo ?? fetchedProfile.photo,
+            description: authUser.description ?? fetchedProfile.description,
+          );
+
+          print(
+              "[PROFILE_BLOC_LOG] Final profile username: ${finalProfile.username}");
+        }
+
         emit(ProfileLoaded(
-          profile: (profileResult as Right).value,
+          profile: finalProfile,
           stats: (statsResult as Right).value,
         ));
       } else {
@@ -125,16 +162,28 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
               stats: currentState.stats));
         },
         (updatedProfile) {
+          // Emit ProfileUpdateSuccess dengan data yang sudah terupdate
           emit(ProfileUpdateSuccess(
               profile: updatedProfile, stats: currentState.stats));
 
+          // Update AuthBloc dengan data user yang baru
           final currentAuthState = authBloc.state;
           if (currentAuthState is Authenticated) {
             final updatedUser = currentAuthState.user.copyWith(
               username: updatedProfile.username,
+              fullName: updatedProfile.fullName,
+              phone: updatedProfile.phone,
+              address: updatedProfile.address,
+              city: updatedProfile.city,
+              photo: updatedProfile.photo,
+              description: updatedProfile.description,
             );
             authBloc.add(UserDataUpdated(updatedUser));
           }
+
+          // Emit ProfileLoaded dengan data yang sudah terupdate (tidak fetch ulang dari server)
+          emit(ProfileLoaded(
+              profile: updatedProfile, stats: currentState.stats));
         },
       );
     }

@@ -50,4 +50,38 @@ class Profile extends Equatable {
         weeklyDonationUsed,
         quotaResetDate
       ];
+
+  Profile copyWith({
+    String? id,
+    String? email,
+    String? username,
+    String? fullName,
+    String? phone,
+    String? address,
+    String? city,
+    String? photo,
+    String? description,
+    double? latitude,
+    double? longitude,
+    int? weeklyDonationQuota,
+    int? weeklyDonationUsed,
+    String? quotaResetDate,
+  }) {
+    return Profile(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      username: username ?? this.username,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      city: city ?? this.city,
+      photo: photo ?? this.photo,
+      description: description ?? this.description,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      weeklyDonationQuota: weeklyDonationQuota ?? this.weeklyDonationQuota,
+      weeklyDonationUsed: weeklyDonationUsed ?? this.weeklyDonationUsed,
+      quotaResetDate: quotaResetDate ?? this.quotaResetDate,
+    );
+  }
 }

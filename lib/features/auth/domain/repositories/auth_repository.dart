@@ -21,7 +21,7 @@ abstract class AuthRepository {
 
   Future<Either<Failure, User>> getCurrentUser();
 
-  // --- METHOD BARU DITAMBAHKAN DI SINI ---
   Future<Either<Failure, AuthResponseModel>> refreshToken();
-  // --- AKHIR PENAMBAHAN ---
+
+  Future<Either<Failure, void>> updateCachedUserData(User updatedUser);
 }

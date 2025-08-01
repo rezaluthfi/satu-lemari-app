@@ -33,6 +33,7 @@ import 'package:satulemari/features/auth/domain/usecases/login_with_google_useca
 import 'package:satulemari/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:satulemari/features/auth/domain/usecases/register_fcm_token_usecase.dart';
 import 'package:satulemari/features/auth/domain/usecases/register_usecase.dart';
+import 'package:satulemari/features/auth/domain/usecases/update_cached_user_usecase.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 
 // Home
@@ -134,6 +135,7 @@ Future<void> init() async {
       loginWithGoogleUseCase: sl(),
       logoutUseCase: sl(),
       getCurrentUserUseCase: sl(),
+      updateCachedUserUseCase: sl(),
       notificationService: sl(),
       registerFCMTokenUseCase: sl(),
       deleteFCMTokenUseCase: sl()));
@@ -142,6 +144,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateCachedUserUseCase(sl()));
   sl.registerLazySingleton(() => RegisterFCMTokenUseCase(sl()));
   sl.registerLazySingleton(() => DeleteFCMTokenUseCase(sl()));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
