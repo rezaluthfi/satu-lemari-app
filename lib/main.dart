@@ -18,6 +18,7 @@ import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart'
 // Import lainnya
 import 'core/constants/app_theme.dart';
 import 'core/di/injection.dart' as di;
+import 'core/services/notification_service.dart';
 import 'features/auth/presentation/pages/auth_page.dart';
 import 'features/main/presentation/pages/main_page.dart';
 import 'features/onboarding/presentation/pages/onboarding_page.dart';
@@ -54,6 +55,10 @@ Future<void> main() async {
 
   await di.init();
 
+  // Initialize notification service
+  final notificationService = di.sl<NotificationService>();
+  await notificationService.initialize();
+
   await initializeDateFormatting('id_ID', null);
 
   runApp(const MyApp());
@@ -62,8 +67,19 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // Global navigator key untuk navigasi dari notification
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
+    // Setup notification tap handler
+    final notificationService = di.sl<NotificationService>();
+    notificationService.setOnNotificationTap((String route) {
+      // Navigate menggunakan global navigator key
+      navigatorKey.currentState?.pushNamed(route);
+    });
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => di.sl<AuthBloc>()),
@@ -77,6 +93,7 @@ class MyApp extends StatelessWidget {
         title: 'SatuLemari',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey, // Add navigator key
         home: const AuthWrapper(),
         routes: {
           '/onboarding': (context) =>
@@ -110,8 +127,6 @@ class AuthWrapper extends StatelessWidget {
           Navigator.of(context)
               .pushNamedAndRemoveUntil('/auth', (route) => false);
         } else if (state is Authenticated) {
-          // --- PENYESUAIAN BERDASARKAN KODE BLOC ANDA ---
-
           // 1. ProfileBloc: Event untuk mengambil profil & statistik
           context.read<ProfileBloc>().add(FetchProfileData());
 

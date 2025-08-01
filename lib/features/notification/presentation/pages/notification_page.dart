@@ -505,6 +505,7 @@ class _NotificationPageState extends State<NotificationPage> {
               ),
             ),
           ),
+          SizedBox(height: 24),
         ],
       ),
     );
