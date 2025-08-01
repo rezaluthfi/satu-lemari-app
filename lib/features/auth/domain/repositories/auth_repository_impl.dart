@@ -102,28 +102,43 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  // --- PERBAIKAN ADA DI DALAM METHOD INI ---
   @override
   Future<Either<Failure, AuthResponseModel>> refreshToken() async {
+    print('🔄 [AUTH_REPOSITORY] Memulai proses refresh token...');
+
     if (await networkInfo.isConnected) {
       try {
         final newAuthResponse = await remoteDataSource.refreshToken();
+        print('✅ [AUTH_REPOSITORY] Remote refresh token berhasil');
 
         // **PERBAIKAN:** Cek apakah accessToken tidak null sebelum caching
         final newAccessToken = newAuthResponse.data?.accessToken;
         if (newAccessToken != null) {
-          await localDataSource
-              .cacheNewAccessToken(newAccessToken); // Sekarang aman
+          // Gunakan method caching yang lebih robust
+          await localDataSource.cacheRefreshedAuthResponse(newAuthResponse);
+          print('✅ [AUTH_REPOSITORY] Auth response berhasil di-cache');
+
           return Right(newAuthResponse);
         } else {
           // Jika backend mengembalikan response sukses tapi tanpa token, itu adalah error
+          print('❌ [AUTH_REPOSITORY] Response tidak mengandung access token');
           return Left(ServerFailure(newAuthResponse.message ??
               'Refresh token failed: No access token received.'));
         }
       } on ServerException catch (e) {
+        print('❌ [AUTH_REPOSITORY] Server exception: ${e.message}');
+
+        // Jika refresh token expired, clear cache
+        if (e.message.contains('expired') || e.message.contains('invalid')) {
+          print(
+              '🗑️ [AUTH_REPOSITORY] Clearing cache karena refresh token expired');
+          await localDataSource.clearCache();
+        }
+
         return Left(ServerFailure(e.message));
       }
     } else {
+      print('❌ [AUTH_REPOSITORY] Tidak ada koneksi internet');
       return Left(ConnectionFailure('No internet connection.'));
     }
   }

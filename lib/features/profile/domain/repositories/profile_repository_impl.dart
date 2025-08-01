@@ -19,7 +19,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<Either<Failure, Profile>> getProfile() async {
     if (await networkInfo.isConnected) {
       try {
+        print("[PROFILE_REPO] Calling remoteDataSource.getProfile()...");
         final model = await remoteDataSource.getProfile();
+        print("[PROFILE_REPO] Successfully got profile data");
         return Right(Profile(
           id: model.id,
           email: model.email,
@@ -37,9 +39,14 @@ class ProfileRepositoryImpl implements ProfileRepository {
           quotaResetDate: model.quotaResetDate,
         ));
       } on ServerException catch (e) {
+        print("[PROFILE_REPO] ServerException caught: ${e.message}");
         return Left(ServerFailure(e.message));
+      } catch (e) {
+        print("[PROFILE_REPO] Unexpected exception: $e");
+        return Left(ServerFailure('Gagal memuat profil: $e'));
       }
     } else {
+      print("[PROFILE_REPO] No internet connection");
       return Left(ConnectionFailure('No Internet Connection'));
     }
   }

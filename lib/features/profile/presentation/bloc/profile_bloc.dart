@@ -93,7 +93,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
             ? (profileResult as Left).value
             : (statsResult as Left).value;
         print(
-            "[PROFILE_BLOC_LOG] Fetch failed: ${(failure as Failure).message}");
+            "[PROFILE_BLOC_LOG] Fetch failed with Failure: ${(failure as Failure).runtimeType}");
+        print(
+            "[PROFILE_BLOC_LOG] Failure message: ${(failure as Failure).message}");
         emit(ProfileError((failure as Failure).message));
       }
     } catch (e) {

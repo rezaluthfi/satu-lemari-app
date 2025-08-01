@@ -47,6 +47,9 @@ class LoginWithGoogleButtonPressed extends AuthEvent {}
 // Event for logout
 class LogoutButtonPressed extends AuthEvent {}
 
+// Event for force logout when token refresh fails
+class ForceLogoutDueToExpiredToken extends AuthEvent {}
+
 // --- TAMBAHKAN EVENT INI ---
 class UserDataUpdated extends AuthEvent {
   final User updatedUser;

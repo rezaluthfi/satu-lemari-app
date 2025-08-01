@@ -24,14 +24,22 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<ProfileModel> getProfile() async {
     try {
+      print("[PROFILE_REMOTE_DS] Calling dio.get untuk profile...");
       final response = await dio.get(AppUrls.userProfile);
+      print("[PROFILE_REMOTE_DS] Response berhasil: ${response.statusCode}");
       return ProfileModel.fromJson(response.data['data']);
     } on DioException catch (e) {
+      print(
+          "[PROFILE_REMOTE_DS] DioException caught: ${e.type}, Status: ${e.response?.statusCode}, Message: ${e.message}");
+      print("[PROFILE_REMOTE_DS] Error data: ${e.response?.data}");
       throw ServerException(
         message: e.response?.data['error']?['message'] ??
             e.response?.data['message'] ??
             'Gagal memuat profil',
       );
+    } catch (e) {
+      print("[PROFILE_REMOTE_DS] Unexpected exception: $e");
+      throw ServerException(message: 'Gagal memuat profil: $e');
     }
   }
 

@@ -173,17 +173,51 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await dio.post(
         AppUrls.authRefresh,
         data: {}, // Body kosong sesuai Postman
+        options: Options(
+          sendTimeout: const Duration(seconds: 30), // Timeout untuk send
+          receiveTimeout: const Duration(seconds: 30), // Timeout untuk receive
+        ),
       );
 
       print(
           '✅ [REMOTE_DATASOURCE] Request SUKSES dengan status: ${response.statusCode}');
       print('📝 [REMOTE_DATASOURCE] Data response mentah: ${response.data}');
 
-      return AuthResponseModel.fromJson(response.data);
+      final authResponse = AuthResponseModel.fromJson(response.data);
+
+      // Validasi bahwa response mengandung access token
+      if (authResponse.data?.accessToken == null) {
+        print(
+            '❌ [REMOTE_DATASOURCE] Response tidak mengandung access token yang valid!');
+        throw ServerException(
+            message: 'Refresh token response tidak mengandung access token');
+      }
+
+      print(
+          '✅ [REMOTE_DATASOURCE] Refresh token berhasil, access token diperoleh');
+      return authResponse;
     } on DioException catch (e) {
       print('❌ [REMOTE_DATASOURCE] Terjadi DioException saat refresh token!');
       print('   - Status Code: ${e.response?.statusCode}');
       print('   - Response Data: ${e.response?.data}');
+      print('   - Request Path: ${e.requestOptions.path}');
+      print('   - Error Type: ${e.type}');
+
+      // Jika 401 atau 403, kemungkinan refresh token expired
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        print(
+            '💀 [REMOTE_DATASOURCE] Refresh token kemungkinan expired (${e.response?.statusCode})');
+        throw ServerException(
+            message: 'Refresh token expired, silakan login ulang');
+      }
+
+      // Jika timeout
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        print('⏰ [REMOTE_DATASOURCE] Refresh token timeout');
+        throw ServerException(message: 'Request timeout, silakan coba lagi');
+      }
 
       final errorMessage =
           e.response?.data['message'] ?? e.message ?? 'Token refresh failed';

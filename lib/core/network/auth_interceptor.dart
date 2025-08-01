@@ -7,7 +7,7 @@ import 'package:satulemari/features/auth/domain/repositories/auth_repository.dar
 
 // Pengaturan Simulasi
 const bool _ENABLE_SIMULATION = false;
-bool _hasSimulatedError = false;
+int _simulationCounter = 0;
 
 // Flag sederhana untuk mencegah beberapa proses refresh berjalan bersamaan.
 bool _isRefreshing = false;
@@ -22,11 +22,12 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
       RequestOptions options, RequestInterceptorHandler handler) async {
     final isAuthEndpoint = options.path.startsWith('/auth/');
 
-    // Simulasi error hanya untuk endpoint non-auth
+    // Simulasi error hanya untuk endpoint non-auth yang mengandung 'users/me'
     if (kDebugMode && _ENABLE_SIMULATION && !isAuthEndpoint) {
-      if (!_hasSimulatedError) {
-        debugPrint('--- 🚨 SIMULASI TOKEN EXPIRED DIAKTIFKAN 🚨 ---');
-        _hasSimulatedError = true;
+      if (options.path.contains('/users/me') && _simulationCounter < 3) {
+        debugPrint(
+            '--- 🚨 SIMULASI TOKEN EXPIRED DIAKTIFKAN untuk ${options.path} (attempt ${_simulationCounter + 1}) 🚨 ---');
+        _simulationCounter++;
         final simulatedError = DioException(
           requestOptions: options,
           response: Response(statusCode: 401, requestOptions: options),

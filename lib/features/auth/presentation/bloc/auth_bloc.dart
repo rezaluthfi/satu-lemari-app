@@ -39,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginWithEmailButtonPressed>(_onLoginWithEmailButtonPressed);
     on<LoginWithGoogleButtonPressed>(_onLoginWithGoogleButtonPressed);
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
+    on<ForceLogoutDueToExpiredToken>(_onForceLogoutDueToExpiredToken);
     on<UserDataUpdated>(_onUserDataUpdated);
 
     notificationService.onTokenRefresh().listen((newToken) {
@@ -165,6 +166,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogoutButtonPressed(
       LogoutButtonPressed event, Emitter<AuthState> emit) async {
     print("[AUTH_BLOC_LOG] Event LogoutButtonPressed diterima.");
+    await _performLogout(emit);
+  }
+
+  Future<void> _onForceLogoutDueToExpiredToken(
+      ForceLogoutDueToExpiredToken event, Emitter<AuthState> emit) async {
+    print("[AUTH_BLOC_LOG] Force logout karena refresh token expired.");
+    await _performLogout(emit, showExpiredMessage: true);
+  }
+
+  Future<void> _performLogout(Emitter<AuthState> emit,
+      {bool showExpiredMessage = false}) async {
     emit(AuthLoading());
     try {
       await _deleteToken();
@@ -172,6 +184,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await logoutUseCase(NoParams());
       print(
           "[AUTH_BLOC_LOG] LogoutUseCase selesai. Mengirim state Unauthenticated.");
+
+      if (showExpiredMessage) {
+        emit(const AuthFailure(
+            message: 'Sesi Anda telah berakhir. Silakan login kembali.'));
+        // Delay sebentar untuk menampilkan pesan, lalu ke Unauthenticated
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
       emit(Unauthenticated());
     } catch (e) {
       print(

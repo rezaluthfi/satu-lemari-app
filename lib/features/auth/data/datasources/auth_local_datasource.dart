@@ -9,6 +9,7 @@ abstract class AuthLocalDataSource {
   Future<void> clearCache();
   Future<String?> getAccessToken();
   Future<void> cacheNewAccessToken(String accessToken);
+  Future<void> cacheRefreshedAuthResponse(AuthResponseModel newAuthResponse);
   Future<void> setOnboardingCompleted();
   Future<bool> hasSeenOnboarding();
 }
@@ -56,20 +57,61 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> cacheNewAccessToken(String accessToken) async {
+    print('💾 [LOCAL_DATASOURCE] Caching new access token...');
     final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
     if (jsonString != null) {
       final authData = json.decode(jsonString) as Map<String, dynamic>;
       if (authData['data'] is Map) {
         (authData['data'] as Map<String, dynamic>)['access_token'] =
             accessToken;
+
+        await sharedPreferences.setString(
+          CACHED_AUTH_RESPONSE,
+          json.encode(authData),
+        );
+        print('✅ [LOCAL_DATASOURCE] Access token berhasil di-cache');
+      } else {
+        print('❌ [LOCAL_DATASOURCE] Format data auth tidak valid');
+        throw CacheException('Invalid auth data format');
       }
-      await sharedPreferences.setString(
-        CACHED_AUTH_RESPONSE,
-        json.encode(authData),
-      );
     } else {
+      print(
+          '❌ [LOCAL_DATASOURCE] Tidak ada cached auth response yang ditemukan');
       throw CacheException(
           'Cannot update token, no cached auth response found.');
+    }
+  }
+
+  /// Method tambahan untuk cache seluruh auth response yang baru
+  Future<void> cacheRefreshedAuthResponse(
+      AuthResponseModel newAuthResponse) async {
+    print('💾 [LOCAL_DATASOURCE] Caching refreshed auth response...');
+    final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
+    if (jsonString != null) {
+      final oldAuthData = json.decode(jsonString) as Map<String, dynamic>;
+      final newAuthData = newAuthResponse.toJson();
+
+      // Preserve user data dari cache lama jika ada
+      if (oldAuthData['data'] is Map && newAuthData['data'] is Map) {
+        final oldData = oldAuthData['data'] as Map<String, dynamic>;
+        final newData = newAuthData['data'] as Map<String, dynamic>;
+
+        // Preserve user info jika tidak ada di response baru
+        if (newData['user'] == null && oldData['user'] != null) {
+          newData['user'] = oldData['user'];
+        }
+      }
+
+      await sharedPreferences.setString(
+        CACHED_AUTH_RESPONSE,
+        json.encode(newAuthData),
+      );
+      print('✅ [LOCAL_DATASOURCE] Refreshed auth response berhasil di-cache');
+    } else {
+      // Jika tidak ada cache lama, cache yang baru
+      await cacheAuthResponse(newAuthResponse);
+      print(
+          '✅ [LOCAL_DATASOURCE] New auth response berhasil di-cache (first time)');
     }
   }
 
