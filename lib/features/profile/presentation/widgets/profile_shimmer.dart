@@ -118,7 +118,7 @@ class ProfileShimmer extends StatelessWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: List.generate(
-                          3,
+                          2,
                           (_) => Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(right: 12),

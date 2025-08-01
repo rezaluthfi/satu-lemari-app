@@ -122,13 +122,9 @@ class _BrowsePageState extends State<BrowsePage>
     final browseState = context.read<BrowseBloc>().state;
     if (homeState.categoriesStatus != DataStatus.loaded) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Data kategori belum siap. Coba lagi nanti.'),
+        const SnackBar(
+          content: Text('Data kategori belum siap. Coba lagi nanti.'),
           backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -204,8 +200,8 @@ class _BrowsePageState extends State<BrowsePage>
             listener: (context, state) {
               if (state is PriceFilterIgnoredNotification) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Row(children: [
+                  const SnackBar(
+                    content: Row(children: [
                       Icon(Icons.info_outline_rounded,
                           color: Colors.white, size: 20),
                       SizedBox(width: 12),
@@ -214,10 +210,6 @@ class _BrowsePageState extends State<BrowsePage>
                               'Filter harga/urutan harga diabaikan untuk Donasi.'))
                     ]),
                     backgroundColor: AppColors.info,
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
                   ),
                 );
               }
@@ -257,11 +249,8 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  // --- PERBAIKAN UTAMA DI SINI ---
   Widget _buildSearchTextField() {
-    // Gunakan BlocBuilder agar UI (terutama suffixIcon) selalu sinkron dengan state
     return BlocBuilder<BrowseBloc, BrowseState>(
-      // Rebuild hanya jika query atau filter yang mempengaruhi ikon filter berubah
       buildWhen: (prev, curr) =>
           prev.query != curr.query ||
           prev.categoryId != curr.categoryId ||
@@ -306,16 +295,13 @@ class _BrowsePageState extends State<BrowsePage>
                     controller: _searchController,
                     focusNode: _searchFocusNode,
                     onChanged: (query) {
-                      // Panggil QueryChanged untuk sinkronisasi UI (tombol 'X')
                       context.read<BrowseBloc>().add(QueryChanged(query));
 
-                      // Hanya panggil suggestion jika query tidak kosong
                       if (query.isNotEmpty) {
                         context
                             .read<BrowseBloc>()
                             .add(SuggestionsRequested(query));
                       } else {
-                        // Jika query dihapus habis, bersihkan suggestion secara manual
                         context
                             .read<BrowseBloc>()
                             .add(const SuggestionsRequested(''));
@@ -323,8 +309,6 @@ class _BrowsePageState extends State<BrowsePage>
                     },
                     onSubmitted: (query) {
                       if (query.isNotEmpty) {
-                        // Gunakan event SearchTermChanged untuk pencarian biasa
-                        // Event ini akan mencari dengan filter yang sedang aktif
                         context
                             .read<BrowseBloc>()
                             .add(SearchTermChanged(query));
@@ -344,13 +328,10 @@ class _BrowsePageState extends State<BrowsePage>
                           fontWeight: FontWeight.w400),
                       prefixIcon: const Icon(Icons.search_rounded,
                           color: AppColors.textHint, size: 20),
-                      // Tampilkan tombol 'X' berdasarkan state.query, bukan dari controller
                       suffixIcon: state.query.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
-                                // Langsung hilangkan fokus untuk menyembunyikan suggestion secara instan
                                 _searchFocusNode.unfocus();
-                                // Kirim event ke BLoC untuk membersihkan state dan data
                                 context.read<BrowseBloc>().add(SearchCleared());
                               },
                               child: const Icon(Icons.close_rounded,
