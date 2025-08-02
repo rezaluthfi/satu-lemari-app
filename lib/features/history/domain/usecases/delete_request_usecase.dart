@@ -10,13 +10,14 @@ class DeleteRequestUseCase implements UseCase<void, DeleteRequestParams> {
 
   @override
   Future<Either<Failure, void>> call(DeleteRequestParams params) async {
-    return await repository.deleteRequest(params.id);
+    return await repository.deleteRequest(params.id, params.status);
   }
 }
 
 class DeleteRequestParams extends Equatable {
   final String id;
-  const DeleteRequestParams({required this.id});
+  final String status;
+  const DeleteRequestParams({required this.id, required this.status});
   @override
-  List<Object> get props => [id];
+  List<Object> get props => [id, status];
 }

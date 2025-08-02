@@ -24,6 +24,11 @@ class RequestDetailError extends RequestDetailState {
   List<Object> get props => [message];
 }
 
-class RequestDeleteSuccess extends RequestDetailState {}
+class RequestDeleteSuccess extends RequestDetailState {
+  final bool isHardDelete;
+  const RequestDeleteSuccess({required this.isHardDelete});
+  @override
+  List<Object> get props => [isHardDelete];
+}
 
 class RequestDetailNotFound extends RequestDetailState {}

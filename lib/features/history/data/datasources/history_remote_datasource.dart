@@ -1,7 +1,7 @@
 // lib/features/history/data/datasources/history_remote_datasource.dart
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart'; // Import untuk debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/features/history/data/models/request_detail_model.dart';
@@ -10,14 +10,13 @@ import 'package:satulemari/features/history/data/models/request_item_model.dart'
 abstract class HistoryRemoteDataSource {
   Future<List<RequestItemModel>> getMyRequests({required String type});
   Future<RequestDetailModel> getRequestDetail(String id);
-  Future<void> deleteRequest(String id);
+  Future<void> deleteRequest(String id, String status);
 }
 
 class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
   final Dio dio;
   HistoryRemoteDataSourceImpl({required this.dio});
 
-  // --- PERBAIKAN UTAMA DI SINI ---
   @override
   Future<List<RequestItemModel>> getMyRequests({required String type}) async {
     try {
@@ -55,7 +54,6 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
       throw ServerException(message: 'Gagal memproses data riwayat.');
     }
   }
-  // --- AKHIR PERBAIKAN ---
 
   @override
   Future<RequestDetailModel> getRequestDetail(String id) async {
@@ -74,12 +72,23 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
   }
 
   @override
-  Future<void> deleteRequest(String id) async {
+  Future<void> deleteRequest(String id, String status) async {
     try {
+      // Tentukan tipe delete berdasarkan status request:
+      // - Jika statusnya 'pending' = hard delete (hapus permanen)
+      // - Jika statusnya 'approve', 'rejected', 'completed' = soft delete (hapus dari user saja)
+      final bool isHardDelete = status.toLowerCase() == 'pending';
+
+      // Panggil endpoint delete tanpa query parameter
+      // Backend akan menentukan jenis delete berdasarkan status internal request
       await dio.delete('${AppUrls.requests}/$id');
+
+      debugPrint(
+          '[HistoryDataSource] ${isHardDelete ? 'Hard' : 'Soft'} delete completed for request $id with status $status');
     } on DioException catch (e) {
-      throw ServerException(
-          message: e.response?.data['message'] ?? 'Gagal menghapus permintaan');
+      final message =
+          e.response?.data['message'] ?? 'Gagal menghapus permintaan';
+      throw ServerException(message: message);
     }
   }
 }

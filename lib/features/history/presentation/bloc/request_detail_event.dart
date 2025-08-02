@@ -15,7 +15,8 @@ class FetchRequestDetail extends RequestDetailEvent {
 
 class DeleteRequestButtonPressed extends RequestDetailEvent {
   final String id;
-  const DeleteRequestButtonPressed(this.id);
+  final String status;
+  const DeleteRequestButtonPressed(this.id, this.status);
   @override
-  List<Object> get props => [id];
+  List<Object> get props => [id, status];
 }

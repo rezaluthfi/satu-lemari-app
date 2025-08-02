@@ -85,10 +85,10 @@ class HistoryRepositoryImpl implements HistoryRepository {
   }
 
   @override
-  Future<Either<Failure, void>> deleteRequest(String id) async {
+  Future<Either<Failure, void>> deleteRequest(String id, String status) async {
     if (await networkInfo.isConnected) {
       try {
-        await remoteDataSource.deleteRequest(id);
+        await remoteDataSource.deleteRequest(id, status);
         return const Right(null);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));

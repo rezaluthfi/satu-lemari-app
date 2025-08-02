@@ -97,9 +97,13 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
         body: BlocListener<RequestDetailBloc, RequestDetailState>(
           listener: (context, state) {
             if (state is RequestDeleteSuccess) {
+              final message = state.isHardDelete
+                  ? 'Permintaan berhasil dihapus secara permanen'
+                  : 'Permintaan berhasil dihapus dari riwayat Anda';
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Permintaan berhasil dihapus'),
+                  content: Text(message),
                   backgroundColor: AppColors.success,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
@@ -151,17 +155,24 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
   }
 
   void _showDeleteDialog(BuildContext context, String requestId) {
-    ConfirmationDialog.showDeleteConfirmation(
-      context: context,
-      title: 'Hapus Permintaan',
-      content:
-          'Apakah Anda yakin ingin menghapus permintaan ini? Tindakan ini tidak dapat dibatalkan.',
-      onConfirm: () {
-        context
-            .read<RequestDetailBloc>()
-            .add(DeleteRequestButtonPressed(requestId));
-      },
-    );
+    // Ambil status dari state saat ini
+    final currentState = context.read<RequestDetailBloc>().state;
+    if (currentState is RequestDetailLoaded) {
+      final status = currentState.detail.status.toLowerCase();
+      final isPending = status == 'pending';
+
+      ConfirmationDialog.showDeleteConfirmation(
+        context: context,
+        title: 'Hapus Permintaan',
+        content: isPending
+            ? 'Apakah Anda yakin ingin menghapus permintaan ini? Permintaan akan dihapus secara permanen dari sistem.'
+            : 'Apakah Anda yakin ingin menghapus permintaan ini dari riwayat Anda? Permintaan masih akan terlihat oleh mitra.',
+        onConfirm: () {
+          context.read<RequestDetailBloc>().add(DeleteRequestButtonPressed(
+              requestId, currentState.detail.status));
+        },
+      );
+    }
   }
 
   Widget _buildNotFoundState() {
@@ -787,8 +798,8 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
           icon: Icons.cancel_rounded,
           color: AppColors.error,
           title: 'Permintaan Ditolak',
-          subtitle: rejectionReason != null && rejectionReason.isNotEmpty
-              ? 'Alasan: $rejectionReason'
+          subtitle: rejectionReason != null && rejectionReason.trim().isNotEmpty
+              ? 'Alasan: ${rejectionReason.trim()}'
               : 'Tidak ada alasan spesifik yang diberikan',
           backgroundColor: AppColors.error.withOpacity(0.05),
         );

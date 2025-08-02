@@ -39,10 +39,14 @@ class RequestDetailBloc extends Bloc<RequestDetailEvent, RequestDetailState> {
 
   Future<void> _onDeleteRequest(DeleteRequestButtonPressed event,
       Emitter<RequestDetailState> emit) async {
-    final result = await deleteRequest(DeleteRequestParams(id: event.id));
+    final result = await deleteRequest(
+        DeleteRequestParams(id: event.id, status: event.status));
     result.fold(
       (failure) => emit(RequestDetailError(failure.message)),
-      (_) => emit(RequestDeleteSuccess()),
+      (_) {
+        final isHardDelete = event.status.toLowerCase() == 'pending';
+        emit(RequestDeleteSuccess(isHardDelete: isHardDelete));
+      },
     );
   }
 }

@@ -168,8 +168,14 @@ class RequestListView extends StatelessWidget {
 
   StatusInfo _getStatusInfo(String status) {
     switch (status.toLowerCase()) {
-      case 'approved':
       case 'completed':
+        return StatusInfo(
+          icon: Icons.check_circle_rounded,
+          color: AppColors.success,
+          label: 'Selesai',
+          backgroundColor: AppColors.success.withOpacity(0.1),
+        );
+      case 'approved':
         return StatusInfo(
           icon: Icons.check_circle_rounded,
           color: AppColors.success,
