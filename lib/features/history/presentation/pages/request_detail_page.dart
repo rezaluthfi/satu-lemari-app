@@ -73,12 +73,12 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
                         onPressed: () => _showDeleteDialog(context, requestId),
                         icon: const Icon(
                           Icons.delete_outline_rounded,
-                          color: Colors.white,
+                          color: AppColors.error,
                           size: 20,
                         ),
                         style: IconButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          foregroundColor: AppColors.error,
+                          backgroundColor: AppColors.error.withOpacity(0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

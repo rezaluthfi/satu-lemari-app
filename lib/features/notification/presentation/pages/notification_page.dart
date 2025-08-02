@@ -206,13 +206,14 @@ class _NotificationPageState extends State<NotificationPage> {
                 Container(
                   margin: const EdgeInsets.only(right: 8),
                   child: IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded),
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        color: AppColors.error),
                     onPressed: _shouldShowLoadingOverlay(state)
                         ? null
                         : _deleteSelectedItems,
                     style: IconButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      foregroundColor: AppColors.error,
+                      backgroundColor: AppColors.error.withOpacity(0.1),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),

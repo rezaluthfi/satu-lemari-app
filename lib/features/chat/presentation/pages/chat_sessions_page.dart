@@ -71,6 +71,7 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
             const ChatPage(args: ChatPageArguments(sessionId: null)),
       ),
     );
+    // Selalu refresh sessions setelah kembali dari chat baru
     if (context.mounted) {
       context.read<SessionsBloc>().add(const FetchSessions(forceRefresh: true));
     }
@@ -255,40 +256,47 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary)),
                       const SizedBox(height: 8),
-                      Text(state.message,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              color: AppColors.textSecondary, fontSize: 14))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(state.message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 14)),
+                      )
                     ]));
               }
               if (state is SessionsLoaded) {
                 if (state.sessions.isEmpty) {
-                  return Center(
-                      child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                        Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(16)),
-                            child: const Icon(Icons.chat_bubble_outline,
-                                size: 64, color: AppColors.primary)),
-                        const SizedBox(height: 24),
-                        const Text('Mulai Percakapan Pertama',
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary)),
-                        const SizedBox(height: 12),
-                        const Text(
-                            'Belum ada riwayat percakapan.\nTekan tombol + untuk mulai berbicara dengan AI.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 16,
-                                height: 1.5)),
-                      ]));
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Center(
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                          Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16)),
+                              child: const Icon(Icons.chat_bubble_outline,
+                                  size: 64, color: AppColors.primary)),
+                          const SizedBox(height: 24),
+                          const Text('Mulai Percakapan Pertama',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary)),
+                          const SizedBox(height: 12),
+                          const Text(
+                              'Belum ada riwayat percakapan.\nTekan tombol + untuk mulai berbicara dengan SatuLemari AI.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 16,
+                                  height: 1.5)),
+                        ])),
+                  );
                 }
                 return RefreshIndicator(
                   onRefresh: () async => context
