@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/presentation/bloc/request_detail_bloc.dart';
 import 'package:satulemari/features/history/presentation/widgets/request_detail_shimmer.dart';
@@ -150,48 +151,16 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
   }
 
   void _showDeleteDialog(BuildContext context, String requestId) {
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Hapus Permintaan',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        content: const Text(
+      title: 'Hapus Permintaan',
+      content:
           'Apakah Anda yakin ingin menghapus permintaan ini? Tindakan ini tidak dapat dibatalkan.',
-          style: TextStyle(color: AppColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.textSecondary,
-            ),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context
-                  .read<RequestDetailBloc>()
-                  .add(DeleteRequestButtonPressed(requestId));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+      onConfirm: () {
+        context
+            .read<RequestDetailBloc>()
+            .add(DeleteRequestButtonPressed(requestId));
+      },
     );
   }
 

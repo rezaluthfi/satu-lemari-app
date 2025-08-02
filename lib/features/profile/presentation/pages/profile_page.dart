@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
@@ -828,38 +829,16 @@ class _ProfilePageState extends State<ProfilePage>
               CustomButton(
                 text: 'Logout',
                 onPressed: () {
-                  showDialog(
+                  ConfirmationDialog.showLogoutConfirmation(
                     context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      title: const Text('Logout'),
-                      content: const Text('Apakah Anda yakin ingin keluar?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Batal'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            print("Resetting all user-specific BLoC states...");
-                            context.read<ProfileBloc>().add(ProfileReset());
-                            context.read<HistoryBloc>().add(HistoryReset());
-                            context.read<HomeBloc>().add(HomeReset());
-                            context
-                                .read<NotificationBloc>()
-                                .add(NotificationReset());
-                            context.read<AuthBloc>().add(LogoutButtonPressed());
-                          },
-                          child: const Text(
-                            'Logout',
-                            style: TextStyle(color: AppColors.primary),
-                          ),
-                        ),
-                      ],
-                    ),
+                    onConfirm: () {
+                      print("Resetting all user-specific BLoC states...");
+                      context.read<ProfileBloc>().add(ProfileReset());
+                      context.read<HistoryBloc>().add(HistoryReset());
+                      context.read<HomeBloc>().add(HomeReset());
+                      context.read<NotificationBloc>().add(NotificationReset());
+                      context.read<AuthBloc>().add(LogoutButtonPressed());
+                    },
                   );
                 },
                 type: ButtonType.outline,
@@ -870,34 +849,18 @@ class _ProfilePageState extends State<ProfilePage>
               CustomButton(
                 text: 'Hapus Akun',
                 onPressed: () {
-                  showDialog(
+                  ConfirmationDialog.showDeleteConfirmation(
                     context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      title: const Text('Hapus Akun'),
-                      content: const Text(
-                          'Tindakan ini tidak dapat diurungkan. Apakah Anda yakin?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Batal'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(dialogContext).pop();
-                            context
-                                .read<ProfileBloc>()
-                                .add(DeleteAccountButtonPressed());
-                          },
-                          child: const Text(
-                            'Hapus',
-                            style: TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      ],
-                    ),
+                    title: 'Hapus Akun',
+                    content:
+                        'Tindakan ini tidak dapat diurungkan. Apakah Anda yakin?',
+                    onConfirm: () {
+                      context
+                          .read<ProfileBloc>()
+                          .add(DeleteAccountButtonPressed());
+                    },
+                    icon: const Icon(Icons.delete_forever_outlined,
+                        color: AppColors.error, size: 24),
                   );
                 },
                 type: ButtonType.text,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/notification/domain/entities/notification_entity.dart';
 import 'package:satulemari/features/notification/presentation/bloc/notification_bloc.dart';
 import 'package:satulemari/features/notification/presentation/widgets/notification_shimmer.dart';
@@ -54,65 +55,31 @@ class _NotificationPageState extends State<NotificationPage> {
   void _deleteSelectedItems() {
     if (_selectedIds.isEmpty) return;
 
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Notifikasi'),
-        content:
-            Text('Yakin ingin menghapus ${_selectedIds.length} notifikasi?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Set flag bahwa kita sedang melakukan delete multiple
-              _wasDeleting = true;
+      title: 'Hapus Notifikasi',
+      content: 'Yakin ingin menghapus ${_selectedIds.length} notifikasi?',
+      onConfirm: () {
+        // Set flag bahwa kita sedang melakukan delete multiple
+        _wasDeleting = true;
 
-              context.read<NotificationBloc>().add(
-                    DeleteMultipleNotifications(_selectedIds.toList()),
-                  );
-              Navigator.pop(dialogContext);
-            },
-            child: const Text(
-              'Hapus',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
+        context.read<NotificationBloc>().add(
+              DeleteMultipleNotifications(_selectedIds.toList()),
+            );
+      },
     );
   }
 
   void _showDeleteConfirmation(NotificationEntity notification) {
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Notifikasi'),
-        content: const Text('Yakin ingin menghapus notifikasi ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              context
-                  .read<NotificationBloc>()
-                  .add(DeleteNotification(notification.id));
-              Navigator.pop(dialogContext);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+      title: 'Hapus Notifikasi',
+      content: 'Yakin ingin menghapus notifikasi ini?',
+      onConfirm: () {
+        context
+            .read<NotificationBloc>()
+            .add(DeleteNotification(notification.id));
+      },
     );
   }
 

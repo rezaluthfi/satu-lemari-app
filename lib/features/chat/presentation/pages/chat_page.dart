@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/chat/presentation/bloc/chat_bloc.dart';
 import 'package:satulemari/features/chat/presentation/widgets/chat_page_shimmer.dart';
 import 'package:satulemari/features/chat/presentation/widgets/custom_chat_input.dart';
@@ -128,49 +129,18 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _confirmClearMessages(BuildContext context) {
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: const Row(
-          children: [
-            Icon(Icons.delete_sweep, color: AppColors.warning, size: 24),
-            SizedBox(width: 12),
-            Text('Hapus Pesan',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text(
-            'Apakah Anda yakin ingin menghapus semua pesan dalam percakapan ini?',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.5)),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Batal',
-                style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600)),
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.warning,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4)),
-            ),
-            child: const Text('Hapus',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              setState(() {
-                _didChatActivityOccur = true;
-              });
-              Navigator.of(ctx).pop();
-              context.read<ChatBloc>().add(ClearSessionMessages());
-            },
-          ),
-        ],
-      ),
+      title: 'Hapus Pesan',
+      content:
+          'Apakah Anda yakin ingin menghapus semua pesan dalam percakapan ini?',
+      onConfirm: () {
+        setState(() {
+          _didChatActivityOccur = true;
+        });
+        context.read<ChatBloc>().add(ClearSessionMessages());
+      },
+      icon: const Icon(Icons.delete_sweep, color: AppColors.error, size: 24),
     );
   }
 
@@ -203,63 +173,68 @@ class _ChatViewState extends State<ChatView> {
   }
 
   void _confirmDeleteSelectedMessages(BuildContext context) {
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: Text('Hapus ${_selectedMessageIds.length} Pesan',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        content: const Text(
-            'Apakah Anda yakin ingin menghapus pesan yang dipilih?',
-            style: TextStyle(color: AppColors.textSecondary)),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Batal',
-                style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600)),
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Hapus',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () {
-              setState(() {
-                _didChatActivityOccur = true;
-              });
-              Navigator.of(ctx).pop();
-              context.read<ChatBloc>().add(
-                  DeleteSelectedMessagesEvent(_selectedMessageIds.toList()));
-              _exitSelectionMode();
-            },
-          ),
-        ],
-      ),
+      title: 'Hapus ${_selectedMessageIds.length} Pesan',
+      content: 'Apakah Anda yakin ingin menghapus pesan yang dipilih?',
+      onConfirm: () {
+        setState(() {
+          _didChatActivityOccur = true;
+        });
+        context
+            .read<ChatBloc>()
+            .add(DeleteSelectedMessagesEvent(_selectedMessageIds.toList()));
+        _exitSelectionMode();
+      },
     );
   }
 
   AppBar _buildAppBar(BuildContext context) {
     if (_isSelectionMode) {
       return AppBar(
-        elevation: 1,
+        elevation: 0,
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textPrimary,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: Colors.white,
         leading: IconButton(
-          icon: const Icon(
-            Icons.close,
+          icon: const Icon(Icons.close_rounded),
+          onPressed: _exitSelectionMode,
+          style: IconButton.styleFrom(
+            foregroundColor: Colors.white,
+          ),
+        ),
+        title: Text(
+          '${_selectedMessageIds.length} Dipilih',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
-          onPressed: _exitSelectionMode,
         ),
-        title: Text('${_selectedMessageIds.length} dipilih',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppColors.error),
-            onPressed: () => _confirmDeleteSelectedMessages(context),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: const Icon(Icons.delete_outline_rounded),
+              onPressed: () => _confirmDeleteSelectedMessages(context),
+              style: IconButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.white.withOpacity(0.2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              tooltip: 'Hapus yang Dipilih',
+            ),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: AppColors.primary.withOpacity(0.3),
+          ),
+        ),
       );
     }
 

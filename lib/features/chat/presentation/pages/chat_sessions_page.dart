@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/core/utils/fab_position_manager.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/chat/domain/entities/chat_session.dart';
 import 'package:satulemari/features/chat/presentation/bloc/sessions_bloc.dart';
 import 'package:satulemari/features/chat/presentation/pages/chat_page.dart';
@@ -88,34 +89,15 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
   }
 
   void _confirmDeleteAll(BuildContext context) {
-    showDialog(
+    ConfirmationDialog.showDeleteConfirmation(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: const Row(children: [
-          Text('Hapus Semua Riwayat',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))
-        ]),
-        content: const Text(
-            'Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan dan akan menghapus semua sesi percakapan Anda.',
-            style: TextStyle(color: AppColors.textSecondary, height: 1.5)),
-        actions: <Widget>[
-          TextButton(
-              child: const Text('Batal',
-                  style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600)),
-              onPressed: () => Navigator.of(ctx).pop()),
-          TextButton(
-              child: const Text('Hapus Semua',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: AppColors.error)),
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                context.read<SessionsBloc>().add(DeleteAllUserHistoryEvent());
-              }),
-        ],
-      ),
+      title: 'Hapus Semua Riwayat',
+      content:
+          'Apakah Anda yakin? Tindakan ini tidak dapat dibatalkan dan akan menghapus semua sesi percakapan Anda.',
+      onConfirm: () {
+        context.read<SessionsBloc>().add(DeleteAllUserHistoryEvent());
+      },
+      icon: const Icon(Icons.delete_sweep, color: AppColors.error, size: 24),
     );
   }
 
