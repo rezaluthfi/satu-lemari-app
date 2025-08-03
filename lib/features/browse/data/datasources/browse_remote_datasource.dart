@@ -24,9 +24,7 @@ abstract class BrowseRemoteDataSource {
   });
 
   Future<AiSuggestionsModel> getAiSuggestions(String query);
-
   Future<IntentAnalysisResponseModel> analyzeIntent(String query);
-
   Future<SimilarItemsResponseModel> getSimilarItems(String itemId);
 }
 
@@ -49,26 +47,27 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     double? maxPrice,
   }) async {
     try {
-      final Map<String, dynamic> queryParams = {
-        'type': type,
-        if (query != null && query.isNotEmpty) 'q': query,
-        if (categoryId != null) 'category_id': categoryId,
-        if (size != null) 'size': size,
-        if (color != null) 'color': color,
-        if (condition != null) 'condition': condition,
-        if (sortBy != null) 'sort_by': sortBy,
-        if (sortOrder != null) 'sort_order': sortOrder,
-        if (city != null && city.isNotEmpty) 'city': city,
-        if (minPrice != null) 'min_price': minPrice,
-        if (maxPrice != null) 'max_price': maxPrice,
-      };
+      // PERBAIKAN: Membuat semua pengecekan parameter konsisten dan robust
+      final Map<String, dynamic> queryParams = {'type': type};
+      if (query != null && query.isNotEmpty) queryParams['q'] = query;
+      if (categoryId != null && categoryId.isNotEmpty)
+        queryParams['category_id'] = categoryId;
+      if (size != null && size.isNotEmpty) queryParams['size'] = size;
+      if (color != null && color.isNotEmpty) queryParams['color'] = color;
+      if (condition != null && condition.isNotEmpty)
+        queryParams['condition'] = condition;
+      if (sortBy != null && sortBy.isNotEmpty) queryParams['sort_by'] = sortBy;
+      if (sortOrder != null && sortOrder.isNotEmpty)
+        queryParams['sort_order'] = sortOrder;
+      if (city != null && city.isNotEmpty) queryParams['city'] = city;
+      if (minPrice != null) queryParams['min_price'] = minPrice;
+      if (maxPrice != null) queryParams['max_price'] = maxPrice;
 
       final response = await dio.get(
         AppUrls.items,
         queryParameters: queryParams,
       );
 
-      // Untuk menangani payload yang mungkin berbeda
       final dynamic responseData = response.data['data'];
       final List<dynamic> itemList = responseData is List
           ? responseData
@@ -80,14 +79,13 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
 
       return itemList.map((json) => ItemModel.fromJson(json)).toList();
     } on DioException catch (e) {
-      // Lebih baik menangkap pesan error spesifik dari backend jika ada
       final message = e.response?.data?['error']?['message'] ??
           e.response?.data?['message'] ??
           'Gagal mencari item';
       throw ServerException(message: message);
     } catch (e) {
-      // Menangkap error lainnya (misal: parsing)
-      throw ServerException(message: 'Terjadi kesalahan tidak terduga');
+      throw ServerException(
+          message: 'Terjadi kesalahan tidak terduga: ${e.toString()}');
     }
   }
 

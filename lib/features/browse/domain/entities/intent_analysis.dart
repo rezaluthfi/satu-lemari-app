@@ -4,15 +4,15 @@ import 'package:equatable/equatable.dart';
 
 class IntentAnalysis extends Equatable {
   final IntentFilters filters;
-  final String query;
+  final String originalQuery;
 
   const IntentAnalysis({
     required this.filters,
-    required this.query,
+    required this.originalQuery,
   });
 
   @override
-  List<Object?> get props => [filters, query];
+  List<Object?> get props => [filters, originalQuery];
 }
 
 class IntentFilters extends Equatable {

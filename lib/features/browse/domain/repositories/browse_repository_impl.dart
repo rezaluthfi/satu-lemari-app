@@ -113,7 +113,7 @@ class BrowseRepositoryImpl implements BrowseRepository {
         }
 
         final entity = IntentAnalysis(
-          query: data.query,
+          originalQuery: data.query,
           filters: IntentFilters(
             search: data.filters.search,
             size: data.filters.size,

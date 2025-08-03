@@ -6,6 +6,7 @@ import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
 import 'package:satulemari/features/browse/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:satulemari/features/browse/presentation/widgets/item_list_view.dart';
+import 'package:satulemari/features/browse/presentation/widgets/speech_listening_overlay.dart';
 import 'package:satulemari/features/home/presentation/bloc/home_bloc.dart';
 import 'dart:ui';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -25,7 +26,13 @@ class _BrowsePageState extends State<BrowsePage>
 
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _hintText = 'Cari fashion kesukaanmu...';
+  String? _indonesianLocaleId;
+
+  final ValueNotifier<String> _recognizedWordsNotifier =
+      ValueNotifier<String>('');
+
+  String get _hintText =>
+      _isListening ? 'Aku mendengarkan...' : 'Cari fashion impianmu...';
 
   @override
   bool get wantKeepAlive => true;
@@ -34,6 +41,8 @@ class _BrowsePageState extends State<BrowsePage>
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _initializeSpeech();
+
     final browseBloc = context.read<BrowseBloc>();
     _searchController.text = browseBloc.state.query;
     _tabController = TabController(
@@ -61,25 +70,17 @@ class _BrowsePageState extends State<BrowsePage>
     });
   }
 
-  @override
-  void dispose() {
-    _speech.stop();
-    _tabController.dispose();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    super.dispose();
-  }
+  void _initializeSpeech() async {
+    bool isAvailable = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) {
+            if (_isListening) {
+              Navigator.of(context).pop();
+            }
+            setState(() => _isListening = false);
+            _recognizedWordsNotifier.value = '';
 
-  void _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) {
-          if (val == 'done' || val == 'notListening') {
-            setState(() {
-              _isListening = false;
-              _hintText = 'Cari fashion kesukaanmu...';
-            });
-            _speech.stop();
             final lastWords = _speech.lastRecognizedWords;
             if (lastWords.isNotEmpty) {
               _searchFocusNode.unfocus();
@@ -88,30 +89,111 @@ class _BrowsePageState extends State<BrowsePage>
                   .add(IntentAnalysisAndSearchRequested(lastWords));
             }
           }
+        }
+      },
+      onError: (errorNotification) {
+        if (mounted) {
+          if (_isListening) {
+            Navigator.of(context).pop();
+          }
+          setState(() => _isListening = false);
+          _recognizedWordsNotifier.value = '';
+          String errorMessage = 'Terjadi kesalahan saat mendengarkan suara';
+          if (errorNotification.errorMsg.contains('no_speech')) {
+            errorMessage =
+                'Tidak ada suara yang terdeteksi. Coba berbicara lebih jelas.';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppColors.error,
+          ));
+        }
+      },
+    );
+    if (isAvailable) {
+      final availableLocales = await _speech.locales();
+      final indonesianLocaleTargets = ['id_ID', 'id-ID', 'in_ID', 'id'];
+      String? foundLocaleId;
+      for (String target in indonesianLocaleTargets) {
+        final match = availableLocales.firstWhere(
+          (locale) => locale.localeId.toLowerCase() == target.toLowerCase(),
+          orElse: () => stt.LocaleName('not_found', ''),
+        );
+        if (match.localeId != 'not_found') {
+          foundLocaleId = match.localeId;
+          break;
+        }
+      }
+      if (mounted) {
+        setState(() => _indonesianLocaleId = foundLocaleId);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _speech.cancel();
+    _tabController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _recognizedWordsNotifier.dispose();
+    super.dispose();
+  }
+
+  void _listen() async {
+    if (!_isListening) {
+      if (!_speech.isAvailable || _indonesianLocaleId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Fitur suara tidak didukung di perangkat ini atau Bahasa Indonesia tidak ditemukan.'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+
+      setState(() => _isListening = true);
+      _recognizedWordsNotifier.value = '';
+
+      _speech.listen(
+        localeId: _indonesianLocaleId,
+        onResult: (val) {
+          _recognizedWordsNotifier.value = val.recognizedWords;
+
+          _searchController.text = val.recognizedWords;
+          _searchController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _searchController.text.length));
         },
-        onError: (val) {
-          setState(() {
-            _isListening = false;
-            _hintText = 'Coba lagi...';
-          });
-          _speech.stop();
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+        listenOptions: stt.SpeechListenOptions(
+          partialResults: true,
+          cancelOnError: false,
+          listenMode: stt.ListenMode.confirmation,
+        ),
+      );
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          return ValueListenableBuilder<String>(
+            valueListenable: _recognizedWordsNotifier,
+            builder: (context, recognizedWords, child) {
+              return SpeechListeningOverlay(
+                recognizedWords: recognizedWords,
+                onStopListening: () {
+                  _speech.stop();
+                },
+              );
+            },
+          );
         },
       );
-      if (available) {
-        setState(() {
-          _isListening = true;
-          _hintText = 'Aku mendengarkan...';
-        });
-        _speech.listen(
-          localeId: 'id_ID',
-          onResult: (val) {},
-        );
-      }
     } else {
-      setState(() {
-        _isListening = false;
-        _hintText = 'Cari fashion kesukaanmu...';
-      });
       _speech.stop();
     }
   }
@@ -185,6 +267,7 @@ class _BrowsePageState extends State<BrowsePage>
         centerTitle: false,
       ),
       body: MultiBlocListener(
+        // PERBAIKAN: Ganti `listener` dengan `listeners` dan tambahkan listener baru
         listeners: [
           BlocListener<BrowseBloc, BrowseState>(
             listenWhen: (previous, current) => previous.query != current.query,
@@ -196,9 +279,13 @@ class _BrowsePageState extends State<BrowsePage>
               }
             },
           ),
+          // PERBAIKAN: Listener baru untuk menangani notifikasi
           BlocListener<BrowseBloc, BrowseState>(
+            listenWhen: (prev, curr) =>
+                prev.notification != curr.notification &&
+                curr.notification != null,
             listener: (context, state) {
-              if (state is PriceFilterIgnoredNotification) {
+              if (state.notification is PriceFilterIgnoredNotification) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Row(children: [
@@ -210,8 +297,11 @@ class _BrowsePageState extends State<BrowsePage>
                               'Filter harga/urutan harga diabaikan untuk Donasi.'))
                     ]),
                     backgroundColor: AppColors.info,
+                    duration: Duration(seconds: 3),
                   ),
                 );
+                // Membersihkan notifikasi agar tidak ditampilkan lagi
+                context.read<BrowseBloc>().add(NotificationCleared());
               }
             },
           ),
@@ -364,7 +454,9 @@ class _BrowsePageState extends State<BrowsePage>
                         width: 1),
                   ),
                   child: Icon(
-                      _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                      _isListening
+                          ? Icons.mic_off_rounded
+                          : Icons.mic_none_rounded, // Berubah saat listening
                       color:
                           _isListening ? AppColors.primary : AppColors.textHint,
                       size: 24),

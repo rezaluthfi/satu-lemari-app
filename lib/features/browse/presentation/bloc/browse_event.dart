@@ -1,4 +1,3 @@
-// lib/features/browse/presentation/bloc/browse_event.dart
 part of 'browse_bloc.dart';
 
 abstract class BrowseEvent extends Equatable {
@@ -7,7 +6,6 @@ abstract class BrowseEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-// Hanya untuk update query di state, tanpa efek samping.
 class QueryChanged extends BrowseEvent {
   final String query;
   const QueryChanged(this.query);
@@ -33,7 +31,6 @@ class TabChanged extends BrowseEvent {
   List<Object> get props => [index];
 }
 
-// Event ini sekarang khusus untuk pencarian biasa (submit dari keyboard)
 class SearchTermChanged extends BrowseEvent {
   final String query;
   const SearchTermChanged(this.query);
@@ -69,7 +66,6 @@ class FilterApplied extends BrowseEvent {
 
 class ResetFilters extends BrowseEvent {}
 
-// Event ini sekarang khusus untuk input kompleks (AI suggestion, voice search)
 class IntentAnalysisAndSearchRequested extends BrowseEvent {
   final String query;
   const IntentAnalysisAndSearchRequested(this.query);
@@ -77,3 +73,5 @@ class IntentAnalysisAndSearchRequested extends BrowseEvent {
   @override
   List<Object> get props => [query];
 }
+
+class NotificationCleared extends BrowseEvent {}

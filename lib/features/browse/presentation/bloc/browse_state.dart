@@ -1,5 +1,14 @@
 part of 'browse_bloc.dart';
 
+// PERBAIKAN: Sistem notifikasi baru yang lebih andal
+abstract class BrowseNotification extends Equatable {
+  const BrowseNotification();
+  @override
+  List<Object?> get props => [];
+}
+
+class PriceFilterIgnoredNotification extends BrowseNotification {}
+
 enum BrowseStatus { initial, loading, success, error }
 
 enum SuggestionStatus { initial, loading, success, error }
@@ -42,6 +51,9 @@ class BrowseState extends Equatable {
   final SearchParamsSnapshot? lastDonationSearchParams;
   final SearchParamsSnapshot? lastRentalSearchParams;
 
+  // PERBAIKAN: Properti notifikasi baru
+  final BrowseNotification? notification;
+
   const BrowseState({
     this.status = BrowseStatus.initial,
     this.donationStatus = BrowseStatus.initial,
@@ -67,6 +79,7 @@ class BrowseState extends Equatable {
     this.maxPrice,
     this.lastDonationSearchParams,
     this.lastRentalSearchParams,
+    this.notification,
   });
 
   factory BrowseState.initial() {
@@ -98,6 +111,7 @@ class BrowseState extends Equatable {
     Object? maxPrice = _notProvided,
     SearchParamsSnapshot? lastDonationSearchParams,
     SearchParamsSnapshot? lastRentalSearchParams,
+    Object? notification = _notProvided,
   }) {
     return BrowseState(
       status: status ?? this.status,
@@ -126,7 +140,13 @@ class BrowseState extends Equatable {
           lastDonationSearchParams ?? this.lastDonationSearchParams,
       lastRentalSearchParams:
           lastRentalSearchParams ?? this.lastRentalSearchParams,
+      notification: _copyWith(notification, this.notification),
     );
+  }
+
+  // Helper untuk membersihkan notifikasi
+  BrowseState clearNotification() {
+    return copyWith(notification: null);
   }
 
   @override
@@ -155,6 +175,7 @@ class BrowseState extends Equatable {
         maxPrice,
         lastDonationSearchParams,
         lastRentalSearchParams,
+        notification,
       ];
 }
 
@@ -165,67 +186,4 @@ T? _copyWith<T>(Object? value, T? fallback) {
     return fallback;
   }
   return value as T?;
-}
-
-class PriceFilterIgnoredNotification extends BrowseState {
-  const PriceFilterIgnoredNotification({
-    required super.donationStatus,
-    required super.donationItems,
-    super.donationError,
-    required super.rentalStatus,
-    required super.rentalItems,
-    super.rentalError,
-    required super.activeTab,
-    required super.suggestionStatus,
-    required super.suggestions,
-    super.suggestionError,
-    required super.query,
-    required super.lastPerformedQuery,
-    super.categoryId,
-    super.size,
-    super.color,
-    super.condition,
-    super.sortBy,
-    super.sortOrder,
-    super.city,
-    super.minPrice,
-    super.maxPrice,
-    super.lastDonationSearchParams,
-    super.lastRentalSearchParams,
-  });
-
-  factory PriceFilterIgnoredNotification.from(
-    BrowseState state, {
-    required String activeTab,
-    Object? minPrice,
-    Object? maxPrice,
-    Object? sortBy,
-    Object? sortOrder,
-  }) {
-    return PriceFilterIgnoredNotification(
-      donationStatus: state.donationStatus,
-      donationItems: state.donationItems,
-      donationError: state.donationError,
-      rentalStatus: state.rentalStatus,
-      rentalItems: state.rentalItems,
-      rentalError: state.rentalError,
-      activeTab: activeTab,
-      suggestionStatus: state.suggestionStatus,
-      suggestions: state.suggestions,
-      suggestionError: state.suggestionError,
-      query: state.query,
-      lastPerformedQuery: state.lastPerformedQuery,
-      categoryId: state.categoryId,
-      size: state.size,
-      color: state.color,
-      condition: state.condition,
-      city: state.city,
-      minPrice: _copyWith(minPrice, state.minPrice),
-      maxPrice: _copyWith(maxPrice, state.maxPrice),
-      sortBy: _copyWith(sortBy, state.sortBy),
-      sortOrder: _copyWith(sortOrder, state.sortOrder),
-      lastDonationSearchParams: state.lastDonationSearchParams,
-      lastRentalSearchParams: state.lastRentalSearchParams,
-    );
-  }
 }
