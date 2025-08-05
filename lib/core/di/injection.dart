@@ -20,6 +20,7 @@ import 'package:satulemari/core/network/auth_interceptor.dart';
 import 'package:satulemari/core/network/network_info.dart';
 import 'package:satulemari/core/services/category_cache_service.dart';
 import 'package:satulemari/core/services/notification_service.dart';
+import 'package:satulemari/core/services/token_refresh_service.dart';
 
 // Auth
 import 'package:satulemari/features/auth/data/datasources/auth_local_datasource.dart';
@@ -307,6 +308,7 @@ Future<void> init() async {
   // --- CORE & EXTERNAL ---
   sl.registerLazySingleton(() => NotificationService());
   sl.registerLazySingleton(() => CategoryCacheService());
+  sl.registerLazySingleton(() => TokenRefreshService());
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton(() => AuthInterceptor(sl()));
   sl.registerLazySingleton(() => CookieJar());

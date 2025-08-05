@@ -2,15 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/core/services/token_refresh_service.dart';
 import 'package:satulemari/features/auth/data/datasources/auth_local_datasource.dart';
-import 'package:satulemari/features/auth/domain/repositories/auth_repository.dart';
 
-// Pengaturan Simulasi
-const bool _ENABLE_SIMULATION = false;
+// Pengaturan Simulasi - Set to true to test token refresh
+const bool _ENABLE_SIMULATION = false; // Change to true for testing
 int _simulationCounter = 0;
 
-// Flag sederhana untuk mencegah beberapa proses refresh berjalan bersamaan.
-bool _isRefreshing = false;
+// Remove the global flag as we now use TokenRefreshService
 
 class AuthInterceptor extends QueuedInterceptorsWrapper {
   final AuthLocalDataSource authLocalDataSource;
@@ -53,47 +52,42 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
     if (err.response?.statusCode == 401 &&
         err.requestOptions.path != AppUrls.authRefresh) {
       debugPrint(
-          '---  interceptor: Menerima 401 untuk ${err.requestOptions.path} ---');
+          '--- 🔒 interceptor: Received 401 for ${err.requestOptions.path} ---');
 
-      // Jika proses refresh sudah berjalan, tolak request ini.
-      // QueuedInterceptorsWrapper akan menahannya dan mencoba lagi nanti.
-      if (_isRefreshing) {
+      final tokenRefreshService = sl<TokenRefreshService>();
+
+      // If refresh is already in progress, wait for it to complete
+      if (tokenRefreshService.isRefreshing) {
         debugPrint(
-            '---  interceptor: Proses refresh sedang berjalan, menolak sementara request ${err.requestOptions.path} ---');
-        return handler.reject(err);
+            '--- ⏳ interceptor: Refresh in progress, waiting for ${err.requestOptions.path} ---');
+        // Wait for the refresh to complete and then retry
+        final refreshSuccess = await tokenRefreshService.refreshToken();
+        if (refreshSuccess) {
+          await _retryRequest(err, handler);
+        } else {
+          handler.next(err);
+        }
+        return;
       }
 
-      _isRefreshing = true;
-      debugPrint('---  interceptor: Memulai proses refresh token BARU... ---');
+      debugPrint('--- 🔄 interceptor: Starting token refresh process... ---');
 
       try {
-        final authRepository = sl<AuthRepository>();
-        final result = await authRepository.refreshToken();
+        final refreshSuccess = await tokenRefreshService.refreshToken();
 
-        await result.fold(
-          (failure) async {
-            debugPrint(
-                '--- 😭 interceptor: Refresh token GAGAL. Pesan Failure: ${failure.toString()} ---');
-            debugPrint(
-                '--- 😭 interceptor: Refresh token GAGAL. Membersihkan cache. ---');
-            await authLocalDataSource.clearCache();
-            handler.next(err); // Teruskan error asli dari request yang gagal
-          },
-          (newAuthResponse) async {
-            debugPrint('--- 🎉 interceptor: Refresh token SUKSES. ---');
-            // Ulangi request yang pertama kali memicu error ini
-            await _retryRequest(err, handler);
-          },
-        );
+        if (refreshSuccess) {
+          debugPrint(
+              '--- 🎉 interceptor: Token refresh successful, retrying request ---');
+          await _retryRequest(err, handler);
+        } else {
+          debugPrint(
+              '--- 😭 interceptor: Token refresh failed, forwarding error ---');
+          handler.next(err);
+        }
       } catch (e) {
         debugPrint(
-            '--- 😭 interceptor: Terjadi exception saat proses refresh: $e ---');
-        handler.next(err); // Teruskan error
-      } finally {
-        // Apapun hasilnya, proses refresh sudah selesai. Buka kunci.
-        _isRefreshing = false;
-        debugPrint(
-            '---  interceptor: Proses refresh selesai. Flag direset. ---');
+            '--- 💥 interceptor: Exception during refresh process: $e ---');
+        handler.next(err);
       }
     } else {
       super.onError(err, handler);
@@ -102,20 +96,29 @@ class AuthInterceptor extends QueuedInterceptorsWrapper {
 
   Future<void> _retryRequest(
       DioException err, ErrorInterceptorHandler handler) async {
-    final dio = sl<Dio>();
-    final newAccessToken = await authLocalDataSource.getAccessToken();
+    try {
+      final dio = sl<Dio>();
+      final newAccessToken = await authLocalDataSource.getAccessToken();
 
-    if (newAccessToken != null) {
-      final opts = err.requestOptions;
-      opts.headers['Authorization'] = 'Bearer $newAccessToken';
-      debugPrint('---  interceptor: Mengulang request untuk ${opts.path} ---');
-      try {
+      if (newAccessToken != null) {
+        final opts = err.requestOptions;
+        opts.headers['Authorization'] = 'Bearer $newAccessToken';
+        debugPrint('--- 🔄 interceptor: Retrying request for ${opts.path} ---');
+
         final response = await dio.fetch(opts);
         handler.resolve(response);
-      } on DioException catch (e) {
-        handler.next(e);
+      } else {
+        debugPrint(
+            '--- ❌ interceptor: No access token available for retry ---');
+        handler.next(err);
       }
-    } else {
+    } on DioException catch (e) {
+      debugPrint(
+          '--- ⚠️ interceptor: Retry failed with DioException: ${e.message} ---');
+      handler.next(e);
+    } catch (e) {
+      debugPrint(
+          '--- 💥 interceptor: Retry failed with unexpected error: $e ---');
       handler.next(err);
     }
   }

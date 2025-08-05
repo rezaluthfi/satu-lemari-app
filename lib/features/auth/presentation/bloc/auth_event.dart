@@ -50,6 +50,9 @@ class LogoutButtonPressed extends AuthEvent {}
 // Event for force logout when token refresh fails
 class ForceLogoutDueToExpiredToken extends AuthEvent {}
 
+// Event for successful token refresh
+class TokenRefreshed extends AuthEvent {}
+
 // --- TAMBAHKAN EVENT INI ---
 class UserDataUpdated extends AuthEvent {
   final User updatedUser;

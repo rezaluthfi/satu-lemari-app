@@ -43,6 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginWithGoogleButtonPressed>(_onLoginWithGoogleButtonPressed);
     on<LogoutButtonPressed>(_onLogoutButtonPressed);
     on<ForceLogoutDueToExpiredToken>(_onForceLogoutDueToExpiredToken);
+    on<TokenRefreshed>(_onTokenRefreshed);
     on<UserDataUpdated>(_onUserDataUpdated);
 
     notificationService.onTokenRefresh().listen((newToken) {
@@ -180,6 +181,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ForceLogoutDueToExpiredToken event, Emitter<AuthState> emit) async {
     print("[AUTH_BLOC_LOG] Force logout karena refresh token expired.");
     await _performLogout(emit, showExpiredMessage: true);
+  }
+
+  Future<void> _onTokenRefreshed(
+      TokenRefreshed event, Emitter<AuthState> emit) async {
+    print(
+        "[AUTH_BLOC_LOG] Token refreshed successfully, maintaining current state.");
+    // Token has been refreshed successfully, but we don't need to change the state
+    // The user remains authenticated with the same user data
+    // This event is mainly for logging and potential future use cases
   }
 
   Future<void> _performLogout(Emitter<AuthState> emit,
