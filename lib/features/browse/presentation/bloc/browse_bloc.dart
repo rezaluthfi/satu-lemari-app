@@ -113,14 +113,16 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onSearchCleared(
       SearchCleared event, Emitter<BrowseState> emit) async {
-    final bool isQueryDifferent = state.query != state.lastPerformedQuery;
-
-    if (isQueryDifferent && state.query.isNotEmpty) {
-      emit(state.copyWith(query: state.lastPerformedQuery));
-      return;
-    }
-
-    add(ResetFilters());
+    // Always reset to initial state when clear button is pressed
+    final cleanState = BrowseState.initial().copyWith(
+      activeTab: state.activeTab,
+      isFromSpeechToText: false,
+      // Set loading states immediately for both tabs
+      donationStatus: BrowseStatus.loading,
+      rentalStatus: BrowseStatus.loading,
+    );
+    emit(cleanState);
+    await _performSearchForAllTabs(emit, cleanState);
   }
 
   // PERBAIKAN #1: Saat menghapus filter, gunakan `lastPerformedQuery` yang sudah ada.
@@ -136,6 +138,11 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       maxPrice: event.maxPrice,
       // Gunakan `lastPerformedQuery` dari state saat ini, bukan `state.query` yang mungkin kalimat panjang.
       lastPerformedQuery: state.lastPerformedQuery,
+      isFromSpeechToText:
+          false, // Manual filter application clears speech-to-text flag
+      // Set loading states immediately for both tabs
+      donationStatus: BrowseStatus.loading,
+      rentalStatus: BrowseStatus.loading,
     );
 
     emit(newState);
@@ -149,8 +156,13 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     final newState = BrowseState.initial().copyWith(
         activeTab: state.activeTab,
         query: event.query,
-        lastPerformedQuery: event.query);
-    // Tidak perlu emit di sini karena _performSearchForAllTabs akan melakukannya.
+        lastPerformedQuery: event.query,
+        isFromSpeechToText: false, // Manual search clears speech-to-text flag
+        // Set loading states immediately for both tabs
+        donationStatus: BrowseStatus.loading,
+        rentalStatus: BrowseStatus.loading);
+    // Emit loading state first, then perform search
+    emit(newState);
     await _performSearchForAllTabs(emit, newState);
   }
 
@@ -161,6 +173,9 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     emit(state.copyWith(
       query: event.query,
       suggestionStatus: SuggestionStatus.loading,
+      // Set loading states immediately for both tabs during AI analysis
+      donationStatus: BrowseStatus.loading,
+      rentalStatus: BrowseStatus.loading,
     ));
 
     add(SuggestionsRequested(event.query));
@@ -179,12 +194,17 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         final stateWithAiFilters = state.copyWith(
           query: intentAnalysis.originalQuery,
           lastPerformedQuery: filters.search ?? intentAnalysis.originalQuery,
-          categoryId: filters.categoryId ?? state.categoryId,
-          size: filters.size ?? state.size,
-          color: filters.color ?? state.color,
-          condition: filters.condition ?? state.condition,
-          maxPrice: filters.maxPrice?.toDouble() ?? state.maxPrice,
+          // Apply AI filters directly, don't fall back to existing state
+          categoryId: filters.categoryId,
+          size: filters.size,
+          color: filters.color,
+          condition: filters.condition,
+          maxPrice: filters.maxPrice?.toDouble(),
+          isFromSpeechToText:
+              true, // Mark filters as coming from speech-to-text
         );
+        // Emit the state with filters first so UI can show them
+        emit(stateWithAiFilters);
         await _performSearchForAllTabs(emit, stateWithAiFilters);
       },
     );
@@ -192,8 +212,12 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onResetFilters(
       ResetFilters event, Emitter<BrowseState> emit) async {
-    final cleanState =
-        BrowseState.initial().copyWith(activeTab: state.activeTab);
+    final cleanState = BrowseState.initial().copyWith(
+        activeTab: state.activeTab,
+        isFromSpeechToText: false, // Reset clears speech-to-text flag
+        // Set loading states immediately for both tabs
+        donationStatus: BrowseStatus.loading,
+        rentalStatus: BrowseStatus.loading);
     emit(cleanState);
     await _performSearchForAllTabs(emit, cleanState);
   }
@@ -214,11 +238,10 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         ? currentState.lastPerformedQuery
         : currentState.query;
 
-    // PERBAIKAN: Gunakan state BLoC terbaru sebagai base, lalu update dengan loading status
-    final latestBlocState = state;
+    // Use the passed currentState as base, then update with loading status
     emit(targetTab == 'donation'
-        ? latestBlocState.copyWith(donationStatus: BrowseStatus.loading)
-        : latestBlocState.copyWith(rentalStatus: BrowseStatus.loading));
+        ? currentState.copyWith(donationStatus: BrowseStatus.loading)
+        : currentState.copyWith(rentalStatus: BrowseStatus.loading));
 
     final params = SearchItemsParams(
       type: targetTab,
@@ -255,7 +278,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
     result.fold(
       (failure) {
-        // PERBAIKAN: Gunakan state BLoC terbaru sebagai base untuk emit error
+        // Use the current BLoC state as base to preserve other tab's data
         final latestBlocState = state;
         if (targetTab == 'donation') {
           emit(latestBlocState.copyWith(
@@ -274,7 +297,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         }
       },
       (items) {
-        // PERBAIKAN: Gunakan state BLoC terbaru sebagai base untuk emit success
+        // Use the current BLoC state as base to preserve other tab's data
         final latestBlocState = state;
         if (targetTab == 'donation') {
           emit(latestBlocState.copyWith(
@@ -295,7 +318,13 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onBrowseDataFetched(
       BrowseDataFetched event, Emitter<BrowseState> emit) async {
-    await _performSearchForAllTabs(emit, state);
+    // Set loading states for initial data fetch
+    final loadingState = state.copyWith(
+      donationStatus: BrowseStatus.loading,
+      rentalStatus: BrowseStatus.loading,
+    );
+    emit(loadingState);
+    await _performSearchForAllTabs(emit, loadingState);
   }
 
   Future<void> _onSuggestionsRequested(

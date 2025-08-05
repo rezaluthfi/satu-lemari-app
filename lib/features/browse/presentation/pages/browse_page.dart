@@ -421,6 +421,7 @@ class _BrowsePageState extends State<BrowsePage>
                       suffixIcon: state.query.isNotEmpty
                           ? GestureDetector(
                               onTap: () {
+                                _searchController.clear();
                                 _searchFocusNode.unfocus();
                                 context.read<BrowseBloc>().add(SearchCleared());
                               },
@@ -680,6 +681,7 @@ class _BrowsePageState extends State<BrowsePage>
                       if (categoryName != null)
                         _buildFilterChip(
                             label: categoryName,
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: null,
@@ -693,6 +695,7 @@ class _BrowsePageState extends State<BrowsePage>
                       if (state.size != null)
                         _buildFilterChip(
                             label: 'Ukuran: ${state.size}',
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: state.categoryId,
@@ -707,6 +710,7 @@ class _BrowsePageState extends State<BrowsePage>
                         _buildFilterChip(
                             label:
                                 'Urut: ${state.sortBy == 'name' ? 'Nama' : 'Terbaru'}',
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: state.categoryId,
@@ -720,6 +724,7 @@ class _BrowsePageState extends State<BrowsePage>
                       if (hasSortByPriceFilter)
                         _buildFilterChip(
                             label: 'Urut: Harga',
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: state.categoryId,
@@ -733,6 +738,7 @@ class _BrowsePageState extends State<BrowsePage>
                       if (state.city != null && state.city!.isNotEmpty)
                         _buildFilterChip(
                             label: 'Kota: ${state.city}',
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: state.categoryId,
@@ -747,6 +753,7 @@ class _BrowsePageState extends State<BrowsePage>
                         _buildFilterChip(
                             label:
                                 'Harga: ${state.minPrice != null ? currencyFormatter.format(state.minPrice) : '0'} - ${state.maxPrice != null ? currencyFormatter.format(state.maxPrice) : '∞'}',
+                            showDeleteButton: !state.isFromSpeechToText,
                             onDeleted: () {
                               context.read<BrowseBloc>().add(FilterApplied(
                                   categoryId: state.categoryId,
@@ -855,8 +862,11 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  Widget _buildFilterChip(
-      {required String label, required VoidCallback onDeleted}) {
+  Widget _buildFilterChip({
+    required String label,
+    required VoidCallback onDeleted,
+    bool showDeleteButton = true,
+  }) {
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: Container(
@@ -875,12 +885,14 @@ class _BrowsePageState extends State<BrowsePage>
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13)),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: onDeleted,
-              child: const Icon(Icons.close_rounded,
-                  size: 16, color: AppColors.primary),
-            ),
+            if (showDeleteButton) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onDeleted,
+                child: const Icon(Icons.close_rounded,
+                    size: 16, color: AppColors.primary),
+              ),
+            ],
           ],
         ),
       ),

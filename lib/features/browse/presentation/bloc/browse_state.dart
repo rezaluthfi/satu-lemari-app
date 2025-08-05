@@ -54,6 +54,9 @@ class BrowseState extends Equatable {
   // PERBAIKAN: Properti notifikasi baru
   final BrowseNotification? notification;
 
+  // Flag untuk melacak apakah filter saat ini berasal dari speech-to-text
+  final bool isFromSpeechToText;
+
   const BrowseState({
     this.status = BrowseStatus.initial,
     this.donationStatus = BrowseStatus.initial,
@@ -80,6 +83,7 @@ class BrowseState extends Equatable {
     this.lastDonationSearchParams,
     this.lastRentalSearchParams,
     this.notification,
+    this.isFromSpeechToText = false,
   });
 
   factory BrowseState.initial() {
@@ -112,6 +116,7 @@ class BrowseState extends Equatable {
     SearchParamsSnapshot? lastDonationSearchParams,
     SearchParamsSnapshot? lastRentalSearchParams,
     Object? notification = _notProvided,
+    bool? isFromSpeechToText,
   }) {
     return BrowseState(
       status: status ?? this.status,
@@ -141,6 +146,7 @@ class BrowseState extends Equatable {
       lastRentalSearchParams:
           lastRentalSearchParams ?? this.lastRentalSearchParams,
       notification: _copyWith(notification, this.notification),
+      isFromSpeechToText: isFromSpeechToText ?? this.isFromSpeechToText,
     );
   }
 
@@ -176,6 +182,7 @@ class BrowseState extends Equatable {
         lastDonationSearchParams,
         lastRentalSearchParams,
         notification,
+        isFromSpeechToText,
       ];
 }
 
