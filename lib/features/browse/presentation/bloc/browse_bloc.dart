@@ -200,9 +200,11 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _performSearchForAllTabs(
       Emitter<BrowseState> emit, BrowseState currentState) async {
-    await _performSearch(emit, currentState, 'rental');
-    // Penting: Gunakan state terbaru dari BLoC setelah pencarian pertama selesai.
-    await _performSearch(emit, state, 'donation');
+    // PERBAIKAN: Proses kedua tab secara bersamaan untuk responsivitas yang optimal
+    await Future.wait([
+      _performSearch(emit, currentState, 'donation'),
+      _performSearch(emit, currentState, 'rental'),
+    ]);
   }
 
   // PERBAIKAN #3: Logika anti-race condition yang lebih solid.
@@ -212,9 +214,11 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         ? currentState.lastPerformedQuery
         : currentState.query;
 
+    // PERBAIKAN: Gunakan state BLoC terbaru sebagai base, lalu update dengan loading status
+    final latestBlocState = state;
     emit(targetTab == 'donation'
-        ? currentState.copyWith(donationStatus: BrowseStatus.loading)
-        : currentState.copyWith(rentalStatus: BrowseStatus.loading));
+        ? latestBlocState.copyWith(donationStatus: BrowseStatus.loading)
+        : latestBlocState.copyWith(rentalStatus: BrowseStatus.loading));
 
     final params = SearchItemsParams(
       type: targetTab,
@@ -251,15 +255,17 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
     result.fold(
       (failure) {
+        // PERBAIKAN: Gunakan state BLoC terbaru sebagai base untuk emit error
+        final latestBlocState = state;
         if (targetTab == 'donation') {
-          emit(currentState.copyWith(
+          emit(latestBlocState.copyWith(
             donationStatus: BrowseStatus.error,
             donationError: failure.message,
             donationItems: [],
             lastDonationSearchParams: searchSnapshot,
           ));
         } else {
-          emit(currentState.copyWith(
+          emit(latestBlocState.copyWith(
             rentalStatus: BrowseStatus.error,
             rentalError: failure.message,
             rentalItems: [],
@@ -268,14 +274,16 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         }
       },
       (items) {
+        // PERBAIKAN: Gunakan state BLoC terbaru sebagai base untuk emit success
+        final latestBlocState = state;
         if (targetTab == 'donation') {
-          emit(currentState.copyWith(
+          emit(latestBlocState.copyWith(
             donationStatus: BrowseStatus.success,
             donationItems: items,
             lastDonationSearchParams: searchSnapshot,
           ));
         } else {
-          emit(currentState.copyWith(
+          emit(latestBlocState.copyWith(
             rentalStatus: BrowseStatus.success,
             rentalItems: items,
             lastRentalSearchParams: searchSnapshot,
