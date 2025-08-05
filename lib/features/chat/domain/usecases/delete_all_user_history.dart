@@ -1,4 +1,3 @@
-// lib/features/chat/domain/usecases/delete_all_user_history.dart
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';

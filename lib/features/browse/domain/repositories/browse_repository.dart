@@ -1,5 +1,3 @@
-// lib/features/browse/domain/repositories/browse_repository.dart
-
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/features/browse/domain/entities/ai_suggestions.dart';

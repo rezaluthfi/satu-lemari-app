@@ -57,9 +57,6 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
       firstDate: firstDate,
       lastDate: lastDate,
       helpText: isPickup ? 'Pilih Tanggal Ambil' : 'Pilih Tanggal Kembali',
-      // ==========================================================
-      // === PERUBAHAN 1: Menambahkan Builder untuk Styling Picker ===
-      // ==========================================================
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -83,9 +80,6 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
       setState(() {
         if (isPickup) {
           _selectedPickupDate = pickedDate;
-          // =================================================================
-          // === PERUBAHAN 2: Menambahkan locale 'id_ID' untuk format tanggal ===
-          // =================================================================
           _pickupDateController.text =
               DateFormat('dd MMMM yyyy', 'id_ID').format(pickedDate);
           if (_selectedReturnDate != null &&
@@ -106,9 +100,6 @@ class _RentalRequestSheetState extends State<RentalRequestSheet> {
             return;
           }
           _selectedReturnDate = pickedDate;
-          // =================================================================
-          // === PERUBAHAN 3: Menambahkan locale 'id_ID' untuk format tanggal ===
-          // =================================================================
           _returnDateController.text =
               DateFormat('dd MMMM yyyy', 'id_ID').format(pickedDate);
         }

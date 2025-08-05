@@ -4,7 +4,6 @@ import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecas
 import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
-import 'package:satulemari/features/browse/domain/entities/intent_analysis.dart';
 import 'package:rxdart/rxdart.dart';
 import 'dart:async';
 
@@ -127,7 +126,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     await _performSearchForAllTabs(emit, cleanState);
   }
 
-  // PERBAIKAN #1: Saat menghapus filter, gunakan `lastPerformedQuery` yang sudah ada.
+  // Saat menghapus filter, gunakan `lastPerformedQuery` yang sudah ada.
   Future<void> _onFilterApplied(
       FilterApplied event, Emitter<BrowseState> emit) async {
     final newState = state.copyWith(
@@ -138,7 +137,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       city: event.city,
       minPrice: event.minPrice,
       maxPrice: event.maxPrice,
-      // Gunakan `lastPerformedQuery` dari state saat ini, bukan `state.query` yang mungkin kalimat panjang.
+      // Gunakan `lastPerformedQuery` dari state saat ini
       lastPerformedQuery: state.lastPerformedQuery,
       isFromSpeechToText:
           false, // Manual filter application clears speech-to-text flag
@@ -151,7 +150,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     await _performSearchForAllTabs(emit, newState);
   }
 
-  // PERBAIKAN #2: Pencarian manual baru harus me-reset semua filter lama.
+  // Pencarian manual baru harus me-reset semua filter lama.
   Future<void> _onSearchTermChanged(
       SearchTermChanged event, Emitter<BrowseState> emit) async {
     // Mulai dari state bersih, hanya bawa tab aktif dan query baru.
@@ -226,14 +225,14 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _performSearchForAllTabs(
       Emitter<BrowseState> emit, BrowseState currentState) async {
-    // PERBAIKAN: Proses kedua tab secara bersamaan untuk responsivitas yang optimal
+    // Proses kedua tab secara bersamaan untuk responsivitas yang optimal
     await Future.wait([
       _performSearch(emit, currentState, 'donation'),
       _performSearch(emit, currentState, 'rental'),
     ]);
   }
 
-  // PERBAIKAN #3: Logika anti-race condition yang lebih solid.
+  // Logika anti-race condition yang lebih solid.
   Future<void> _performSearch(Emitter<BrowseState> emit,
       BrowseState currentState, String targetTab) async {
     final queryForSearch = currentState.lastPerformedQuery.isNotEmpty

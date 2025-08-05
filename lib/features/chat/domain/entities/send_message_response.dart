@@ -1,4 +1,3 @@
-// lib/features/chat/domain/entities/send_message_response.dart
 import 'package:equatable/equatable.dart';
 import 'quick_reply.dart';
 

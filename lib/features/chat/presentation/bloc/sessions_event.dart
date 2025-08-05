@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/bloc/sessions_event.dart
 part of 'sessions_bloc.dart';
 
 abstract class SessionsEvent extends Equatable {

@@ -1,4 +1,3 @@
-// lib/features/chat/domain/usecases/get_chat_history.dart
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/errors/failures.dart';

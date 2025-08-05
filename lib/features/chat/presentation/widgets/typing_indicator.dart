@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/widgets/typing_indicator.dart
 import 'package:flutter/material.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 

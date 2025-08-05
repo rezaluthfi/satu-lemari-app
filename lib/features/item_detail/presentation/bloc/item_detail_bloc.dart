@@ -52,17 +52,12 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
           debugPrint(
               "[ItemDetailBloc] 2. SUCCESS fetching item detail. Name: ${item.name}");
 
-          // LANGSUNG EMIT STATE LOADED DENGAN DATA UTAMA
-          // Gunakan state tombol default/aman untuk sementara.
-          // Ini akan menghilangkan shimmer SEGERA.
           emit(ItemDetailLoaded(item,
               buttonState: ItemDetailButtonState.active));
 
-          // Panggil similar items segera.
+          // Panggil similar items segera
           add(FetchSimilarItems(item.id));
 
-          // Sekarang, jalankan pemrosesan data sekunder di latar belakang.
-          // Kita tidak akan 'await' di sini agar UI tidak terblokir.
           _processSecondaryData(item);
         },
       );
@@ -73,7 +68,7 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
     }
   }
 
-  // Method baru untuk memproses data sekunder secara terpisah
+  // Proses data sekunder secara terpisah
   void _processSecondaryData(ItemDetail item) async {
     try {
       debugPrint(
@@ -128,8 +123,6 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
     } catch (e, stacktrace) {
       debugPrint("[ItemDetailBloc] FATAL ERROR in _processSecondaryData: $e");
       debugPrint(stacktrace.toString());
-      // Di sini kita tidak emit error, karena halaman utama sudah tampil.
-      // Cukup log errornya saja.
     }
   }
 

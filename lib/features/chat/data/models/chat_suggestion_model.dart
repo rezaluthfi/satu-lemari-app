@@ -1,4 +1,3 @@
-// lib/features/chat/data/models/chat_suggestion_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/chat_suggestion.dart';
 

@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/pages/chat_sessions_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -227,7 +226,6 @@ class _ChatSessionsViewState extends State<ChatSessionsView> {
                       content: Text(state.failureMessage!),
                       backgroundColor: AppColors.error,
                       behavior: SnackBarBehavior.floating,
-                      // <-- PERBAIKAN: Beri margin bawah yang lebih besar
                       margin: const EdgeInsets.fromLTRB(
                           12, 12, 12, fabBottomClearance),
                       shape: RoundedRectangleBorder(

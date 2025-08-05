@@ -1,5 +1,3 @@
-// lib/features/history/presentation/bloc/history_event.dart
-
 part of 'history_bloc.dart';
 
 abstract class HistoryEvent extends Equatable {

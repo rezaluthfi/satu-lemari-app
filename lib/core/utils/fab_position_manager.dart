@@ -1,4 +1,3 @@
-// lib/core/utils/fab_position_manager.dart
 class FabPositionManager {
   static final FabPositionManager _instance = FabPositionManager._internal();
   factory FabPositionManager() => _instance;

@@ -1,4 +1,3 @@
-// lib/features/chat/domain/entities/quick_reply.dart
 import 'package:equatable/equatable.dart';
 
 class QuickReply extends Equatable {

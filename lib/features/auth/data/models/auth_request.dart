@@ -2,7 +2,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'auth_request.g.dart';
 
-// Model for authentication request
 @JsonSerializable(includeIfNull: false)
 class AuthRequestModel {
   final String token;

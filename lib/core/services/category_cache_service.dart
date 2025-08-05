@@ -1,5 +1,3 @@
-// lib/core/services/category_cache_service.dart
-
 import 'package:satulemari/features/home/domain/entities/category.dart';
 
 class CategoryCacheService {
@@ -21,7 +19,6 @@ class CategoryCacheService {
     }
   }
 
-  // --- TAMBAHKAN METHOD INI ---
   /// Mencari ID kategori berdasarkan namanya.
   /// Pencarian ini tidak peka terhadap huruf besar/kecil (case-insensitive).
   String? getCategoryIdByName(String name) {
@@ -34,7 +31,7 @@ class CategoryCacheService {
       return category.id;
     } catch (e) {
       // Jika tidak ada kategori yang cocok (misalnya AI memberikan nama kategori
-      // yang tidak ada di database kita), kembalikan null.
+      // yang tidak ada di database), kembalikan null.
       return null;
     }
   }

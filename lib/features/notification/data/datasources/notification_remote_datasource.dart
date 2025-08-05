@@ -1,5 +1,3 @@
-// File: lib/features/notification/data/datasources/notification_remote_datasource.dart
-
 import 'package:dio/dio.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';

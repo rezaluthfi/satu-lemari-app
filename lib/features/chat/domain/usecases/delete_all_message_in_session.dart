@@ -1,4 +1,3 @@
-// lib/features/chat/domain/usecases/delete_all_messages_in_session.dart
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/errors/failures.dart';

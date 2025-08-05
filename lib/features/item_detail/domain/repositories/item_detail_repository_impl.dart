@@ -78,10 +78,7 @@ class ItemDetailRepositoryImpl implements ItemDetailRepository {
             id: model.category!.id,
             name: model.category!.name,
           ),
-          // ===============================================
-          //           PERUBAHAN UTAMA DI SINI
-          // ===============================================
-          price: model.price, // <-- Tambahkan baris ini
+          price: model.price,
         );
         return Right(entity);
       } on ServerException catch (e) {

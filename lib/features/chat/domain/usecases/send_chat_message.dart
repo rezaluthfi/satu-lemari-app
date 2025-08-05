@@ -1,4 +1,3 @@
-// lib/features/chat/domain/usecases/send_chat_message.dart
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/errors/failures.dart';

@@ -17,7 +17,7 @@ class AppUrls {
       '/ai/recommendations/personalized';
   static const String aiSimilarItems = '/ai/recommendations/similar';
 
-  // --- CHATBOT URLS ---
+  // Chatbot
   static const String chatStart = '/chat/start';
   static const String chatSend = '/chat/send';
   static const String chatHistoryBase = '/chat/history'; // /:id
@@ -35,7 +35,6 @@ class AppUrls {
   static const String userDashboard = '/users/dashboard';
   // Untuk public profile, ID akan ditambahkan secara dinamis
   static const String publicUserProfileBase = '/users/';
-  // ---
 
   // History
   static const String myRequests = '/requests/my';

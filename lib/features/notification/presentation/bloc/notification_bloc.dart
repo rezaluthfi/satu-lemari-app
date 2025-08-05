@@ -1,5 +1,3 @@
-// File: lib/features/notification/presentation/bloc/notification_bloc.dart
-
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/usecases/usecase.dart';

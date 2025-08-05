@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/bloc/sessions_state.dart
 part of 'sessions_bloc.dart';
 
 abstract class SessionsState extends Equatable {
@@ -40,7 +39,6 @@ class SessionsLoaded extends SessionsState {
     );
   }
 }
-// ------------------------------
 
 class SessionsError extends SessionsState {
   final String message;

@@ -187,9 +187,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       TokenRefreshed event, Emitter<AuthState> emit) async {
     print(
         "[AUTH_BLOC_LOG] Token refreshed successfully, maintaining current state.");
-    // Token has been refreshed successfully, but we don't need to change the state
-    // The user remains authenticated with the same user data
-    // This event is mainly for logging and potential future use cases
+    // Tidak perlu melakukan apa-apa, hanya biarkan state tetap Authenticated
   }
 
   Future<void> _performLogout(Emitter<AuthState> emit,

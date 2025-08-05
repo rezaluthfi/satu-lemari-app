@@ -1,5 +1,3 @@
-// lib/features/browse/data/models/similar_items_model.dart
-
 class SimilarItemsResponseModel {
   final SimilarItemsDataModel data;
 
@@ -55,7 +53,7 @@ class SimilarItemDataModel {
       itemId: json['item_id'],
       name: json['name'],
       images: List<String>.from(json['images']),
-      category: json['category'], // Tambahkan parsing dari JSON
+      category: json['category'],
     );
   }
 }

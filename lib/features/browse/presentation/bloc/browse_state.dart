@@ -1,6 +1,5 @@
 part of 'browse_bloc.dart';
 
-// PERBAIKAN: Sistem notifikasi baru yang lebih andal
 abstract class BrowseNotification extends Equatable {
   const BrowseNotification();
   @override
@@ -57,7 +56,7 @@ class BrowseState extends Equatable {
   final SearchParamsSnapshot? lastDonationSearchParams;
   final SearchParamsSnapshot? lastRentalSearchParams;
 
-  // PERBAIKAN: Properti notifikasi baru
+  // Properti notifikasi baru
   final BrowseNotification? notification;
 
   // Flag untuk melacak apakah filter saat ini berasal dari speech-to-text

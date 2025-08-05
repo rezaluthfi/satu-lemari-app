@@ -8,7 +8,6 @@ import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import 'social_login_buttons.dart';
 
-// Widget for the registration form
 class RegisterForm extends StatefulWidget {
   final VoidCallback? onSuccessfulRegister;
 
@@ -148,7 +147,7 @@ class _RegisterFormState extends State<RegisterForm> {
               ),
               const SizedBox(height: 16),
 
-              // FIXED: Checkbox dengan alignment manual yang presisi
+              // Checkbox dengan alignment manual yang presisi
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -168,7 +167,7 @@ class _RegisterFormState extends State<RegisterForm> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12), // Jarak antara checkbox dan text
+                  const SizedBox(width: 12),
                   // Expanded text yang bisa di-tap
                   Expanded(
                     child: GestureDetector(

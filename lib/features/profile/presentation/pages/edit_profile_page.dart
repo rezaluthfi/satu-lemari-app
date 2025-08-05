@@ -189,7 +189,6 @@ class _EditProfilePageState extends State<EditProfilePage>
 
   // Pisahkan logic pick dan crop
   Future<void> _pickImage(ImageSource source) async {
-    // Tidak perlu lagi membuat instance picker di sini
     final pickedFile = await _picker.pickImage(source: source);
     if (pickedFile == null || !mounted) return;
 

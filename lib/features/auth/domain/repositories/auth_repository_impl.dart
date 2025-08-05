@@ -19,8 +19,6 @@ class AuthRepositoryImpl implements AuthRepository {
     required this.networkInfo,
   });
 
-  // ... (semua method lain tetap sama, tidak perlu diubah)
-
   Future<Either<Failure, User>> _authenticate(
     Future<AuthResponseModel> Function() getAuthResponse,
   ) async {
@@ -111,7 +109,7 @@ class AuthRepositoryImpl implements AuthRepository {
         final newAuthResponse = await remoteDataSource.refreshToken();
         print('✅ [AUTH_REPOSITORY] Remote refresh token berhasil');
 
-        // **PERBAIKAN:** Cek apakah accessToken tidak null sebelum caching
+        // Cek apakah accessToken tidak null sebelum caching
         final newAccessToken = newAuthResponse.data?.accessToken;
         if (newAccessToken != null) {
           // Gunakan method caching yang lebih robust

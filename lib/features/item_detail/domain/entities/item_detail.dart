@@ -1,5 +1,3 @@
-// lib/features/item_detail/domain/entities/item_detail.dart
-
 import 'package:equatable/equatable.dart';
 
 class ItemDetail extends Equatable {

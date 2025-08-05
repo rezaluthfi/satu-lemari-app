@@ -1,4 +1,3 @@
-// lib/features/chat/domain/entities/chat_suggestion.dart
 import 'package:equatable/equatable.dart';
 
 class ChatSuggestion extends Equatable {

@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/bloc/chat_event.dart
 part of 'chat_bloc.dart';
 
 abstract class ChatEvent extends Equatable {

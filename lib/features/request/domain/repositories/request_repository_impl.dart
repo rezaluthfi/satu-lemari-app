@@ -19,7 +19,7 @@ class RequestRepositoryImpl implements RequestRepository {
     if (await networkInfo.isConnected) {
       try {
         final model = await remoteDataSource.createRequest(request);
-        // Mapping dari model ke entity, kita bisa copy dari HistoryRepositoryImpl
+        // Mapping dari model ke entity, copy dari HistoryRepositoryImpl
         final entity = RequestDetail(
           id: model.id,
           type: model.type,

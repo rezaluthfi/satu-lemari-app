@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/widgets/message_bubble.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';

@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/widgets/suggestion_section.dart
 import 'package:flutter/material.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/chat/domain/entities/chat_suggestion.dart';

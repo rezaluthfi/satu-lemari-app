@@ -1,5 +1,3 @@
-// lib/features/item_detail/presentation/pages/item_detail_page.dart
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/core/utils/string_extensions.dart';
-import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';

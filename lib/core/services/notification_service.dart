@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,9 +6,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // Top-level function untuk background message handler
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Inisialisasi Firebase jika belum
-  // await Firebase.initializeApp();
-
   print('Handling a background message: ${message.messageId}');
   print('Message data: ${message.data}');
   print('Message notification: ${message.notification?.title}');
@@ -65,7 +61,7 @@ class NotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      requestCriticalPermission: true, // For critical alerts
+      requestCriticalPermission: true,
     );
 
     const InitializationSettings initializationSettings =

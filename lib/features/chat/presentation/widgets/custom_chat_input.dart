@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/widgets/custom_chat_input.dart
 import 'package:flutter/material.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 

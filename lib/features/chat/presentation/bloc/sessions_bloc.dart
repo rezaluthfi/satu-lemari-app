@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/bloc/sessions_bloc.dart
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/usecases/usecase.dart';
@@ -46,7 +45,6 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
     );
   }
 
-  // --- METHOD INI DIPERBAIKI DENGAN POLA BARU ---
   Future<void> _onDeleteAllUserHistory(
       DeleteAllUserHistoryEvent event, Emitter<SessionsState> emit) async {
     final result = await _deleteAllUserHistory(NoParams());

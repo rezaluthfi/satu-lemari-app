@@ -1,5 +1,3 @@
-// File: lib/features/notification/presentation/pages/notification_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -60,7 +58,7 @@ class _NotificationPageState extends State<NotificationPage> {
       title: 'Hapus Notifikasi',
       content: 'Yakin ingin menghapus ${_selectedIds.length} notifikasi?',
       onConfirm: () {
-        // Set flag bahwa kita sedang melakukan delete multiple
+        // Set flag bahwa sedang melakukan delete multiple
         _wasDeleting = true;
 
         context.read<NotificationBloc>().add(
@@ -101,18 +99,16 @@ class _NotificationPageState extends State<NotificationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // KUNCI PERBAIKAN: HAPUS BlocProvider dari sini.
-    // Widget ini sekarang mengandalkan BLoC yang diberikan oleh BlocProvider.value dari HomePage.
     return BlocConsumer<NotificationBloc, NotificationState>(
       listener: (context, state) {
-        // PERBAIKAN UTAMA: Deteksi berhasilnya operasi delete multiple
+        // Deteksi berhasilnya operasi delete multiple
         if (_previousState != null) {
           // Jika sebelumnya sedang submitting (delete) dan sekarang sudah selesai tanpa error
           bool wasSubmittingBefore = _previousState!.isSubmitting;
           bool isNotSubmittingNow = !state.isSubmitting;
           bool noError = state.errorMessage == null;
 
-          // Dan jika kita memang sedang dalam proses delete multiple
+          // Dan jika memang sedang dalam proses delete multiple
           if (wasSubmittingBefore &&
               isNotSubmittingNow &&
               noError &&
@@ -197,7 +193,7 @@ class _NotificationPageState extends State<NotificationPage> {
             )
           : null,
       actions: [
-        // PERBAIKAN: Wrap actions dalam Flexible untuk mencegah overflow
+        // Wrap actions dalam Flexible untuk mencegah overflow
         Flexible(
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -223,7 +219,7 @@ class _NotificationPageState extends State<NotificationPage> {
               if (!_isSelectionMode)
                 if (state.notifications.isNotEmpty)
                   if ((state.stats?.unreadCount ?? 0) > 0)
-                    // PERBAIKAN: Buat button lebih kompak dan responsive
+                    // Buat button lebih kompak dan responsive
                     Container(
                       margin: const EdgeInsets.only(right: 8),
                       child: LayoutBuilder(
@@ -372,7 +368,7 @@ class _NotificationPageState extends State<NotificationPage> {
             size: 20,
           ),
           const SizedBox(width: 8),
-          // PERBAIKAN: Bungkus text dengan Flexible untuk mencegah overflow
+          // Bungkus text dengan Flexible untuk mencegah overflow
           Flexible(
             child: Text(
               'Anda memiliki $unreadCount notifikasi yang belum dibaca',

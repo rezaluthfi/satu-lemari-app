@@ -109,9 +109,8 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
-    // UI Anda tetap sama persis, tidak ada yang diubah di sini.
     return Scaffold(
-      backgroundColor: const Color(0xFF3B82F6), // Primary blue
+      backgroundColor: const Color(0xFF3B82F6),
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: SafeArea(

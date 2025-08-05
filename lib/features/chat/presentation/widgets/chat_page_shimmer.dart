@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/widgets/chat_page_shimmer.dart
 import 'package:flutter/material.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:shimmer/shimmer.dart';

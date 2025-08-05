@@ -1,5 +1,3 @@
-// lib/features/history/data/datasources/history_remote_datasource.dart
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
@@ -37,12 +35,11 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
         },
       );
 
-      // 1. Pengecekan keamanan untuk respons data.
-      //    Pastikan field 'data' ada dan merupakan sebuah List.
+      // Pastikan field 'data' ada dan merupakan sebuah List.
       final dynamic responseData = response.data['data'];
       if (responseData is! List) {
         // Jika backend mengembalikan null atau bukan list saat kosong,
-        // kita anggap saja sebagai list kosong untuk mencegah crash.
+        // Anggap saja sebagai list kosong untuk mencegah crash.
         debugPrint(
             "[HistoryDataSource] 'data' field is not a List for type '$type'. Returning empty list.");
         return [];

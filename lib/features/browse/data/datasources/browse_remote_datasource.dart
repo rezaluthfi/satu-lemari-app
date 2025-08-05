@@ -1,5 +1,3 @@
-// lib/features/browse/data/datasources/browse_remote_datasource.dart
-
 import 'package:dio/dio.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
@@ -51,7 +49,7 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     int limit = 10,
   }) async {
     try {
-      // PERBAIKAN: Membuat semua pengecekan parameter konsisten dan robust
+      // Membuat semua pengecekan parameter konsisten dan robust
       final Map<String, dynamic> queryParams = {
         'type': type,
         'page': page,

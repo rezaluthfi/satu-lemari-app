@@ -1,4 +1,3 @@
-// lib/features/chat/data/models/send_message_response_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import 'quick_reply_model.dart';
 import '../../domain/entities/send_message_response.dart';

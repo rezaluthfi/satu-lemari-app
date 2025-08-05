@@ -8,7 +8,6 @@ import '../../../../shared/widgets/custom_button.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import 'social_login_buttons.dart';
 
-// Widget for the login form
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});
 

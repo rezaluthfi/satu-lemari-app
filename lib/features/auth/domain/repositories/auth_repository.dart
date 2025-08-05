@@ -1,5 +1,5 @@
 import 'package:dartz/dartz.dart';
-import 'package:satulemari/features/auth/data/models/auth_response.dart'; // <-- Import baru
+import 'package:satulemari/features/auth/data/models/auth_response.dart';
 import 'package:satulemari/features/auth/domain/entities/user.dart';
 import '../../../../core/errors/failures.dart';
 

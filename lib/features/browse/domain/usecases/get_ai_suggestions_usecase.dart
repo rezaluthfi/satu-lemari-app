@@ -18,7 +18,7 @@ class GetAiSuggestionsUseCase implements UseCase<AiSuggestions, String> {
 
     final result = await repository.getAiSuggestions(params);
 
-    // Di sini kita memproses dan memfilter hasilnya jika berhasil
+    // Proses dan filter hasilnya jika berhasil
     return result.map((suggestionsEntity) {
       // Daftar kata kunci yang menandakan saran tersebut adalah instruksi, bukan produk
       final filterKeywords = [

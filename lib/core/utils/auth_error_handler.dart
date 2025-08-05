@@ -1,5 +1,3 @@
-// lib/core/utils/auth_error_handler.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -8,7 +6,7 @@ class AuthErrorHandler {
   /// Shows a snackbar for token refresh errors (non-blocking)
   static void showTokenRefreshError(BuildContext context, String message) {
     if (!context.mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -41,7 +39,7 @@ class AuthErrorHandler {
   /// Shows a snackbar for successful token refresh (optional feedback)
   static void showTokenRefreshSuccess(BuildContext context) {
     if (!context.mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Row(
@@ -79,7 +77,8 @@ class AuthErrorHandler {
   /// Logs authentication success for debugging
   static void logAuthSuccess(String operation) {
     if (kDebugMode) {
-      debugPrint('✅ AUTH_SUCCESS [$operation]: Operation completed successfully');
+      debugPrint(
+          '✅ AUTH_SUCCESS [$operation]: Operation completed successfully');
     }
   }
 
@@ -87,18 +86,18 @@ class AuthErrorHandler {
   static bool isTokenExpiredError(String errorMessage) {
     final lowerMessage = errorMessage.toLowerCase();
     return lowerMessage.contains('expired') ||
-           lowerMessage.contains('invalid') ||
-           lowerMessage.contains('unauthorized') ||
-           lowerMessage.contains('token') && lowerMessage.contains('invalid');
+        lowerMessage.contains('invalid') ||
+        lowerMessage.contains('unauthorized') ||
+        lowerMessage.contains('token') && lowerMessage.contains('invalid');
   }
 
   /// Determines if an error is a network-related error
   static bool isNetworkError(String errorMessage) {
     final lowerMessage = errorMessage.toLowerCase();
     return lowerMessage.contains('network') ||
-           lowerMessage.contains('connection') ||
-           lowerMessage.contains('timeout') ||
-           lowerMessage.contains('internet');
+        lowerMessage.contains('connection') ||
+        lowerMessage.contains('timeout') ||
+        lowerMessage.contains('internet');
   }
 
   /// Gets a user-friendly error message for authentication errors

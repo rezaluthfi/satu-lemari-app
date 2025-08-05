@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/bloc/chat_state.dart
 part of 'chat_bloc.dart';
 
 abstract class ChatState extends Equatable {

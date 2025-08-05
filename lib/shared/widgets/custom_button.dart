@@ -1,5 +1,3 @@
-// lib/shared/widgets/custom_button.dart
-
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
@@ -24,7 +22,7 @@ class CustomButton extends StatelessWidget {
     this.onPressed,
     this.type = ButtonType.primary,
     this.isLoading = false,
-    this.icon, // <-- PERUBAHAN 2: Menghapus tipe IconData?
+    this.icon,
     this.width,
     this.height,
     this.fontSize,
@@ -72,11 +70,8 @@ class CustomButton extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // --- PERUBAHAN 3: Render widget ikon secara langsung ---
-          // Kita tidak lagi membungkusnya dengan widget Icon,
-          // karena `icon` itu sendiri sudah merupakan widget.
           SizedBox(
-            width: 24, // Beri batasan ukuran pada ikon
+            width: 24,
             height: 24,
             child: icon!,
           ),

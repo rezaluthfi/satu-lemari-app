@@ -1,5 +1,3 @@
-// lib/features/browse/domain/entities/intent_analysis.dart
-
 import 'package:equatable/equatable.dart';
 
 class IntentAnalysis extends Equatable {

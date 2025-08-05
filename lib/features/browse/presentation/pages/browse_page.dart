@@ -267,7 +267,7 @@ class _BrowsePageState extends State<BrowsePage>
         centerTitle: false,
       ),
       body: MultiBlocListener(
-        // PERBAIKAN: Ganti `listener` dengan `listeners` dan tambahkan listener baru
+        // Ganti `listener` dengan `listeners` dan tambahkan listener baru
         listeners: [
           BlocListener<BrowseBloc, BrowseState>(
             listenWhen: (previous, current) => previous.query != current.query,
@@ -279,7 +279,7 @@ class _BrowsePageState extends State<BrowsePage>
               }
             },
           ),
-          // PERBAIKAN: Listener baru untuk menangani notifikasi
+          // Listener baru untuk menangani notifikasi
           BlocListener<BrowseBloc, BrowseState>(
             listenWhen: (prev, curr) =>
                 prev.notification != curr.notification &&

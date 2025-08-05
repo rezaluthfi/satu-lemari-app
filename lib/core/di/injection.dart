@@ -1,5 +1,3 @@
-// lib/core/di/injection.dart
-
 // Flutter & External Packages
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
@@ -111,7 +109,7 @@ import 'package:satulemari/features/profile/domain/usecases/get_profile_usecase.
 import 'package:satulemari/features/profile/domain/usecases/update_profile_usecase.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 
-// =================== CHATBOT IMPORTS ===================
+// Chatbot
 import 'package:satulemari/features/chat/data/datasources/chat_remote_datasource.dart';
 import 'package:satulemari/features/chat/domain/repositories/chat_repository.dart';
 import 'package:satulemari/features/chat/domain/usecases/delete_all_user_history.dart';
@@ -122,7 +120,6 @@ import 'package:satulemari/features/chat/domain/usecases/get_user_sessions.dart'
 import 'package:satulemari/features/chat/domain/usecases/send_chat_message.dart';
 import 'package:satulemari/features/chat/domain/usecases/start_chat_session.dart';
 import 'package:satulemari/features/chat/presentation/bloc/chat_bloc.dart';
-// =======================================================
 
 final sl = GetIt.instance;
 
@@ -269,8 +266,7 @@ Future<void> init() async {
   sl.registerLazySingleton<ProfileRemoteDataSource>(
       () => ProfileRemoteDataSourceImpl(dio: sl()));
 
-  // =================== CHATBOT REGISTRATIONS ===================
-  // BLoC
+  // Chatbot
   sl.registerFactory(() => ChatBloc(
         startChatSession: sl(),
         sendChatMessage: sl(),
@@ -303,7 +299,6 @@ Future<void> init() async {
   // DataSource
   sl.registerLazySingleton<ChatRemoteDataSource>(
       () => ChatRemoteDataSourceImpl(dio: sl()));
-  // ===========================================================
 
   // --- CORE & EXTERNAL ---
   sl.registerLazySingleton(() => NotificationService());

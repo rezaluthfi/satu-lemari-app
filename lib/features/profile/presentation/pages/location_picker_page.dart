@@ -15,7 +15,6 @@ class LocationResult {
       {required this.coordinates, required this.address, required this.city});
 }
 
-// --- PERUBAHAN DI SINI ---
 class LocationPickerPage extends StatefulWidget {
   // Tambahkan parameter opsional untuk lokasi awal
   final LatLng? initialLocation;
@@ -26,7 +25,6 @@ class LocationPickerPage extends StatefulWidget {
   @override
   State<LocationPickerPage> createState() => _LocationPickerPageState();
 }
-// --- AKHIR PERUBAHAN ---
 
 class _LocationPickerPageState extends State<LocationPickerPage> {
   final MapController _mapController = MapController();

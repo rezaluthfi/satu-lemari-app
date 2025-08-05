@@ -1,4 +1,3 @@
-// lib/features/chat/domain/entities/chat_session.dart
 import 'package:equatable/equatable.dart';
 
 class ChatSession extends Equatable {

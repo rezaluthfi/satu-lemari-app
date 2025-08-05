@@ -1,5 +1,3 @@
-// lib/features/browse/domain/usecases/get_similar_items_usecase.dart
-
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:satulemari/core/errors/failures.dart';

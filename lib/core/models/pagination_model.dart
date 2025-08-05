@@ -1,5 +1,3 @@
-// lib/core/models/pagination_model.dart
-
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -147,7 +145,8 @@ class PaginationState<T> extends Equatable {
   }
 
   /// Replace all items (for refresh)
-  PaginationState<T> replaceItems(List<T> newItems, {bool hasReachedEnd = false}) {
+  PaginationState<T> replaceItems(List<T> newItems,
+      {bool hasReachedEnd = false}) {
     return copyWith(
       items: newItems,
       hasReachedEnd: hasReachedEnd,

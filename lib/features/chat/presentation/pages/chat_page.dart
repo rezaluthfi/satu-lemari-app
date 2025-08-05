@@ -1,4 +1,3 @@
-// lib/features/chat/presentation/pages/chat_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';

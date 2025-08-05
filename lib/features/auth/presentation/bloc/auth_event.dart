@@ -53,7 +53,7 @@ class ForceLogoutDueToExpiredToken extends AuthEvent {}
 // Event for successful token refresh
 class TokenRefreshed extends AuthEvent {}
 
-// --- TAMBAHKAN EVENT INI ---
+// Event for internal user data update
 class UserDataUpdated extends AuthEvent {
   final User updatedUser;
 

@@ -5,7 +5,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/widgets/custom_button.dart';
 
-// Widget for social login buttons
 class SocialLoginButtons extends StatelessWidget {
   const SocialLoginButtons({super.key});
 

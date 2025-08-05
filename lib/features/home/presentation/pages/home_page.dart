@@ -849,7 +849,6 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  // --- PERUBAHAN 3: Sesuaikan _buildCategoryCard ---
   Widget _buildCategoryCard(Category category) {
     return InkWell(
       onTap: () {

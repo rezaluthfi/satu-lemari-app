@@ -83,7 +83,6 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     }
   }
 
-  /// Method tambahan untuk cache seluruh auth response yang baru
   Future<void> cacheRefreshedAuthResponse(
       AuthResponseModel newAuthResponse) async {
     print('💾 [LOCAL_DATASOURCE] Caching refreshed auth response...');
@@ -117,12 +116,13 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   }
 
   @override
-  Future<void> updateCachedUserData(Map<String, dynamic> updatedUserData) async {
+  Future<void> updateCachedUserData(
+      Map<String, dynamic> updatedUserData) async {
     print('💾 [LOCAL_DATASOURCE] Updating cached user data...');
     final jsonString = sharedPreferences.getString(CACHED_AUTH_RESPONSE);
     if (jsonString != null) {
       final authData = json.decode(jsonString) as Map<String, dynamic>;
-      
+
       // Update user data di dalam auth response
       if (authData['data'] is Map) {
         final data = authData['data'] as Map<String, dynamic>;
@@ -132,7 +132,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
           updatedUserData.forEach((key, value) {
             userData[key] = value;
           });
-          
+
           // Simpan kembali ke cache
           await sharedPreferences.setString(
             CACHED_AUTH_RESPONSE,
@@ -142,8 +142,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
         }
       }
     } else {
-      print('❌ [LOCAL_DATASOURCE] Tidak ada cached auth response yang ditemukan');
-      throw CacheException('Cannot update user data, no cached auth response found.');
+      print(
+          '❌ [LOCAL_DATASOURCE] Tidak ada cached auth response yang ditemukan');
+      throw CacheException(
+          'Cannot update user data, no cached auth response found.');
     }
   }
 

@@ -1,4 +1,3 @@
-// lib/features/chat/data/models/quick_reply_model.dart
 import 'package:json_annotation/json_annotation.dart';
 import '../../domain/entities/quick_reply.dart';
 

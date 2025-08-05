@@ -1,5 +1,3 @@
-// lib/features/browse/presentation/widgets/speech_listening_overlay.dart
-
 import 'package:flutter/material.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'dart:math' as math;
@@ -129,7 +127,6 @@ class _SpeechListeningOverlayState extends State<SpeechListeningOverlay>
 
 class SineWave {
   static double transform(double value, {double delay = 0.0}) {
-    // PERBAIKAN: Menggunakan math.sin()
     double sineValue =
         (1 + math.sin(value * 2 * math.pi + (delay * math.pi))) / 2;
     return Curves.easeInOut.transform(sineValue);

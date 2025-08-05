@@ -1,5 +1,3 @@
-// lib/features/browse/domain/usecases/analyze_intent_usecase.dart
-
 import 'package:dartz/dartz.dart';
 import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/usecases/usecase.dart';

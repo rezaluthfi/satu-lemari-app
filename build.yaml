@@ -14,7 +14,7 @@ targets:
           explicit_to_json: true
 
       # Konfigurasi untuk retrofit_generator
-      # Kita batasi agar hanya berjalan pada file yang kita inginkan.
+      # Batasi agar hanya berjalan pada file yang diinginkan.
       retrofit_generator:
         # PENTING: Bagian ini memberitahu retrofit_generator
         # untuk HANYA berjalan pada file-file yang cocok dengan pola ini.
