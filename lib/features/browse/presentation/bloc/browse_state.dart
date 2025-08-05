@@ -21,10 +21,16 @@ class BrowseState extends Equatable {
   final BrowseStatus donationStatus;
   final List<Item> donationItems;
   final String? donationError;
+  final bool donationIsLoadingMore;
+  final bool donationHasReachedEnd;
+  final int donationCurrentPage;
 
   final BrowseStatus rentalStatus;
   final List<Item> rentalItems;
   final String? rentalError;
+  final bool rentalIsLoadingMore;
+  final bool rentalHasReachedEnd;
+  final int rentalCurrentPage;
 
   // Tab yang sedang aktif
   final String activeTab; // 'donation' or 'rental'
@@ -62,9 +68,15 @@ class BrowseState extends Equatable {
     this.donationStatus = BrowseStatus.initial,
     this.donationItems = const [],
     this.donationError,
+    this.donationIsLoadingMore = false,
+    this.donationHasReachedEnd = false,
+    this.donationCurrentPage = 1,
     this.rentalStatus = BrowseStatus.initial,
     this.rentalItems = const [],
     this.rentalError,
+    this.rentalIsLoadingMore = false,
+    this.rentalHasReachedEnd = false,
+    this.rentalCurrentPage = 1,
     this.activeTab = 'donation',
     this.suggestionStatus = SuggestionStatus.initial,
     this.suggestions = const [],
@@ -95,9 +107,15 @@ class BrowseState extends Equatable {
     BrowseStatus? donationStatus,
     List<Item>? donationItems,
     String? donationError,
+    bool? donationIsLoadingMore,
+    bool? donationHasReachedEnd,
+    int? donationCurrentPage,
     BrowseStatus? rentalStatus,
     List<Item>? rentalItems,
     String? rentalError,
+    bool? rentalIsLoadingMore,
+    bool? rentalHasReachedEnd,
+    int? rentalCurrentPage,
     String? activeTab,
     SuggestionStatus? suggestionStatus,
     List<String>? suggestions,
@@ -123,9 +141,17 @@ class BrowseState extends Equatable {
       donationStatus: donationStatus ?? this.donationStatus,
       donationItems: donationItems ?? this.donationItems,
       donationError: donationError ?? this.donationError,
+      donationIsLoadingMore:
+          donationIsLoadingMore ?? this.donationIsLoadingMore,
+      donationHasReachedEnd:
+          donationHasReachedEnd ?? this.donationHasReachedEnd,
+      donationCurrentPage: donationCurrentPage ?? this.donationCurrentPage,
       rentalStatus: rentalStatus ?? this.rentalStatus,
       rentalItems: rentalItems ?? this.rentalItems,
       rentalError: rentalError ?? this.rentalError,
+      rentalIsLoadingMore: rentalIsLoadingMore ?? this.rentalIsLoadingMore,
+      rentalHasReachedEnd: rentalHasReachedEnd ?? this.rentalHasReachedEnd,
+      rentalCurrentPage: rentalCurrentPage ?? this.rentalCurrentPage,
       activeTab: activeTab ?? this.activeTab,
       suggestionStatus: suggestionStatus ?? this.suggestionStatus,
       suggestions: suggestions ?? this.suggestions,
@@ -161,9 +187,15 @@ class BrowseState extends Equatable {
         donationStatus,
         donationItems,
         donationError,
+        donationIsLoadingMore,
+        donationHasReachedEnd,
+        donationCurrentPage,
         rentalStatus,
         rentalItems,
         rentalError,
+        rentalIsLoadingMore,
+        rentalHasReachedEnd,
+        rentalCurrentPage,
         activeTab,
         suggestionStatus,
         suggestions,

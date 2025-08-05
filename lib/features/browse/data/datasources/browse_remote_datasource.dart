@@ -21,6 +21,8 @@ abstract class BrowseRemoteDataSource {
     String? city,
     double? minPrice,
     double? maxPrice,
+    int page = 1,
+    int limit = 10,
   });
 
   Future<AiSuggestionsModel> getAiSuggestions(String query);
@@ -45,20 +47,29 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     String? city,
     double? minPrice,
     double? maxPrice,
+    int page = 1,
+    int limit = 10,
   }) async {
     try {
       // PERBAIKAN: Membuat semua pengecekan parameter konsisten dan robust
-      final Map<String, dynamic> queryParams = {'type': type};
+      final Map<String, dynamic> queryParams = {
+        'type': type,
+        'page': page,
+        'limit': limit,
+      };
       if (query != null && query.isNotEmpty) queryParams['q'] = query;
-      if (categoryId != null && categoryId.isNotEmpty)
+      if (categoryId != null && categoryId.isNotEmpty) {
         queryParams['category_id'] = categoryId;
+      }
       if (size != null && size.isNotEmpty) queryParams['size'] = size;
       if (color != null && color.isNotEmpty) queryParams['color'] = color;
-      if (condition != null && condition.isNotEmpty)
+      if (condition != null && condition.isNotEmpty) {
         queryParams['condition'] = condition;
+      }
       if (sortBy != null && sortBy.isNotEmpty) queryParams['sort_by'] = sortBy;
-      if (sortOrder != null && sortOrder.isNotEmpty)
+      if (sortOrder != null && sortOrder.isNotEmpty) {
         queryParams['sort_order'] = sortOrder;
+      }
       if (city != null && city.isNotEmpty) queryParams['city'] = city;
       if (minPrice != null) queryParams['min_price'] = minPrice;
       if (maxPrice != null) queryParams['max_price'] = maxPrice;

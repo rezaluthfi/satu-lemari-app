@@ -8,7 +8,11 @@ import 'package:satulemari/features/history/data/models/request_detail_model.dar
 import 'package:satulemari/features/history/data/models/request_item_model.dart';
 
 abstract class HistoryRemoteDataSource {
-  Future<List<RequestItemModel>> getMyRequests({required String type});
+  Future<List<RequestItemModel>> getMyRequests({
+    required String type,
+    int page = 1,
+    int limit = 10,
+  });
   Future<RequestDetailModel> getRequestDetail(String id);
   Future<void> deleteRequest(String id, String status);
 }
@@ -18,11 +22,19 @@ class HistoryRemoteDataSourceImpl implements HistoryRemoteDataSource {
   HistoryRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<List<RequestItemModel>> getMyRequests({required String type}) async {
+  Future<List<RequestItemModel>> getMyRequests({
+    required String type,
+    int page = 1,
+    int limit = 10,
+  }) async {
     try {
       final response = await dio.get(
         AppUrls.myRequests,
-        queryParameters: {'type': type},
+        queryParameters: {
+          'type': type,
+          'page': page,
+          'limit': limit,
+        },
       );
 
       // 1. Pengecekan keamanan untuk respons data.

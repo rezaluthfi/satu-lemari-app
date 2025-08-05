@@ -203,6 +203,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
+                            color: AppColors.primary,
                           ))
                       : Text(_selectedAddress,
                           textAlign: TextAlign.center,

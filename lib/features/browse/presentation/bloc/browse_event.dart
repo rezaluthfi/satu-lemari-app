@@ -75,3 +75,19 @@ class IntentAnalysisAndSearchRequested extends BrowseEvent {
 }
 
 class NotificationCleared extends BrowseEvent {}
+
+class LoadMoreItems extends BrowseEvent {
+  final String type; // 'donation' or 'rental'
+  const LoadMoreItems(this.type);
+
+  @override
+  List<Object> get props => [type];
+}
+
+class RefreshItems extends BrowseEvent {
+  final String type; // 'donation' or 'rental'
+  const RefreshItems(this.type);
+
+  @override
+  List<Object> get props => [type];
+}

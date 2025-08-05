@@ -13,13 +13,33 @@ class GetMyRequestsUseCase
   @override
   Future<Either<Failure, List<RequestItem>>> call(
       GetMyRequestsParams params) async {
-    return await repository.getMyRequests(params.type);
+    return await repository.getMyRequests(params);
   }
 }
 
 class GetMyRequestsParams extends Equatable {
   final String type; // 'donation' or 'rental'
-  const GetMyRequestsParams({required this.type});
+  final int page;
+  final int limit;
+
+  const GetMyRequestsParams({
+    required this.type,
+    this.page = 1,
+    this.limit = 10,
+  });
+
+  /// Calculate offset from page and limit
+  int get offset => (page - 1) * limit;
+
+  /// Create a copy with new pagination parameters
+  GetMyRequestsParams copyWithPagination({int? page, int? limit}) {
+    return GetMyRequestsParams(
+      type: type,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+    );
+  }
+
   @override
-  List<Object> get props => [type];
+  List<Object> get props => [type, page, limit];
 }

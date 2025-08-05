@@ -5,16 +5,56 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
-import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
 import 'package:satulemari/shared/widgets/empty_state_widget.dart';
 import 'package:satulemari/shared/widgets/network_error_widget.dart';
 import 'package:satulemari/shared/widgets/product_card.dart';
-import 'package:tuple/tuple.dart'; // <-- IMPORT PACKAGE BARU
 
-class ItemListView extends StatelessWidget {
+class ItemListView extends StatefulWidget {
   final String type; // 'donation' or 'rental'
   const ItemListView({super.key, required this.type});
+
+  @override
+  State<ItemListView> createState() => _ItemListViewState();
+}
+
+class _ItemListViewState extends State<ItemListView> {
+  late ScrollController _scrollController;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom && !_isLoadingMore) {
+      _isLoadingMore = true;
+      context.read<BrowseBloc>().add(LoadMoreItems(widget.type));
+      // Reset the flag after a short delay to prevent rapid calls
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _isLoadingMore = false;
+        }
+      });
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9); // Trigger at 90% scroll
+  }
 
   // Helper untuk memicu refresh/retry dengan query yang sedang aktif
   void _retrySearch(BuildContext context) {
@@ -32,24 +72,26 @@ class ItemListView extends StatelessWidget {
     context.read<BrowseBloc>().add(SearchCleared());
   }
 
+  // Helper untuk refresh
+  Future<void> _onRefresh() async {
+    context.read<BrowseBloc>().add(RefreshItems(widget.type));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocSelector<BrowseBloc, BrowseState,
-        Tuple2<BrowseStatus, List<Item>>>(
-      // Selector ini "memilih" hanya status dan item yang relevan untuk tab ini.
-      // UI HANYA akan rebuild jika nilai Tuple2 ini berubah.
-      selector: (state) {
-        if (type == 'donation') {
-          return Tuple2(state.donationStatus, state.donationItems);
-        } else {
-          return Tuple2(state.rentalStatus, state.rentalItems);
-        }
-      },
-      builder: (context, selectedState) {
-        // Ambil nilai dari tuple
-        final BrowseStatus status = selectedState.item1;
-        final List<Item> items = selectedState.item2;
-
+    return BlocBuilder<BrowseBloc, BrowseState>(
+      builder: (context, state) {
+        // Get the relevant data for this tab
+        final status = widget.type == 'donation'
+            ? state.donationStatus
+            : state.rentalStatus;
+        final items =
+            widget.type == 'donation' ? state.donationItems : state.rentalItems;
+        final isLoadingMore = widget.type == 'donation'
+            ? state.donationIsLoadingMore
+            : state.rentalIsLoadingMore;
+        final error =
+            widget.type == 'donation' ? state.donationError : state.rentalError;
         // Kondisi Loading ditampilkan PERTAMA
         if (status == BrowseStatus.loading || status == BrowseStatus.initial) {
           return const SingleChildScrollView(
@@ -60,11 +102,6 @@ class ItemListView extends StatelessWidget {
 
         // Kondisi Error
         if (status == BrowseStatus.error) {
-          // Ambil pesan error yang relevan dari state lengkap
-          final error = type == 'donation'
-              ? context.read<BrowseBloc>().state.donationError
-              : context.read<BrowseBloc>().state.rentalError;
-
           return CustomScrollView(
             slivers: [
               SliverFillRemaining(
@@ -97,20 +134,39 @@ class ItemListView extends StatelessWidget {
           );
         }
 
-        // Kondisi Sukses dengan Data
+        // Kondisi Sukses dengan Data - Infinite Scroll
         return RefreshIndicator(
-          onRefresh: () async => _resetSearch(context),
+          onRefresh: _onRefresh,
           color: AppColors.primary,
-          child: MasonryGridView.count(
-            padding: const EdgeInsets.all(20.0),
-            crossAxisCount: 2,
-            mainAxisSpacing: 16,
-            crossAxisSpacing: 16,
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return ProductCard(item: item);
-            },
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(20.0),
+                sliver: SliverMasonryGrid.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ProductCard(item: item);
+                  },
+                ),
+              ),
+              // Loading indicator for pagination
+              if (isLoadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },

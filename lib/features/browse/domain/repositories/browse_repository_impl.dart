@@ -72,6 +72,8 @@ class BrowseRepositoryImpl implements BrowseRepository {
           city: params.city,
           minPrice: params.minPrice,
           maxPrice: params.maxPrice,
+          page: params.page,
+          limit: params.limit,
         );
 
         final entities = remoteModels.map(_mapItemModelToItemEntity).toList();

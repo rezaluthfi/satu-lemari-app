@@ -17,3 +17,17 @@ class FetchHistory extends HistoryEvent {
 
 // --- TAMBAHKAN KELAS INI ---
 class HistoryReset extends HistoryEvent {}
+
+class LoadMoreHistory extends HistoryEvent {
+  final String type; // 'donation' or 'rental'
+  const LoadMoreHistory({required this.type});
+  @override
+  List<Object> get props => [type];
+}
+
+class RefreshHistory extends HistoryEvent {
+  final String type; // 'donation' or 'rental'
+  const RefreshHistory({required this.type});
+  @override
+  List<Object> get props => [type];
+}

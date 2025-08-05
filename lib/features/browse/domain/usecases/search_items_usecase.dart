@@ -29,6 +29,8 @@ class SearchItemsParams extends Equatable {
   final String? city;
   final double? minPrice;
   final double? maxPrice;
+  final int page;
+  final int limit;
 
   const SearchItemsParams({
     required this.type,
@@ -42,7 +44,31 @@ class SearchItemsParams extends Equatable {
     this.city,
     this.minPrice,
     this.maxPrice,
+    this.page = 1,
+    this.limit = 10,
   });
+
+  /// Calculate offset from page and limit
+  int get offset => (page - 1) * limit;
+
+  /// Create a copy with new pagination parameters
+  SearchItemsParams copyWithPagination({int? page, int? limit}) {
+    return SearchItemsParams(
+      type: type,
+      query: query,
+      categoryId: categoryId,
+      size: size,
+      color: color,
+      condition: condition,
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      city: city,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -57,5 +83,7 @@ class SearchItemsParams extends Equatable {
         city,
         minPrice,
         maxPrice,
+        page,
+        limit,
       ];
 }

@@ -120,7 +120,7 @@ class _HistoryPageState extends State<HistoryPage>
         // --- SOLUSI INTI ADA DI SINI ---
         return RefreshIndicator(
           onRefresh: () async {
-            context.read<HistoryBloc>().add(FetchHistory(type: type));
+            context.read<HistoryBloc>().add(RefreshHistory(type: type));
           },
           color: AppColors.primary,
           child: LayoutBuilder(

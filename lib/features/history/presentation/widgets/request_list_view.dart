@@ -6,7 +6,7 @@ import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/history/domain/entities/request_item.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 
-class RequestListView extends StatelessWidget {
+class RequestListView extends StatefulWidget {
   final String type;
   // --- MODIFIKASI: Terima daftar request secara langsung ---
   final List<RequestItem> requests;
@@ -15,14 +15,84 @@ class RequestListView extends StatelessWidget {
       {super.key, required this.type, required this.requests});
 
   @override
+  State<RequestListView> createState() => _RequestListViewState();
+}
+
+class _RequestListViewState extends State<RequestListView> {
+  late ScrollController _scrollController;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom && !_isLoadingMore) {
+      _isLoadingMore = true;
+      context.read<HistoryBloc>().add(LoadMoreHistory(type: widget.type));
+      // Reset the flag after a short delay to prevent rapid calls
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _isLoadingMore = false;
+        }
+      });
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9); // Trigger at 90% scroll
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Langsung build ListView dari data yang diterima.
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      itemCount: requests.length,
-      itemBuilder: (context, index) {
-        final request = requests[index];
-        return _buildRequestCard(context, request);
+    return BlocBuilder<HistoryBloc, HistoryState>(
+      builder: (context, state) {
+        final isLoadingMore = widget.type == 'donation'
+            ? state.donationIsLoadingMore
+            : state.rentalIsLoadingMore;
+
+        return CustomScrollView(
+          controller: _scrollController,
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final request = widget.requests[index];
+                    return _buildRequestCard(context, request);
+                  },
+                  childCount: widget.requests.length,
+                ),
+              ),
+            ),
+            // Loading indicator for pagination
+            if (isLoadingMore)
+              const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
       },
     );
   }
@@ -48,8 +118,10 @@ class RequestListView extends StatelessWidget {
                     arguments: request.id)
                 .then((result) {
               // Jika result adalah true (artinya ada perubahan), refresh
-              if (result == true) {
-                context.read<HistoryBloc>().add(FetchHistory(type: type));
+              if (result == true && mounted) {
+                context
+                    .read<HistoryBloc>()
+                    .add(FetchHistory(type: widget.type));
               }
             });
           },

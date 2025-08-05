@@ -85,6 +85,8 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
           .switchMap(mapper),
     );
     on<NotificationCleared>((event, emit) => emit(state.clearNotification()));
+    on<LoadMoreItems>(_onLoadMoreItems);
+    on<RefreshItems>(_onRefreshItems);
   }
 
   @override
@@ -259,6 +261,8 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       city: currentState.city,
       minPrice: targetTab == 'donation' ? null : currentState.minPrice,
       maxPrice: targetTab == 'donation' ? null : currentState.maxPrice,
+      page: 1, // Always start from page 1 for fresh searches
+      limit: 10,
     );
 
     final searchSnapshot = SearchParamsSnapshot(
@@ -286,6 +290,9 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             donationError: failure.message,
             donationItems: [],
             lastDonationSearchParams: searchSnapshot,
+            donationCurrentPage: 1,
+            donationHasReachedEnd: false,
+            donationIsLoadingMore: false,
           ));
         } else {
           emit(latestBlocState.copyWith(
@@ -293,6 +300,9 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             rentalError: failure.message,
             rentalItems: [],
             lastRentalSearchParams: searchSnapshot,
+            rentalCurrentPage: 1,
+            rentalHasReachedEnd: false,
+            rentalIsLoadingMore: false,
           ));
         }
       },
@@ -304,12 +314,18 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
             donationStatus: BrowseStatus.success,
             donationItems: items,
             lastDonationSearchParams: searchSnapshot,
+            donationCurrentPage: 1,
+            donationHasReachedEnd: items.length < 10,
+            donationIsLoadingMore: false,
           ));
         } else {
           emit(latestBlocState.copyWith(
             rentalStatus: BrowseStatus.success,
             rentalItems: items,
             lastRentalSearchParams: searchSnapshot,
+            rentalCurrentPage: 1,
+            rentalHasReachedEnd: items.length < 10,
+            rentalIsLoadingMore: false,
           ));
         }
       },
@@ -344,5 +360,129 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
           suggestionStatus: SuggestionStatus.success,
           suggestions: suggestions.suggestions)),
     );
+  }
+
+  Future<void> _onLoadMoreItems(
+      LoadMoreItems event, Emitter<BrowseState> emit) async {
+    final targetTab = event.type;
+
+    // Check if already loading more or reached end
+    if (targetTab == 'donation') {
+      if (state.donationIsLoadingMore || state.donationHasReachedEnd) return;
+    } else {
+      if (state.rentalIsLoadingMore || state.rentalHasReachedEnd) return;
+    }
+
+    // Set loading more state
+    if (targetTab == 'donation') {
+      emit(state.copyWith(donationIsLoadingMore: true));
+    } else {
+      emit(state.copyWith(rentalIsLoadingMore: true));
+    }
+
+    // Get current page and increment it
+    final currentPage = targetTab == 'donation'
+        ? state.donationCurrentPage
+        : state.rentalCurrentPage;
+    final nextPage = currentPage + 1;
+
+    // Use the last search parameters for this tab
+    final lastParams = targetTab == 'donation'
+        ? state.lastDonationSearchParams
+        : state.lastRentalSearchParams;
+
+    if (lastParams == null) {
+      // No previous search params, can't load more
+      if (targetTab == 'donation') {
+        emit(state.copyWith(donationIsLoadingMore: false));
+      } else {
+        emit(state.copyWith(rentalIsLoadingMore: false));
+      }
+      return;
+    }
+
+    // Create search params with pagination
+    final params = SearchItemsParams(
+      type: targetTab,
+      query: lastParams.query,
+      categoryId: lastParams.categoryId,
+      size: lastParams.size,
+      color: lastParams.color,
+      condition: lastParams.condition,
+      sortBy: lastParams.sortBy,
+      sortOrder: lastParams.sortOrder,
+      city: lastParams.city,
+      minPrice: lastParams.minPrice,
+      maxPrice: lastParams.maxPrice,
+      page: nextPage,
+      limit: 10,
+    );
+
+    final result = await searchItems(params);
+    result.fold(
+      (failure) {
+        // Handle error - show a snackbar or toast for load more errors
+        if (targetTab == 'donation') {
+          emit(state.copyWith(
+            donationIsLoadingMore: false,
+            // Don't update the main error state for load more failures
+          ));
+        } else {
+          emit(state.copyWith(
+            rentalIsLoadingMore: false,
+            // Don't update the main error state for load more failures
+          ));
+        }
+        // TODO: Consider showing a snackbar for load more errors
+        print('Load more failed for $targetTab: ${failure.message}');
+      },
+      (newItems) {
+        // Append new items to existing list
+        if (targetTab == 'donation') {
+          final updatedItems = [...state.donationItems, ...newItems];
+          emit(state.copyWith(
+            donationItems: updatedItems,
+            donationIsLoadingMore: false,
+            donationCurrentPage: nextPage,
+            donationHasReachedEnd: newItems.length <
+                10, // If less than limit, we've reached the end
+          ));
+        } else {
+          final updatedItems = [...state.rentalItems, ...newItems];
+          emit(state.copyWith(
+            rentalItems: updatedItems,
+            rentalIsLoadingMore: false,
+            rentalCurrentPage: nextPage,
+            rentalHasReachedEnd: newItems.length <
+                10, // If less than limit, we've reached the end
+          ));
+        }
+      },
+    );
+  }
+
+  Future<void> _onRefreshItems(
+      RefreshItems event, Emitter<BrowseState> emit) async {
+    final targetTab = event.type;
+
+    // Reset pagination state and reload first page
+    if (targetTab == 'donation') {
+      emit(state.copyWith(
+        donationStatus: BrowseStatus.loading,
+        donationCurrentPage: 1,
+        donationHasReachedEnd: false,
+        donationIsLoadingMore: false,
+      ));
+    } else {
+      emit(state.copyWith(
+        rentalStatus: BrowseStatus.loading,
+        rentalCurrentPage: 1,
+        rentalHasReachedEnd: false,
+        rentalIsLoadingMore: false,
+      ));
+    }
+
+    // Perform search for the specific tab
+    await _performSearch(emit, state, targetTab);
   }
 }

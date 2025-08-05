@@ -6,6 +6,7 @@ import 'package:satulemari/features/history/data/datasources/history_remote_data
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/domain/entities/request_item.dart';
 import 'package:satulemari/features/history/domain/repositories/history_repository.dart';
+import 'package:satulemari/features/history/domain/usecases/get_my_requests_usecase.dart';
 
 class HistoryRepositoryImpl implements HistoryRepository {
   final HistoryRemoteDataSource remoteDataSource;
@@ -15,10 +16,15 @@ class HistoryRepositoryImpl implements HistoryRepository {
       {required this.remoteDataSource, required this.networkInfo});
 
   @override
-  Future<Either<Failure, List<RequestItem>>> getMyRequests(String type) async {
+  Future<Either<Failure, List<RequestItem>>> getMyRequests(
+      GetMyRequestsParams params) async {
     if (await networkInfo.isConnected) {
       try {
-        final models = await remoteDataSource.getMyRequests(type: type);
+        final models = await remoteDataSource.getMyRequests(
+          type: params.type,
+          page: params.page,
+          limit: params.limit,
+        );
         final entities = models
             .map((model) => RequestItem(
                   id: model.id,

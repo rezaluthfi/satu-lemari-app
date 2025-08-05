@@ -134,7 +134,9 @@ class _ProfilePageState extends State<ProfilePage>
             if (authState is! Authenticated &&
                 authState is! RegistrationSuccess) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                ),
               );
             }
 
