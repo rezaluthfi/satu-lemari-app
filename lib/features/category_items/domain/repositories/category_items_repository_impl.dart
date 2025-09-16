@@ -18,23 +18,19 @@ class CategoryItemsRepositoryImpl implements CategoryItemsRepository {
   });
 
   Item _mapItemModelToItemEntity(ItemModel model) {
-    ItemType type = ItemType.unknown;
-    if (model.type?.toLowerCase() == 'donation') {
-      type = ItemType.donation;
-    } else if (model.type?.toLowerCase() == 'rental') {
-      type = ItemType.rental;
-    }
-
     return Item(
       id: model.id,
       name: model.name ?? 'Tanpa Nama',
       description: model.description,
       imageUrl: model.images.isNotEmpty ? model.images.first : null,
-      type: type,
+      // Langsung gunakan nilai enum dari model, karena sudah di-parse oleh json_serializable
+      type: model.type ?? ItemType.unknown,
       size: model.size,
       condition: model.condition,
       availableQuantity: model.availableQuantity,
       price: model.price,
+      // Menggunakan categoryName dari model jika ada.
+      categoryName: model.categoryName,
     );
   }
 

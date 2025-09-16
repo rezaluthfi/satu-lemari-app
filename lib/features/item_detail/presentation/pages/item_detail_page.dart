@@ -194,8 +194,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                 );
               }
               return SizedBox(
-                height:
-                    280, // Tingkatkan dari 250 ke 280 untuk memberi ruang lebih
+                height: 280,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -222,13 +221,30 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     final item = state.item;
     final buttonState = state.buttonState;
 
-    String buttonText;
-    Color buttonColor;
+    String buttonText = '';
+    Color buttonColor = AppColors.disabled;
     VoidCallback? onPressed;
     String? disabledReason;
 
-    final isDonation = item.type.toLowerCase() == 'donation';
+    switch (item.type.toLowerCase()) {
+      case 'donation':
+        buttonText = "Ajukan Permintaan";
+        buttonColor = AppColors.donation;
+        onPressed = () => _showRequestSheet(context, item, 'donation');
+        break;
+      case 'rental':
+        buttonText = "Sewa Sekarang";
+        buttonColor = AppColors.rental;
+        onPressed = () => _showRequestSheet(context, item, 'rental');
+        break;
+      case 'thrifting':
+        buttonText = "Beli Sekarang";
+        buttonColor = AppColors.thrifting;
+        onPressed = () => _showRequestSheet(context, item, 'thrifting');
+        break;
+    }
 
+    // Timpa state tombol jika tidak aktif (stok habis, dll.)
     switch (buttonState) {
       case ItemDetailButtonState.outOfStock:
         buttonText = "Stok Habis";
@@ -252,9 +268,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         break;
       case ItemDetailButtonState.active:
       default:
-        buttonText = isDonation ? "Ajukan Permintaan" : "Sewa Sekarang";
-        buttonColor = isDonation ? AppColors.donation : AppColors.rental;
-        onPressed = () => _showRequestSheet(context, item, isDonation);
+        // Biarkan nilai dari switch pertama, tidak perlu diubah
         disabledReason = null;
         break;
     }
@@ -303,8 +317,29 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   void _showRequestSheet(
-      BuildContext pageContext, ItemDetail item, bool isDonation) {
+      BuildContext pageContext, ItemDetail item, String type) {
     final profileBloc = BlocProvider.of<ProfileBloc>(pageContext);
+
+    Widget requestSheetWidget;
+    switch (type) {
+      case 'donation':
+        requestSheetWidget = DonationRequestSheet(itemId: item.id);
+        break;
+      case 'rental':
+        requestSheetWidget = RentalRequestSheet(itemId: item.id);
+        break;
+      case 'thrifting':
+        // Ganti dengan widget sheet thrifting Anda setelah dibuat
+        // requestSheetWidget = ThriftingPurchaseSheet(itemId: item.id);
+        requestSheetWidget = Container(
+          padding: const EdgeInsets.all(20),
+          child: const Text("Thrifting purchase flow coming soon!",
+              textAlign: TextAlign.center),
+        ); // Placeholder
+        break;
+      default:
+        return; // Jangan lakukan apa-apa jika tipe tidak diketahui
+    }
 
     showModalBottomSheet(
       context: pageContext,
@@ -320,7 +355,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             child: BlocListener<RequestBloc, RequestState>(
               listener: (context, state) {
                 if (state is RequestSuccess) {
-                  if (isDonation) {
+                  if (type == 'donation') {
                     context.read<ProfileBloc>().add(FetchProfileData());
                   }
                   ScaffoldMessenger.of(pageContext).showSnackBar(
@@ -346,9 +381,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   );
                 }
               },
-              child: isDonation
-                  ? DonationRequestSheet(itemId: item.id)
-                  : RentalRequestSheet(itemId: item.id),
+              child: requestSheetWidget,
             ),
           ),
         );
@@ -451,10 +484,28 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   Widget _buildHeader(ItemDetail item) {
-    final tagColor = item.type.toLowerCase() == 'donation'
-        ? AppColors.donation
-        : AppColors.rental;
-    final tagText = item.type.toLowerCase() == 'donation' ? 'Donasi' : 'Sewa';
+    // Menggunakan switch-case untuk logika yang lebih aman dan jelas
+    Color tagColor;
+    String tagText;
+
+    switch (item.type.toLowerCase()) {
+      case 'donation':
+        tagColor = AppColors.donation;
+        tagText = 'Donasi';
+        break;
+      case 'rental':
+        tagColor = AppColors.rental;
+        tagText = 'Sewa';
+        break;
+      case 'thrifting':
+        tagColor = AppColors.thrifting;
+        tagText = 'Thrift';
+        break;
+      default:
+        tagColor = Colors.grey;
+        tagText = 'Unknown';
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -495,14 +546,21 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   Widget _buildPrice(ItemDetail item) {
-    if (item.type.toLowerCase() == 'rental' &&
-        item.price != null &&
-        item.price! > 0) {
+    final isThrifting = item.type.toLowerCase() == 'thrifting';
+    final isRental = item.type.toLowerCase() == 'rental';
+
+    if ((isRental || isThrifting) && item.price != null && item.price! > 0) {
       final formattedPrice = NumberFormat.currency(
         locale: 'id_ID',
         symbol: 'Rp ',
         decimalDigits: 0,
       ).format(item.price);
+
+      final priceLabel = isThrifting ? 'Harga Beli' : 'Harga Sewa';
+      final priceColor = isThrifting ? AppColors.thrifting : AppColors.rental;
+      final priceSuffix = isThrifting ? '' : ' / hari';
+      final icon =
+          isThrifting ? Icons.sell_rounded : Icons.attach_money_rounded;
 
       return Container(
         margin: const EdgeInsets.only(top: 12.0, bottom: 8.0),
@@ -510,15 +568,15 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.rental.withOpacity(0.1),
-              AppColors.rental.withOpacity(0.05),
+              priceColor.withOpacity(0.1),
+              priceColor.withOpacity(0.05),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.rental.withOpacity(0.2),
+            color: priceColor.withOpacity(0.2),
             width: 1,
           ),
         ),
@@ -527,23 +585,19 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.rental.withOpacity(0.15),
+                color: priceColor.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
-                Icons.attach_money_rounded,
-                color: AppColors.rental,
-                size: 20,
-              ),
+              child: Icon(icon, color: priceColor, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Harga Sewa',
-                    style: TextStyle(
+                  Text(
+                    priceLabel,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                       fontWeight: FontWeight.w500,
@@ -555,16 +609,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                       children: [
                         TextSpan(
                           text: formattedPrice,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.rental,
+                            color: priceColor,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const TextSpan(
-                          text: ' / hari',
-                          style: TextStyle(
+                        TextSpan(
+                          text: priceSuffix,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary,
@@ -580,7 +634,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         ),
       );
     }
-
     return const SizedBox.shrink();
   }
 

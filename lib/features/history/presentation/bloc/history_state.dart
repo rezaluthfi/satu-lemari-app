@@ -17,6 +17,13 @@ class HistoryState extends Equatable {
   final bool rentalHasReachedEnd;
   final int rentalCurrentPage;
 
+  final HistoryStatus thriftingStatus;
+  final List<RequestItem> thriftingRequests;
+  final String? thriftingError;
+  final bool thriftingIsLoadingMore;
+  final bool thriftingHasReachedEnd;
+  final int thriftingCurrentPage;
+
   const HistoryState({
     this.donationStatus = HistoryStatus.initial,
     this.donationRequests = const [],
@@ -30,6 +37,12 @@ class HistoryState extends Equatable {
     this.rentalIsLoadingMore = false,
     this.rentalHasReachedEnd = false,
     this.rentalCurrentPage = 1,
+    this.thriftingStatus = HistoryStatus.initial,
+    this.thriftingRequests = const [],
+    this.thriftingError,
+    this.thriftingIsLoadingMore = false,
+    this.thriftingHasReachedEnd = false,
+    this.thriftingCurrentPage = 1,
   });
 
   HistoryState copyWith({
@@ -45,6 +58,12 @@ class HistoryState extends Equatable {
     bool? rentalIsLoadingMore,
     bool? rentalHasReachedEnd,
     int? rentalCurrentPage,
+    HistoryStatus? thriftingStatus,
+    List<RequestItem>? thriftingRequests,
+    String? thriftingError,
+    bool? thriftingIsLoadingMore,
+    bool? thriftingHasReachedEnd,
+    int? thriftingCurrentPage,
   }) {
     return HistoryState(
       donationStatus: donationStatus ?? this.donationStatus,
@@ -61,6 +80,14 @@ class HistoryState extends Equatable {
       rentalIsLoadingMore: rentalIsLoadingMore ?? this.rentalIsLoadingMore,
       rentalHasReachedEnd: rentalHasReachedEnd ?? this.rentalHasReachedEnd,
       rentalCurrentPage: rentalCurrentPage ?? this.rentalCurrentPage,
+      thriftingStatus: thriftingStatus ?? this.thriftingStatus,
+      thriftingRequests: thriftingRequests ?? this.thriftingRequests,
+      thriftingError: thriftingError ?? this.thriftingError,
+      thriftingIsLoadingMore:
+          thriftingIsLoadingMore ?? this.thriftingIsLoadingMore,
+      thriftingHasReachedEnd:
+          thriftingHasReachedEnd ?? this.thriftingHasReachedEnd,
+      thriftingCurrentPage: thriftingCurrentPage ?? this.thriftingCurrentPage,
     );
   }
 
@@ -78,5 +105,11 @@ class HistoryState extends Equatable {
         rentalIsLoadingMore,
         rentalHasReachedEnd,
         rentalCurrentPage,
+        thriftingStatus,
+        thriftingRequests,
+        thriftingError,
+        thriftingIsLoadingMore,
+        thriftingHasReachedEnd,
+        thriftingCurrentPage,
       ];
 }

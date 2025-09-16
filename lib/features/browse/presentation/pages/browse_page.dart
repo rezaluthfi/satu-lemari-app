@@ -45,20 +45,39 @@ class _BrowsePageState extends State<BrowsePage>
 
     final browseBloc = context.read<BrowseBloc>();
     _searchController.text = browseBloc.state.query;
+
+    int getInitialIndex() {
+      switch (browseBloc.state.activeTab) {
+        case 'donation':
+          return 0;
+        case 'rental':
+          return 1;
+        case 'thrifting':
+          return 2;
+        default:
+          return 0;
+      }
+    }
+
     _tabController = TabController(
-      initialIndex: browseBloc.state.activeTab == 'donation' ? 0 : 1,
-      length: 2,
+      initialIndex: getInitialIndex(),
+      length: 3, // <-- PERUBAHAN 1: Panjang TabController sekarang 3
       vsync: this,
     );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        browseBloc.add(TabChanged(_tabController.index));
+        final types = ['donation', 'rental', 'thrifting'];
+        final selectedType = types[_tabController.index];
+        browseBloc.add(TabChanged(selectedType));
       }
     });
-    if (browseBloc.state.donationStatus == BrowseStatus.initial &&
-        browseBloc.state.rentalStatus == BrowseStatus.initial) {
+
+    if (browseBloc.state.donationStatus == BrowseStatus.initial ||
+        browseBloc.state.rentalStatus == BrowseStatus.initial ||
+        browseBloc.state.thriftingStatus == BrowseStatus.initial) {
       browseBloc.add(BrowseDataFetched());
     }
+
     _searchFocusNode.addListener(() {
       if (!_searchFocusNode.hasFocus) {
         Future.delayed(const Duration(milliseconds: 200), () {
@@ -218,7 +237,7 @@ class _BrowsePageState extends State<BrowsePage>
       builder: (_) {
         return FilterBottomSheet(
           categories: homeState.categories,
-          isRentalTab: browseState.activeTab == 'rental',
+          activeTab: browseState.activeTab,
           activeCategoryId: browseState.categoryId,
           activeSize: browseState.size,
           activeSortBy: browseState.sortBy,
@@ -267,7 +286,6 @@ class _BrowsePageState extends State<BrowsePage>
         centerTitle: false,
       ),
       body: MultiBlocListener(
-        // Ganti `listener` dengan `listeners` dan tambahkan listener baru
         listeners: [
           BlocListener<BrowseBloc, BrowseState>(
             listenWhen: (previous, current) => previous.query != current.query,
@@ -279,7 +297,6 @@ class _BrowsePageState extends State<BrowsePage>
               }
             },
           ),
-          // Listener baru untuk menangani notifikasi
           BlocListener<BrowseBloc, BrowseState>(
             listenWhen: (prev, curr) =>
                 prev.notification != curr.notification &&
@@ -300,7 +317,6 @@ class _BrowsePageState extends State<BrowsePage>
                     duration: Duration(seconds: 3),
                   ),
                 );
-                // Membersihkan notifikasi agar tidak ditampilkan lagi
                 context.read<BrowseBloc>().add(NotificationCleared());
               }
             },
@@ -327,6 +343,8 @@ class _BrowsePageState extends State<BrowsePage>
                     children: [
                       ItemListView(type: 'donation'),
                       ItemListView(type: 'rental'),
+                      // <-- PERUBAHAN 2: Menambahkan konten untuk tab ketiga
+                      ItemListView(type: 'thrifting'),
                     ],
                   ),
                 ),
@@ -351,10 +369,12 @@ class _BrowsePageState extends State<BrowsePage>
           prev.maxPrice != curr.maxPrice ||
           prev.activeTab != curr.activeTab,
       builder: (context, state) {
-        final hasPriceFilter = state.activeTab == 'rental' &&
+        final showPriceRelatedFilters =
+            state.activeTab == 'rental' || state.activeTab == 'thrifting';
+        final hasPriceFilter = showPriceRelatedFilters &&
             (state.minPrice != null || state.maxPrice != null);
         final hasSortByPriceFilter =
-            state.activeTab == 'rental' && state.sortBy == 'price';
+            showPriceRelatedFilters && state.sortBy == 'price';
         final hasSortByOtherFilter =
             state.sortBy != null && state.sortBy != 'price';
         final isFilterActive = state.categoryId != null ||
@@ -457,7 +477,7 @@ class _BrowsePageState extends State<BrowsePage>
                   child: Icon(
                       _isListening
                           ? Icons.mic_off_rounded
-                          : Icons.mic_none_rounded, // Berubah saat listening
+                          : Icons.mic_none_rounded,
                       color:
                           _isListening ? AppColors.primary : AppColors.textHint,
                       size: 24),
@@ -652,10 +672,12 @@ class _BrowsePageState extends State<BrowsePage>
             categoryName = null;
           }
         }
-        final hasPriceFilter = state.activeTab == 'rental' &&
+        final showPriceRelatedFilters =
+            state.activeTab == 'rental' || state.activeTab == 'thrifting';
+        final hasPriceFilter = showPriceRelatedFilters &&
             (state.minPrice != null || state.maxPrice != null);
         final hasSortByPriceFilter =
-            state.activeTab == 'rental' && state.sortBy == 'price';
+            showPriceRelatedFilters && state.sortBy == 'price';
         final hasSortByOtherFilter =
             state.sortBy != null && state.sortBy != 'price';
         final hasAnyFilter = categoryName != null ||
@@ -853,6 +875,18 @@ class _BrowsePageState extends State<BrowsePage>
                           : AppColors.rental),
                   const SizedBox(width: 8),
                   const Text('Sewa'),
+                ]),
+              ),
+              Tab(
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.sell_rounded,
+                      size: 18,
+                      color: _tabController.index == 2
+                          ? AppColors.textLight
+                          : AppColors.thrifting),
+                  const SizedBox(width: 8),
+                  const Text('Thrift'),
                 ]),
               ),
             ],

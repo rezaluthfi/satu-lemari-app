@@ -31,8 +31,15 @@ class BrowseState extends Equatable {
   final bool rentalHasReachedEnd;
   final int rentalCurrentPage;
 
+  final BrowseStatus thriftingStatus;
+  final List<Item> thriftingItems;
+  final String? thriftingError;
+  final bool thriftingIsLoadingMore;
+  final bool thriftingHasReachedEnd;
+  final int thriftingCurrentPage;
+
   // Tab yang sedang aktif
-  final String activeTab; // 'donation' or 'rental'
+  final String activeTab; // 'donation', 'rental', or 'thrifting'
 
   // Properti untuk AI Suggestions
   final SuggestionStatus suggestionStatus;
@@ -55,6 +62,7 @@ class BrowseState extends Equatable {
   // Menyimpan parameter pencarian terakhir untuk setiap tab
   final SearchParamsSnapshot? lastDonationSearchParams;
   final SearchParamsSnapshot? lastRentalSearchParams;
+  final SearchParamsSnapshot? lastThriftingSearchParams;
 
   // Properti notifikasi baru
   final BrowseNotification? notification;
@@ -76,6 +84,12 @@ class BrowseState extends Equatable {
     this.rentalIsLoadingMore = false,
     this.rentalHasReachedEnd = false,
     this.rentalCurrentPage = 1,
+    this.thriftingStatus = BrowseStatus.initial,
+    this.thriftingItems = const [],
+    this.thriftingError,
+    this.thriftingIsLoadingMore = false,
+    this.thriftingHasReachedEnd = false,
+    this.thriftingCurrentPage = 1,
     this.activeTab = 'donation',
     this.suggestionStatus = SuggestionStatus.initial,
     this.suggestions = const [],
@@ -93,6 +107,7 @@ class BrowseState extends Equatable {
     this.maxPrice,
     this.lastDonationSearchParams,
     this.lastRentalSearchParams,
+    this.lastThriftingSearchParams, // <-- TAMBAHAN
     this.notification,
     this.isFromSpeechToText = false,
   });
@@ -115,6 +130,12 @@ class BrowseState extends Equatable {
     bool? rentalIsLoadingMore,
     bool? rentalHasReachedEnd,
     int? rentalCurrentPage,
+    BrowseStatus? thriftingStatus,
+    List<Item>? thriftingItems,
+    String? thriftingError,
+    bool? thriftingIsLoadingMore,
+    bool? thriftingHasReachedEnd,
+    int? thriftingCurrentPage,
     String? activeTab,
     SuggestionStatus? suggestionStatus,
     List<String>? suggestions,
@@ -132,6 +153,7 @@ class BrowseState extends Equatable {
     Object? maxPrice = _notProvided,
     SearchParamsSnapshot? lastDonationSearchParams,
     SearchParamsSnapshot? lastRentalSearchParams,
+    SearchParamsSnapshot? lastThriftingSearchParams,
     Object? notification = _notProvided,
     bool? isFromSpeechToText,
   }) {
@@ -151,6 +173,14 @@ class BrowseState extends Equatable {
       rentalIsLoadingMore: rentalIsLoadingMore ?? this.rentalIsLoadingMore,
       rentalHasReachedEnd: rentalHasReachedEnd ?? this.rentalHasReachedEnd,
       rentalCurrentPage: rentalCurrentPage ?? this.rentalCurrentPage,
+      thriftingStatus: thriftingStatus ?? this.thriftingStatus,
+      thriftingItems: thriftingItems ?? this.thriftingItems,
+      thriftingError: thriftingError ?? this.thriftingError,
+      thriftingIsLoadingMore:
+          thriftingIsLoadingMore ?? this.thriftingIsLoadingMore,
+      thriftingHasReachedEnd:
+          thriftingHasReachedEnd ?? this.thriftingHasReachedEnd,
+      thriftingCurrentPage: thriftingCurrentPage ?? this.thriftingCurrentPage,
       activeTab: activeTab ?? this.activeTab,
       suggestionStatus: suggestionStatus ?? this.suggestionStatus,
       suggestions: suggestions ?? this.suggestions,
@@ -170,12 +200,13 @@ class BrowseState extends Equatable {
           lastDonationSearchParams ?? this.lastDonationSearchParams,
       lastRentalSearchParams:
           lastRentalSearchParams ?? this.lastRentalSearchParams,
+      lastThriftingSearchParams:
+          lastThriftingSearchParams ?? this.lastThriftingSearchParams,
       notification: _copyWith(notification, this.notification),
       isFromSpeechToText: isFromSpeechToText ?? this.isFromSpeechToText,
     );
   }
 
-  // Helper untuk membersihkan notifikasi
   BrowseState clearNotification() {
     return copyWith(notification: null);
   }
@@ -195,6 +226,12 @@ class BrowseState extends Equatable {
         rentalIsLoadingMore,
         rentalHasReachedEnd,
         rentalCurrentPage,
+        thriftingStatus,
+        thriftingItems,
+        thriftingError,
+        thriftingIsLoadingMore,
+        thriftingHasReachedEnd,
+        thriftingCurrentPage,
         activeTab,
         suggestionStatus,
         suggestions,
@@ -212,6 +249,7 @@ class BrowseState extends Equatable {
         maxPrice,
         lastDonationSearchParams,
         lastRentalSearchParams,
+        lastThriftingSearchParams,
         notification,
         isFromSpeechToText,
       ];

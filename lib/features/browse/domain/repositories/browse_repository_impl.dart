@@ -28,23 +28,20 @@ class BrowseRepositoryImpl implements BrowseRepository {
   });
 
   Item _mapItemModelToItemEntity(ItemModel model) {
-    ItemType type = ItemType.unknown;
-    if (model.type?.toLowerCase() == 'donation') {
-      type = ItemType.donation;
-    } else if (model.type?.toLowerCase() == 'rental') {
-      type = ItemType.rental;
-    }
-
-    final categoryName = model.categoryId != null
-        ? categoryCache.getCategoryNameById(model.categoryId!)
-        : null;
+    // Menggunakan categoryName dari model jika ada (hasil dari @JsonKey fromJson)
+    // atau fallback ke cache jika tidak ada.
+    final categoryName = model.categoryName ??
+        (model.categoryId != null
+            ? categoryCache.getCategoryNameById(model.categoryId!)
+            : null);
 
     return Item(
       id: model.id,
       name: model.name ?? 'Tanpa Nama',
       description: model.description,
       imageUrl: model.images.isNotEmpty ? model.images.first : null,
-      type: type,
+      // Langsung gunakan nilai enum dari model. Tidak ada lagi konversi manual.
+      type: model.type ?? ItemType.unknown,
       size: model.size,
       condition: model.condition,
       availableQuantity: model.availableQuantity,
@@ -151,18 +148,24 @@ class BrowseRepositoryImpl implements BrowseRepository {
         final List<ItemDetailModel> detailedItemModels =
             await itemDetailRemoteDataSource.getItemsByIds(similarItemIds);
 
-        // Mapping yang aman (null-safe) dari List<ItemDetailModel> ke List<Item>
         final entities = detailedItemModels.map((detailModel) {
-          ItemType type = ItemType.unknown;
-          if (detailModel.type?.toLowerCase() == 'donation') {
-            type = ItemType.donation;
-          } else if (detailModel.type?.toLowerCase() == 'rental') {
-            type = ItemType.rental;
+          ItemType type;
+          switch (detailModel.type?.toLowerCase()) {
+            case 'donation':
+              type = ItemType.donation;
+              break;
+            case 'rental':
+              type = ItemType.rental;
+              break;
+            case 'thrifting':
+              type = ItemType.thrifting;
+              break;
+            default:
+              type = ItemType.unknown;
           }
 
           return Item(
             id: detailModel.id,
-            // Berikan nilai fallback jika properti bisa null
             name: detailModel.name ?? 'Tanpa Nama',
             imageUrl:
                 detailModel.images.isNotEmpty ? detailModel.images.first : null,
@@ -171,7 +174,6 @@ class BrowseRepositoryImpl implements BrowseRepository {
             condition: detailModel.condition,
             availableQuantity: detailModel.availableQuantity,
             price: detailModel.price,
-            // Gunakan null-aware operator (?) untuk mengakses 'name' dengan aman
             categoryName: detailModel.category?.name,
           );
         }).toList();

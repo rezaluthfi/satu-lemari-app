@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/features/history/domain/entities/request_item.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 import 'package:satulemari/features/history/presentation/widgets/history_shimmer.dart';
 import 'package:satulemari/features/history/presentation/widgets/request_list_view.dart';
@@ -20,22 +21,52 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
 
-    context.read<HistoryBloc>().add(const FetchHistory(type: 'donation'));
+    _tabController = TabController(length: 3, vsync: this);
+
+    final historyBloc = context.read<HistoryBloc>();
+
+    _initialFetch(historyBloc);
 
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
-      final type = _tabController.index == 0 ? 'donation' : 'rental';
-      final state = context.read<HistoryBloc>().state;
+      final types = ['donation', 'rental', 'thrifting'];
+      final selectedType = types[_tabController.index];
 
-      if (type == 'donation' && state.donationStatus == HistoryStatus.initial) {
-        context.read<HistoryBloc>().add(const FetchHistory(type: 'donation'));
-      } else if (type == 'rental' &&
-          state.rentalStatus == HistoryStatus.initial) {
-        context.read<HistoryBloc>().add(const FetchHistory(type: 'rental'));
-      }
+      _fetchDataForTab(historyBloc, selectedType);
     });
+  }
+
+  void _initialFetch(HistoryBloc bloc) {
+    if (bloc.state.donationStatus == HistoryStatus.initial ||
+        bloc.state.rentalStatus == HistoryStatus.initial ||
+        bloc.state.thriftingStatus == HistoryStatus.initial) {
+      // Fetch data untuk tab yang sedang aktif pertama kali
+      final types = ['donation', 'rental', 'thrifting'];
+      final initialType = types[_tabController.index];
+      bloc.add(FetchHistory(type: initialType));
+    }
+  }
+
+  void _fetchDataForTab(HistoryBloc bloc, String type) {
+    final state = bloc.state;
+    switch (type) {
+      case 'donation':
+        if (state.donationStatus == HistoryStatus.initial) {
+          bloc.add(const FetchHistory(type: 'donation'));
+        }
+        break;
+      case 'rental':
+        if (state.rentalStatus == HistoryStatus.initial) {
+          bloc.add(const FetchHistory(type: 'rental'));
+        }
+        break;
+      case 'thrifting':
+        if (state.thriftingStatus == HistoryStatus.initial) {
+          bloc.add(const FetchHistory(type: 'thrifting'));
+        }
+        break;
+    }
   }
 
   @override
@@ -50,7 +81,7 @@ class _HistoryPageState extends State<HistoryPage>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Riwayat Permintaan',
+          'Riwayat Transaksi',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
@@ -86,9 +117,9 @@ class _HistoryPageState extends State<HistoryPage>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // --- MODIFIKASI: Gunakan _buildHistoryView untuk setiap tab ---
                 _buildHistoryView(type: 'donation'),
                 _buildHistoryView(type: 'rental'),
+                _buildHistoryView(type: 'thrifting'),
               ],
             ),
           ),
@@ -99,25 +130,46 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildHistoryView({required String type}) {
     return BlocBuilder<HistoryBloc, HistoryState>(
-      // buildWhen untuk optimisasi, hanya rebuild jika state yang relevan berubah
       buildWhen: (previous, current) {
-        if (type == 'donation') {
-          return previous.donationStatus != current.donationStatus ||
-              previous.donationRequests != current.donationRequests;
-        } else {
-          return previous.rentalStatus != current.rentalStatus ||
-              previous.rentalRequests != current.rentalRequests;
+        switch (type) {
+          case 'donation':
+            return previous.donationStatus != current.donationStatus ||
+                previous.donationRequests != current.donationRequests;
+          case 'rental':
+            return previous.rentalStatus != current.rentalStatus ||
+                previous.rentalRequests != current.rentalRequests;
+          case 'thrifting':
+            return previous.thriftingStatus != current.thriftingStatus ||
+                previous.thriftingRequests != current.thriftingRequests;
+          default:
+            return false;
         }
       },
       builder: (context, state) {
-        final status =
-            type == 'donation' ? state.donationStatus : state.rentalStatus;
-        final requests =
-            type == 'donation' ? state.donationRequests : state.rentalRequests;
-        final error =
-            type == 'donation' ? state.donationError : state.rentalError;
+        HistoryStatus status;
+        List<RequestItem> requests;
+        String? error;
 
-        // --- SOLUSI INTI ADA DI SINI ---
+        switch (type) {
+          case 'donation':
+            status = state.donationStatus;
+            requests = state.donationRequests;
+            error = state.donationError;
+            break;
+          case 'rental':
+            status = state.rentalStatus;
+            requests = state.rentalRequests;
+            error = state.rentalError;
+            break;
+          case 'thrifting':
+            status = state.thriftingStatus;
+            requests = state.thriftingRequests;
+            error = state.thriftingError;
+            break;
+          default:
+            return const Center(child: Text("Tipe tidak valid."));
+        }
+
         return RefreshIndicator(
           onRefresh: () async {
             context.read<HistoryBloc>().add(RefreshHistory(type: type));
@@ -125,12 +177,10 @@ class _HistoryPageState extends State<HistoryPage>
           color: AppColors.primary,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Jika sedang loading DAN belum ada data sama sekali, tampilkan shimmer
               if (status == HistoryStatus.loading && requests.isEmpty) {
                 return const HistoryListShimmer();
               }
 
-              // Jika data kosong, tampilkan pesan kosong
               if (requests.isEmpty &&
                   (status == HistoryStatus.loaded ||
                       status == HistoryStatus.error)) {
@@ -146,10 +196,9 @@ class _HistoryPageState extends State<HistoryPage>
                 );
               }
 
-              // Jika ada data, tampilkan ListView
               return RequestListView(
-                type: type, // Kirim tipe untuk logika internal
-                requests: requests, // Kirim daftar request
+                type: type,
+                requests: requests,
               );
             },
           ),
@@ -158,8 +207,33 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  // --- BARU: Pindahkan widget _buildEmptyState dan _buildErrorState ke sini ---
   Widget _buildEmptyState(String type) {
+    String title;
+    String message;
+    IconData icon;
+
+    switch (type) {
+      case 'donation':
+        title = 'Belum Ada Riwayat Donasi';
+        message = 'Permintaan donasi Anda akan muncul di sini.';
+        icon = Icons.favorite_outline_rounded;
+        break;
+      case 'rental':
+        title = 'Belum Ada Riwayat Sewa';
+        message = 'Permintaan sewa Anda akan muncul di sini.';
+        icon = Icons.shopping_bag_outlined;
+        break;
+      case 'thrifting':
+        title = 'Belum Ada Riwayat Pembelian';
+        message = 'Pembelian barang thrift Anda akan muncul di sini.';
+        icon = Icons.sell_outlined;
+        break;
+      default:
+        title = 'Kosong';
+        message = 'Tidak ada data.';
+        icon = Icons.inbox_outlined;
+    }
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -173,19 +247,11 @@ class _HistoryPageState extends State<HistoryPage>
                 color: AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(40),
               ),
-              child: Icon(
-                type == 'donation'
-                    ? Icons.favorite_outline_rounded
-                    : Icons.shopping_bag_outlined,
-                size: 40,
-                color: AppColors.textHint,
-              ),
+              child: Icon(icon, size: 40, color: AppColors.textHint),
             ),
             const SizedBox(height: 24),
             Text(
-              type == 'donation'
-                  ? 'Belum Ada Riwayat Donasi'
-                  : 'Belum Ada Riwayat Sewa',
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -194,9 +260,7 @@ class _HistoryPageState extends State<HistoryPage>
             ),
             const SizedBox(height: 8),
             Text(
-              type == 'donation'
-                  ? 'Permintaan donasi Anda akan muncul di sini.'
-                  : 'Permintaan sewa Anda akan muncul di sini.',
+              message,
               style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
@@ -313,6 +377,22 @@ class _HistoryPageState extends State<HistoryPage>
                     ),
                     const SizedBox(width: 8),
                     const Text('Sewa'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.sell_rounded,
+                      size: 18,
+                      color: _tabController.index == 2
+                          ? AppColors.textLight
+                          : AppColors.thrifting,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('Thrift'),
                   ],
                 ),
               ),

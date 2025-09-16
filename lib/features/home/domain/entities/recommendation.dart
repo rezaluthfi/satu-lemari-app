@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum ItemType { donation, rental, unknown }
+enum ItemType { donation, rental, thrifting, unknown }
 
 class Recommendation extends Equatable {
   final String itemId;

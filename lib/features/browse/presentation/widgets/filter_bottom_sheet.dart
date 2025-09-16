@@ -58,7 +58,7 @@ class FilterResult {
 
 class FilterBottomSheet extends StatefulWidget {
   final List<Category> categories;
-  final bool isRentalTab;
+  final String activeTab;
   final String? activeCategoryId;
   final String? activeSize;
   final String? activeSortBy;
@@ -70,7 +70,7 @@ class FilterBottomSheet extends StatefulWidget {
   const FilterBottomSheet({
     super.key,
     required this.categories,
-    required this.isRentalTab,
+    required this.activeTab,
     this.activeCategoryId,
     this.activeSize,
     this.activeSortBy,
@@ -94,8 +94,9 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   late TextEditingController _minPriceController;
   late TextEditingController _maxPriceController;
 
-  // State untuk menyimpan pesan error validasi harga
   String? _priceValidationError;
+  // <-- TAMBAHAN: boolean untuk kontrol UI
+  late bool _showPriceFilter;
 
   final List<String> _sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   final Map<String, String> _sortByOptions = {
@@ -126,8 +127,13 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             ? formatter.format(widget.activeMaxPrice)
             : '');
 
+    // Logika untuk menampilkan filter harga
+    _showPriceFilter =
+        widget.activeTab == 'rental' || widget.activeTab == 'thrifting';
+
     _filteredSortByOptions = Map.from(_sortByOptions);
-    if (!widget.isRentalTab) {
+
+    if (!_showPriceFilter) {
       _filteredSortByOptions.remove('price');
       if (_selectedSortBy == 'price') {
         _selectedSortBy = null;
@@ -148,27 +154,23 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   }
 
   void _applyFilters() {
-    // Selalu reset pesan error setiap kali tombol ditekan
     setState(() {
       _priceValidationError = null;
     });
 
-    // Ambil nilai dan bersihkan dari format Rupiah (hapus titik)
     final minPriceString = _minPriceController.text.replaceAll('.', '');
     final maxPriceString = _maxPriceController.text.replaceAll('.', '');
 
-    // Konversi ke double, anggap null jika string kosong
     final double? minPrice =
         minPriceString.isNotEmpty ? double.tryParse(minPriceString) : null;
     final double? maxPrice =
         maxPriceString.isNotEmpty ? double.tryParse(maxPriceString) : null;
 
-    // Lakukan validasi
-    if (widget.isRentalTab &&
+    // <-- PERUBAHAN: Gunakan _showPriceFilter untuk validasi
+    if (_showPriceFilter &&
         minPrice != null &&
         maxPrice != null &&
         minPrice > maxPrice) {
-      // Set state untuk menampilkan pesan error di UI dan hentikan proses
       setState(() {
         _priceValidationError =
             'Harga minimal tidak boleh lebih besar dari harga maksimal.';
@@ -176,7 +178,6 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       return;
     }
 
-    // Jika valid, buat objek FilterResult dan kembalikan (pop)
     final result = FilterResult(
       categoryId: _selectedCategoryId,
       size: _selectedSize,
@@ -185,8 +186,8 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
       city: _cityController.text.trim().isEmpty
           ? null
           : _cityController.text.trim(),
-      minPrice: widget.isRentalTab ? minPrice : null,
-      maxPrice: widget.isRentalTab ? maxPrice : null,
+      minPrice: _showPriceFilter ? minPrice : null,
+      maxPrice: _showPriceFilter ? maxPrice : null,
     );
     Navigator.of(context).pop(result);
   }
@@ -222,7 +223,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
                   const SizedBox(height: 12),
                   _buildSortOrderToggles(),
                   const SizedBox(height: 24),
-                  if (widget.isRentalTab) ...[
+                  if (_showPriceFilter) ...[
                     _buildSectionTitle('Rentang Harga'),
                     const SizedBox(height: 12),
                     _buildPriceRangeFields(),

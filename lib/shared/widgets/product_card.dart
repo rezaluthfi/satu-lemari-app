@@ -9,6 +9,20 @@ import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 
+(Color, String) _getTagInfo(ItemType type) {
+  switch (type) {
+    case ItemType.donation:
+      return (AppColors.donation, 'Donasi');
+    case ItemType.rental:
+      return (AppColors.rental, 'Sewa');
+    case ItemType.thrifting:
+      return (AppColors.thrifting, 'Thrift');
+    case ItemType.unknown:
+    default:
+      return (Colors.transparent, '');
+  }
+}
+
 class ProductCard extends StatelessWidget {
   final Item item;
   final bool isCarousel;
@@ -68,16 +82,12 @@ class _CarouselContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0), // Sedikit kurangi padding
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _TopInfo(item: item),
-
-          // Spacer yang fleksibel untuk mendorong bottom info ke bawah
           const Spacer(),
-
-          // Bottom info - di bagian bawah
           _BottomInfo(item: item, isCarousel: true),
         ],
       ),
@@ -85,7 +95,7 @@ class _CarouselContent extends StatelessWidget {
   }
 }
 
-// Konten untuk Grid (tidak berubah)
+// Konten untuk Grid
 class _GridContent extends StatelessWidget {
   final Item item;
   const _GridContent({required this.item});
@@ -107,7 +117,7 @@ class _GridContent extends StatelessWidget {
   }
 }
 
-// Info Atas: Kategori dan Judul (kembali ke ukuran normal)
+// Info Atas: Kategori dan Judul
 class _TopInfo extends StatelessWidget {
   final Item item;
   const _TopInfo({required this.item});
@@ -146,7 +156,7 @@ class _TopInfo extends StatelessWidget {
   }
 }
 
-// Info Bawah: Harga, Chip, Stok (dengan parameter isCarousel)
+// Info Bawah: Harga, Chip, Stok
 class _BottomInfo extends StatelessWidget {
   final Item item;
   final bool isCarousel;
@@ -156,7 +166,9 @@ class _BottomInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool hasPrice =
-        item.type == ItemType.rental && item.price != null && item.price! > 0;
+        (item.type == ItemType.rental || item.type == ItemType.thrifting) &&
+            item.price != null &&
+            item.price! > 0;
 
     final bool hasLimitedStock = item.availableQuantity != null &&
         item.availableQuantity! <= 2 &&
@@ -166,7 +178,6 @@ class _BottomInfo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Harga
         if (hasPrice)
           Padding(
             padding: EdgeInsets.only(bottom: isCarousel ? 6.0 : 8.0),
@@ -182,14 +193,8 @@ class _BottomInfo extends StatelessWidget {
                   fontWeight: FontWeight.bold),
             ),
           ),
-
-        // Jarak ini hanya akan muncul jika tidak ada harga
         if (!hasPrice) SizedBox(height: isCarousel ? 6.0 : 8.0),
-
-        // Info chips dengan layout yang lebih smart
         _buildChipsRow(),
-
-        // Stok terbatas
         if (hasLimitedStock)
           Padding(
             padding: EdgeInsets.only(top: isCarousel ? 6.0 : 8.0),
@@ -249,7 +254,6 @@ class _BottomInfo extends StatelessWidget {
   }
 }
 
-// Widget Gambar (tidak berubah)
 class _ProductImage extends StatelessWidget {
   final String? imageUrl;
   final ItemType type;
@@ -258,9 +262,8 @@ class _ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tagColor =
-        type == ItemType.donation ? AppColors.donation : AppColors.rental;
-    final tagText = type == ItemType.donation ? 'Donasi' : 'Sewa';
+    // Menggunakan helper function agar bisa menangani 3 kondisi
+    final (tagColor, tagText) = _getTagInfo(type);
 
     return AspectRatio(
       aspectRatio: 1.25,
@@ -291,8 +294,9 @@ class _ProductImage extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                    color: tagColor, borderRadius: BorderRadius.circular(12)),
-                child: Text(tagText,
+                    color: tagColor, // Menggunakan warna dari helper
+                    borderRadius: BorderRadius.circular(12)),
+                child: Text(tagText, // Menggunakan teks dari helper
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,

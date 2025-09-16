@@ -8,7 +8,6 @@ import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart'
 
 class RequestListView extends StatefulWidget {
   final String type;
-  // --- MODIFIKASI: Terima daftar request secara langsung ---
   final List<RequestItem> requests;
 
   const RequestListView(
@@ -40,7 +39,6 @@ class _RequestListViewState extends State<RequestListView> {
     if (_isBottom && !_isLoadingMore) {
       _isLoadingMore = true;
       context.read<HistoryBloc>().add(LoadMoreHistory(type: widget.type));
-      // Reset the flag after a short delay to prevent rapid calls
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _isLoadingMore = false;
@@ -53,16 +51,27 @@ class _RequestListViewState extends State<RequestListView> {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.9); // Trigger at 90% scroll
+    return currentScroll >= (maxScroll * 0.9);
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<HistoryBloc, HistoryState>(
       builder: (context, state) {
-        final isLoadingMore = widget.type == 'donation'
-            ? state.donationIsLoadingMore
-            : state.rentalIsLoadingMore;
+        bool isLoadingMore;
+        switch (widget.type) {
+          case 'donation':
+            isLoadingMore = state.donationIsLoadingMore;
+            break;
+          case 'rental':
+            isLoadingMore = state.rentalIsLoadingMore;
+            break;
+          case 'thrifting':
+            isLoadingMore = state.thriftingIsLoadingMore;
+            break;
+          default:
+            isLoadingMore = false;
+        }
 
         return CustomScrollView(
           controller: _scrollController,
@@ -79,7 +88,6 @@ class _RequestListViewState extends State<RequestListView> {
                 ),
               ),
             ),
-            // Loading indicator for pagination
             if (isLoadingMore)
               const SliverToBoxAdapter(
                 child: Padding(
@@ -117,11 +125,10 @@ class _RequestListViewState extends State<RequestListView> {
             Navigator.pushNamed(context, '/request-detail',
                     arguments: request.id)
                 .then((result) {
-              // Jika result adalah true (artinya ada perubahan), refresh
               if (result == true && mounted) {
                 context
                     .read<HistoryBloc>()
-                    .add(FetchHistory(type: widget.type));
+                    .add(RefreshHistory(type: widget.type));
               }
             });
           },

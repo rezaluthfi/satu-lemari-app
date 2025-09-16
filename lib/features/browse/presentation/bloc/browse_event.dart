@@ -25,10 +25,12 @@ class SuggestionsRequested extends BrowseEvent {
 class BrowseDataFetched extends BrowseEvent {}
 
 class TabChanged extends BrowseEvent {
-  final int index;
-  const TabChanged(this.index);
+  final String type;
+
+  const TabChanged(this.type);
+
   @override
-  List<Object> get props => [index];
+  List<Object?> get props => [type];
 }
 
 class SearchTermChanged extends BrowseEvent {

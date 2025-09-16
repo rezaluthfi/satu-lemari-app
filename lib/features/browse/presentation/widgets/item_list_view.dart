@@ -3,13 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/browse/presentation/bloc/browse_bloc.dart';
+import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
 import 'package:satulemari/features/home/presentation/widgets/home_shimmer.dart';
 import 'package:satulemari/shared/widgets/empty_state_widget.dart';
 import 'package:satulemari/shared/widgets/network_error_widget.dart';
 import 'package:satulemari/shared/widgets/product_card.dart';
 
 class ItemListView extends StatefulWidget {
-  final String type; // 'donation' or 'rental'
+  final String type; // 'donation', 'rental', or 'thrifting'
   const ItemListView({super.key, required this.type});
 
   @override
@@ -38,7 +39,6 @@ class _ItemListViewState extends State<ItemListView> {
     if (_isBottom && !_isLoadingMore) {
       _isLoadingMore = true;
       context.read<BrowseBloc>().add(LoadMoreItems(widget.type));
-      // Reset the flag after a short delay to prevent rapid calls
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _isLoadingMore = false;
@@ -51,26 +51,22 @@ class _ItemListViewState extends State<ItemListView> {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.9); // Trigger at 90% scroll
+    return currentScroll >= (maxScroll * 0.9);
   }
 
-  // Helper untuk memicu refresh/retry dengan query yang sedang aktif
   void _retrySearch(BuildContext context) {
     final currentQuery = context.read<BrowseBloc>().state.query;
     if (currentQuery.isNotEmpty) {
       context.read<BrowseBloc>().add(SearchTermChanged(currentQuery));
     } else {
-      // Jika tidak ada query, fetch data awal
       context.read<BrowseBloc>().add(BrowseDataFetched());
     }
   }
 
-  // Helper untuk mereset pencarian
   void _resetSearch(BuildContext context) {
     context.read<BrowseBloc>().add(SearchCleared());
   }
 
-  // Helper untuk refresh
   Future<void> _onRefresh() async {
     context.read<BrowseBloc>().add(RefreshItems(widget.type));
   }
@@ -79,18 +75,36 @@ class _ItemListViewState extends State<ItemListView> {
   Widget build(BuildContext context) {
     return BlocBuilder<BrowseBloc, BrowseState>(
       builder: (context, state) {
-        // Get the relevant data for this tab
-        final status = widget.type == 'donation'
-            ? state.donationStatus
-            : state.rentalStatus;
-        final items =
-            widget.type == 'donation' ? state.donationItems : state.rentalItems;
-        final isLoadingMore = widget.type == 'donation'
-            ? state.donationIsLoadingMore
-            : state.rentalIsLoadingMore;
-        final error =
-            widget.type == 'donation' ? state.donationError : state.rentalError;
-        // Kondisi Loading ditampilkan PERTAMA
+        // <-- PERUBAHAN UTAMA: Menggunakan switch-case untuk mengambil data yang benar
+        BrowseStatus status;
+        List<Item> items;
+        bool isLoadingMore;
+        String? error;
+
+        switch (widget.type) {
+          case 'donation':
+            status = state.donationStatus;
+            items = state.donationItems;
+            isLoadingMore = state.donationIsLoadingMore;
+            error = state.donationError;
+            break;
+          case 'rental':
+            status = state.rentalStatus;
+            items = state.rentalItems;
+            isLoadingMore = state.rentalIsLoadingMore;
+            error = state.rentalError;
+            break;
+          case 'thrifting':
+            status = state.thriftingStatus;
+            items = state.thriftingItems;
+            isLoadingMore = state.thriftingIsLoadingMore;
+            error = state.thriftingError;
+            break;
+          default:
+            // Fallback jika tipe tidak dikenal, untuk menghindari crash
+            return const Center(child: Text("Tipe tidak valid."));
+        }
+
         if (status == BrowseStatus.loading || status == BrowseStatus.initial) {
           return const SingleChildScrollView(
             physics: NeverScrollableScrollPhysics(),
@@ -98,7 +112,6 @@ class _ItemListViewState extends State<ItemListView> {
           );
         }
 
-        // Kondisi Error
         if (status == BrowseStatus.error) {
           return CustomScrollView(
             slivers: [
@@ -113,7 +126,6 @@ class _ItemListViewState extends State<ItemListView> {
           );
         }
 
-        // Kondisi Sukses tapi Data Kosong
         if (status == BrowseStatus.success && items.isEmpty) {
           return CustomScrollView(
             slivers: [
@@ -132,7 +144,6 @@ class _ItemListViewState extends State<ItemListView> {
           );
         }
 
-        // Kondisi Sukses dengan Data - Infinite Scroll
         return RefreshIndicator(
           onRefresh: _onRefresh,
           color: AppColors.primary,
@@ -152,7 +163,6 @@ class _ItemListViewState extends State<ItemListView> {
                   },
                 ),
               ),
-              // Loading indicator for pagination
               if (isLoadingMore)
                 const SliverToBoxAdapter(
                   child: Padding(
