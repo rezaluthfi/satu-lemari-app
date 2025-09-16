@@ -59,7 +59,7 @@ dependencies:
   geocoding: ^3.0.0
   url_launcher: ^6.3.1
   flutter_local_notifications: ^19.3.1
-  speech_to_text: ^6.6.2
+  speech_to_text: ^7.3.0
 
   # --- Map ---
   flutter_map: ^7.0.2
