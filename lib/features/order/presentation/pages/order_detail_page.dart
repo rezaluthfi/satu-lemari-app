@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
+import 'package:satulemari/core/constants/app_strings.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
@@ -139,6 +140,8 @@ class OrderDetailPage extends StatelessWidget {
   }
 
   Widget _buildQrisSection(BuildContext context, OrderDetail detail) {
+    const String staticQrisPayload = AppStrings.qrisCodeStatic;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,7 +156,7 @@ class OrderDetailPage extends StatelessWidget {
           ),
           child: Column(
             children: [
-              Text(
+              const Text(
                 'Pindai QR Code di bawah ini untuk menyelesaikan pembayaran Anda',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary),
@@ -161,11 +164,13 @@ class OrderDetailPage extends StatelessWidget {
               const SizedBox(height: 20),
               Center(
                 child: QrImageView(
-                  data: detail.payment.qrisPayload!,
+                  // Gunakan variabel statis, bukan data dari API
+                  data: staticQrisPayload,
                   version: QrVersions.auto,
                   size: 220.0,
                   gapless: false,
                   backgroundColor: Colors.white,
+                  errorCorrectionLevel: QrErrorCorrectLevel.M,
                 ),
               ),
               const SizedBox(height: 20),

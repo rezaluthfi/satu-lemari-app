@@ -76,6 +76,10 @@ class AppStrings {
   static const String search = 'Cari';
   static const String ok = 'OK';
 
+  // String static QRIS
+  static const String qrisCodeStatic =
+      "00020101021126570011ID.DANA.WWW011893600915315147821702091514782170303UMI51440014ID.CO.QRIS.WWW0215ID10210777610000303UMI5204594553033605802ID5916Games Bang Wckyy6011Kab. Bekasi6105175306304811B";
+
   // Features
   static const String donation = 'Donasi';
   static const String rental = 'Rental';

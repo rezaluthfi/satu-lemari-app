@@ -224,7 +224,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
   }
 
   Widget _buildItemCard(ItemDetail item) {
-    // Variabel boolean untuk status tombol
     final bool canDecrease = _quantity > 1;
     final bool canIncrease = _quantity < item.availableQuantity;
 
@@ -235,8 +234,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
         const SizedBox(height: 12),
         _buildCard(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.end, // <-- Untuk alignment pesan error
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +297,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           icon: Icon(
                             Icons.remove,
                             size: 16,
-                            // <-- PERBAIKAN: Warna dinamis
                             color: canDecrease
                                 ? AppColors.textPrimary
                                 : AppColors.disabled,
@@ -323,7 +320,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           icon: Icon(
                             Icons.add,
                             size: 16,
-                            // <-- PERBAIKAN: Warna dinamis
                             color: canIncrease
                                 ? AppColors.textPrimary
                                 : AppColors.disabled,
@@ -343,7 +339,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   )
                 ],
               ),
-              // <-- PERBAIKAN: Posisi pesan stok
               if (!canIncrease)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
@@ -436,7 +431,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
   }
 
   Widget _buildShippingMethodCard() {
-    // Tentukan apakah kita berada di alur rental
     final bool isRentalFlow = _itemType == 'rental';
 
     return Column(
@@ -447,17 +441,17 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
         _buildCard(
           child: Column(
             children: [
-              // Opsi 1: Diantar Penjual (COD)
               RadioListTile<String>(
                 title: const Text('Diantar Penjual (COD)',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text(
                   'Koordinasi langsung dengan pemilik barang',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 value: 'direct_cod',
                 groupValue: _shippingMethod,
-                // Selalu aktif
                 onChanged: (value) {
                   if (value != null)
                     setState(() {
@@ -469,10 +463,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                 activeColor: AppColors.primary,
               ),
               const Divider(height: 1),
-
-              // Opsi 2: Agen Aplikasi
               Opacity(
-                // Buat terlihat "mati" jika ini alur rental
                 opacity: isRentalFlow ? 0.5 : 1.0,
                 child: RadioListTile<String>(
                   title: const Text('Agen Aplikasi',
@@ -489,7 +480,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   ),
                   value: 'app_agent',
                   groupValue: _shippingMethod,
-                  // Nonaktifkan jika ini alur rental
                   onChanged: isRentalFlow
                       ? null
                       : (value) {
@@ -504,10 +494,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                 ),
               ),
               const Divider(height: 1),
-
-              // Opsi 3: Ambil Sendiri (Pickup)
               Opacity(
-                // Buat terlihat "mati" jika ini alur rental
                 opacity: isRentalFlow ? 0.5 : 1.0,
                 child: RadioListTile<String>(
                   title: const Text('Ambil Sendiri (Pickup)',
@@ -524,7 +511,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   ),
                   value: 'pickup_warehouse',
                   groupValue: _shippingMethod,
-                  // Nonaktifkan jika ini alur rental
                   onChanged: isRentalFlow
                       ? null
                       : (value) {
@@ -538,10 +524,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   activeColor: AppColors.primary,
                 ),
               ),
-
-              // Opsi untuk penjual tetap muncul jika 'pickup_warehouse' dipilih (tidak akan terjadi di alur rental)
-              if (_shippingMethod == 'pickup_warehouse')
-                _buildSellerChoiceSection(),
             ],
           ),
         ),

@@ -506,6 +506,15 @@ class _ProfilePageState extends State<ProfilePage>
                 AppColors.rental,
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Thrift',
+                stats.totalThrifting.toString(),
+                Icons.sell_outlined,
+                AppColors.thrifting,
+              ),
+            ),
           ],
         ),
       ],

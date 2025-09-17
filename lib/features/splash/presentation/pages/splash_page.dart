@@ -240,7 +240,7 @@ class _SplashPageState extends State<SplashPage>
                           ),
                         ),
                         child: const Text(
-                          'Donasi • Rental • Sustainable',
+                          'Donasi • Rental • Thrifting',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white,

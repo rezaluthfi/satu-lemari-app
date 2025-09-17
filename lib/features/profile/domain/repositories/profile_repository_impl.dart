@@ -32,8 +32,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
           city: model.city,
           photo: model.photo,
           description: model.description,
-          latitude: model.latitude, // <-- Tambahkan ini
-          longitude: model.longitude, // <-- Tambahkan ini
+          latitude: model.latitude,
+          longitude: model.longitude,
           weeklyDonationQuota: model.weeklyDonationQuota,
           weeklyDonationUsed: model.weeklyDonationUsed,
           quotaResetDate: model.quotaResetDate,
@@ -59,6 +59,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
         return Right(DashboardStats(
           totalDonations: model.totalDonations,
           totalRentals: model.totalRentals,
+          totalThrifting: model.totalThrifting,
           activeItems: model.activeItems,
           pendingRequests: model.pendingRequests,
           completedRequests: model.completedRequests,

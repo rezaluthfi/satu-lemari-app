@@ -7,82 +7,24 @@ import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart'
 import 'package:satulemari/features/order/domain/entities/order_item.dart';
 import 'package:satulemari/features/order/presentation/utils/status_helper.dart';
 
-class OrderListView extends StatefulWidget {
+class OrderListView extends StatelessWidget {
   final List<OrderItem> orders;
   const OrderListView({super.key, required this.orders});
 
-  @override
-  State<OrderListView> createState() => _OrderListViewState();
-}
-
-class _OrderListViewState extends State<OrderListView> {
-  late ScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_isBottom) {
-      context.read<HistoryBloc>().add(const LoadMoreHistory(type: 'orders'));
-    }
-  }
-
-  bool get _isBottom {
-    if (!_scrollController.hasClients) return false;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.offset;
-    // Tambahkan debounce sederhana untuk mencegah panggilan ganda
-    final isAtBottom = currentScroll >= (maxScroll * 0.9);
-    final isLoadingMore = context.read<HistoryBloc>().state.ordersIsLoadingMore;
-    return isAtBottom && !isLoadingMore;
-  }
-
   String _formatCurrency(int amount) {
     return NumberFormat.currency(
-            locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+            locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
         .format(amount);
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<HistoryBloc, HistoryState>(
-      builder: (context, state) {
-        return CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final order = widget.orders[index];
-                    return _buildOrderCard(context, order);
-                  },
-                  childCount: widget.orders.length,
-                ),
-              ),
-            ),
-            if (state.ordersIsLoadingMore)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  ),
-                ),
-              ),
-          ],
-        );
+    return ListView.builder(
+      padding: const EdgeInsets.all(20.0),
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        return _buildOrderCard(context, order);
       },
     );
   }

@@ -405,37 +405,42 @@ class _HistoryPageState extends State<HistoryPage>
                 ),
                 const SizedBox(height: 32),
                 // Add action button for better UX
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: iconColor.withOpacity(0.3),
-                      width: 1,
+                GestureDetector(
+                  onTap: () {
+                    context.read<HistoryBloc>().add(RefreshHistory());
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.refresh_rounded,
-                        size: 16,
-                        color: iconColor,
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: iconColor.withOpacity(0.3),
+                        width: 1,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Tarik untuk refresh',
-                        style: TextStyle(
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh_rounded,
+                          size: 16,
                           color: iconColor,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Text(
+                          'Refresh Data',
+                          style: TextStyle(
+                            color: iconColor,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
