@@ -398,7 +398,10 @@ class OrderDetailPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Total Pembayaran',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary)),
               Text(
                 currencyFormat.format(detail.totalAmount),
                 style: const TextStyle(

@@ -48,15 +48,15 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
 
   final _notesController = TextEditingController();
 
-  // Variabel state yang tidak dibutuhkan lagi karena kalkulasi dilakukan backend
-  // int _shippingFee = 15000;
-  // int _totalAmount = 0;
-
-  // Variabel ini tetap dibutuhkan untuk UI
+  // Variabel untuk UI dan kalkulasi harga
   int? _itemPrice;
   int _quantity = 1;
   String? _itemType;
   ItemDetail? _item;
+
+  // Variabel untuk kalkulasi harga real-time
+  int _estimatedShippingFee = 0;
+  int _estimatedTotalAmount = 0;
 
   @override
   void initState() {
@@ -73,6 +73,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
             _paymentMethod = 'qris';
           }
         });
+        _calculateEstimatedPrice(); // Hitung harga awal
       }
     });
   }
@@ -83,8 +84,36 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
     super.dispose();
   }
 
-  // Method ini tidak dibutuhkan lagi
-  // void _updateTotalAmount() { ... }
+  // Method untuk kalkulasi estimasi harga
+  void _calculateEstimatedPrice() {
+    if (_item == null || _itemType == null) return;
+
+    final int itemPrice = (_itemPrice ?? 0) * _quantity;
+
+    // Kalkulasi shipping fee berdasarkan metode pengiriman
+    int shippingFee = 0;
+    switch (_shippingMethod) {
+      case 'direct_cod':
+        shippingFee = 0; // Biasanya gratis untuk COD
+        break;
+      case 'app_agent':
+        // Estimasi berdasarkan data API sebelumnya
+        shippingFee = 1725000;
+        break;
+      case 'pickup_warehouse':
+        shippingFee = 0; // Gratis untuk pickup
+        break;
+    }
+
+    // Untuk donasi, total selalu 0
+    final int totalAmount =
+        _itemType == 'donation' ? 0 : itemPrice + shippingFee;
+
+    setState(() {
+      _estimatedShippingFee = shippingFee;
+      _estimatedTotalAmount = totalAmount;
+    });
+  }
 
   void _createOrder() {
     if (_item == null) return;
@@ -144,34 +173,81 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
         foregroundColor: Colors.white,
       ),
       backgroundColor: AppColors.background,
+      // Perbaikan untuk BlocListener di CreateOrderPage
+// Ganti struktur ini:
+
       body: BlocListener<OrderDetailBloc, OrderDetailState>(
         listener: (context, state) {
           if (state is OrderCreateSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content:
-                      Text('Pesanan berhasil dibuat! Lanjutkan pembayaran.'),
-                  backgroundColor: AppColors.success),
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Pesanan Berhasil Dibuat!',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          Text(
+                            state.response.totalAmount > 0
+                                ? 'Silakan lanjutkan pembayaran'
+                                : 'Pesanan donasi telah dikonfirmasi',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(seconds: 3),
+                margin: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
             );
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              isDismissible: false,
-              enableDrag: false,
-              builder: (_) => PaymentSummarySheet(response: state.response),
-            ).then((_) {
-              Navigator.pushReplacementNamed(context, '/order-detail',
-                  arguments: state.response.orderId);
+
+            // Langsung navigate ke detail pesanan
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/order-detail',
+                  arguments: state.response.orderId,
+                );
+              }
             });
           }
+
           if (state is OrderDetailError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: AppColors.error),
+                content: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(state.message)),
+                  ],
+                ),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
             );
           }
         },
+        // WAJIB ADA CHILD!
         child: Column(
           children: [
             Expanded(
@@ -304,6 +380,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           onPressed: canDecrease
                               ? () {
                                   setState(() => _quantity--);
+                                  _calculateEstimatedPrice(); // Recalculate
                                 }
                               : null,
                           visualDensity: VisualDensity.compact,
@@ -324,6 +401,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           onPressed: canIncrease
                               ? () {
                                   setState(() => _quantity++);
+                                  _calculateEstimatedPrice(); // Recalculate
                                 }
                               : null,
                           visualDensity: VisualDensity.compact,
@@ -449,6 +527,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _shippingMethod = value);
+                    _calculateEstimatedPrice(); // Recalculate
                   }
                 },
                 contentPadding: EdgeInsets.zero,
@@ -477,6 +556,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                       : (value) {
                           if (value != null) {
                             setState(() => _shippingMethod = value);
+                            _calculateEstimatedPrice(); // Recalculate
                           }
                         },
                   contentPadding: EdgeInsets.zero,
@@ -506,6 +586,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                       : (value) {
                           if (value != null) {
                             setState(() => _shippingMethod = value);
+                            _calculateEstimatedPrice(); // Recalculate
                           }
                         },
                   contentPadding: EdgeInsets.zero,
@@ -536,6 +617,26 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
     );
   }
 
+  Widget _buildPriceSummaryRow(String label, int amount,
+      {bool isBold = false, bool isTotal = false}) {
+    final textStyle = TextStyle(
+      fontSize: isTotal ? 16 : 14,
+      fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+      color: isTotal ? AppColors.primary : AppColors.textPrimary,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: textStyle),
+          Text(_formatCurrency(amount), style: textStyle),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBottomSummary() {
     if (_itemType == null) {
       return const SizedBox.shrink();
@@ -561,15 +662,16 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_itemType != 'donation')
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16.0),
-              child: Text(
-                'Total harga akan ditampilkan di langkah selanjutnya.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          // Tampilkan ringkasan harga
+          if (_itemType != 'donation') ...[
+            _buildPriceSummaryRow(
+                'Harga Barang', (_itemPrice ?? 0) * _quantity),
+            _buildPriceSummaryRow('Ongkos Kirim', _estimatedShippingFee),
+            const Divider(height: 16),
+            _buildPriceSummaryRow('Total Pembayaran', _estimatedTotalAmount,
+                isBold: true, isTotal: true),
+            const SizedBox(height: 16),
+          ],
           BlocBuilder<OrderDetailBloc, OrderDetailState>(
             builder: (context, state) {
               return CustomButton(
@@ -586,7 +688,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
   }
 }
 
-// Widget BottomSheet tetap sama
 class PaymentSummarySheet extends StatelessWidget {
   final CreateOrderResponseEntity response;
 
@@ -609,6 +710,7 @@ class PaymentSummarySheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Drag indicator
           Center(
             child: Container(
               width: 50,
@@ -620,68 +722,134 @@ class PaymentSummarySheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+
+          // Success icon
+          const Center(
+            child: Icon(
+              Icons.check_circle,
+              color: AppColors.success,
+              size: 48,
+            ),
+          ),
+          const SizedBox(height: 16),
+
           const Text(
-            'Lanjutkan Pembayaran',
+            'Pesanan Berhasil Dibuat!',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          Text(
-            response.totalAmount > 0
-                ? 'Pindai QR Code untuk menyelesaikan pesanan'
-                : 'Pesanan donasi Anda telah dikonfirmasi.',
-            style: const TextStyle(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          if (response.qrisPayload != null && response.totalAmount > 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: QrImageView(
-                  data: response.qrisPayload!,
-                  version: QrVersions.auto,
-                  size: 220.0,
-                  backgroundColor: Colors.white,
-                ),
-              ),
+
+          // Conditional content based on payment needed
+          if (response.totalAmount > 0) ...[
+            const Text(
+              'Pesanan Anda telah dibuat dan menunggu pembayaran. Silakan lanjutkan ke detail pesanan untuk melihat informasi pembayaran.',
+              style: TextStyle(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
             ),
-          if (response.totalAmount > 0)
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            const SizedBox(height: 20),
+
+            // Payment summary in compact format
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              ),
+              child: Column(
                 children: [
-                  const Icon(Icons.timer_outlined,
-                      color: AppColors.error, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Bayar sebelum: ${DateFormat('dd MMM yyyy, HH:mm').format(response.expiresAt.toLocal())}',
-                    style: const TextStyle(
-                        color: AppColors.error, fontWeight: FontWeight.w600),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Pembayaran',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        currencyFormat.format(response.totalAmount),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.timer_outlined,
+                          color: AppColors.warning, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Selesaikan pembayaran sebelum: ${DateFormat('dd MMM yyyy, HH:mm').format(response.expiresAt.toLocal())}',
+                          style: const TextStyle(
+                            color: AppColors.warning,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          const Divider(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Total Pembayaran',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(
-                currencyFormat.format(response.totalAmount),
-                style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary),
-              ),
-            ],
-          ),
+          ] else ...[
+            // For donation orders
+            const Text(
+              'Pesanan donasi Anda telah dikonfirmasi dan akan segera diproses.',
+              style: TextStyle(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+
           const SizedBox(height: 24),
+
+          // Action button - always navigate to detail
           CustomButton(
-            text: 'Lihat Detail Pesanan',
-            onPressed: () => Navigator.pop(context),
+            text: response.totalAmount > 0
+                ? 'Lanjutkan Pembayaran'
+                : 'Lihat Detail Pesanan',
+            onPressed: () {
+              Navigator.pop(context); // Close bottom sheet
+              Navigator.pushReplacementNamed(
+                context,
+                '/order-detail',
+                arguments: response.orderId,
+              );
+            },
             width: double.infinity,
           ),
+
+          // Optional secondary action for quick navigation
+          if (response.totalAmount > 0) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Navigate back to home or orders list
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/main', // or your main/home route
+                  (route) => false,
+                );
+              },
+              child: const Text(
+                'Bayar Nanti',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -27,9 +27,7 @@ class CreateOrderResponseModel {
   });
 
   factory CreateOrderResponseModel.fromJson(Map<String, dynamic> json) {
-    // Membaca dari root 'data' yang ada di respons JSON
-    return _$CreateOrderResponseModelFromJson(
-        json['data'] as Map<String, dynamic>);
+    return _$CreateOrderResponseModelFromJson(json);
   }
 
   CreateOrderResponseEntity toEntity() {
