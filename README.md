@@ -10,12 +10,16 @@
 
 **"Satu Pakaian, Seribu Senyuman"**
 
-Aplikasi mobile untuk platform donasi dan rental pakaian **SatuLemari**. Dibangun dengan Flutter untuk pengalaman cross-platform yang mulus di Android dan iOS, menghubungkan mitra (pemilik pakaian) dengan pengguna yang membutuhkan pakaian untuk donasi atau sewa.
+Aplikasi mobile untuk platform donasi, rental, dan thrifting pakaian **SatuLemari**. Dibangun dengan Flutter untuk pengalaman cross-platform yang mulus di Android dan iOS, menghubungkan mitra (pemilik pakaian) dengan pengguna yang membutuhkan pakaian untuk donasi, sewa, atau pembelian secondhand.
 
 ## ✨ Fitur Utama
 
 - **Otentikasi Lengkap**: Pendaftaran, Login, dan Google Sign-In menggunakan Firebase Authentication dengan FCM token management otomatis.
-- **Manajemen Donasi & Rental**: Alur lengkap mulai dari melihat item, mengajukan permintaan, hingga melihat riwayat transaksi dengan detail lengkap.
+- **Tiga Kategori Layanan**:
+  - **Donasi**: Ajukan permintaan donasi pakaian gratis
+  - **Rental**: Sewa pakaian untuk acara khusus
+  - **Thrifting**: Beli pakaian secondhand dengan harga terjangkau
+- **Manajemen Request Komprehensif**: Alur lengkap mulai dari melihat item, mengajukan permintaan (donasi/rental/thrifting), hingga melihat riwayat transaksi dengan detail lengkap.
 - **Chat Interaktif dengan AI**:
   - Chatbot pintar dengan saran otomatis dan quick replies.
   - Manajemen sesi chat dengan kemampuan hapus pesan dan riwayat.
@@ -32,8 +36,12 @@ Aplikasi mobile untuk platform donasi dan rental pakaian **SatuLemari**. Dibangu
   - Manajemen notifikasi dengan fitur mark as read, delete, dan bulk actions.
 - **Profil & Dashboard Pengguna**: 
   - Kelola profil dengan edit foto dan informasi personal.
-  - Dashboard statistik donasi/sewa yang komprehensif.
+  - Dashboard statistik donasi/sewa/thrifting yang komprehensif.
   - Location picker dengan peta interaktif untuk mengatur alamat.
+- **Sistem Order & Pembayaran**: 
+  - Create order untuk rental dan thrifting dengan detail lengkap.
+  - Integrasi pembayaran QRIS untuk transaksi yang mudah.
+  - Tracking status order dari proses hingga selesai.
 - **Geolokasi**: Tampilkan item dan mitra di peta interaktif, serta pilih lokasi dengan _location picker_ yang presisi.
 - **Manajemen State Modern**: Menggunakan BLoC untuk manajemen state yang predictable dan scalable.
 - **Desain UI Responsif & Modern**: 
@@ -63,6 +71,22 @@ lib/
 │   └── utils/              # Fungsi utilitas umum (validator, extension, FAB manager)
 │
 ├── features/               # Modul-modul fitur aplikasi
+│   ├── auth/               # 🔐 OTENTIKASI: Login, Register, Google Sign-In
+│   ├── browse/             # 🔍 PENCARIAN: Smart search, AI suggestions, speech-to-text
+│   ├── category_items/     # 📂 KATEGORI: Tampil item berdasarkan kategori
+│   ├── chat/               # 💬 CHAT AI: Chatbot dengan multiple sessions
+│   ├── debug/              # 🔧 DEBUG: Tools untuk development dan debugging
+│   ├── history/            # 📋 RIWAYAT: History request & detail transaksi
+│   ├── home/               # 🏠 BERANDA: Dashboard utama, kategori, rekomendasi
+│   ├── item_detail/        # 📄 DETAIL ITEM: Info lengkap item dengan full-screen viewer
+│   ├── main/               # 🧭 NAVIGASI: Bottom navigation & routing utama
+│   ├── notification/       # 🔔 NOTIFIKASI: In-app dan push notifications
+│   ├── onboarding/         # 👋 ONBOARDING: Welcome screens untuk user baru
+│   ├── order/              # 🛒 ORDER: Create order, detail order, pembayaran QRIS
+│   ├── profile/            # 👤 PROFIL: Edit profil, dashboard stats, location picker
+│   ├── request/            # 📝 REQUEST: Buat permintaan donasi/rental/thrifting
+│   └── splash/             # 🚀 SPLASH: Loading screen awal aplikasi
+│
 │   └── (contoh: auth)/     # Setiap fitur dibagi menjadi 3 lapisan:
 │       ├── data/           # 📡 DATA LAYER: Implementasi repository & sumber data
 │       │   ├── datasources/  # Komunikasi dengan API (remote) atau cache (local)
@@ -76,13 +100,31 @@ lib/
 │       └── presentation/   # 🎨 PRESENTATION LAYER: UI dan manajemen state
 │           ├── bloc/         # BLoC, Events, dan States
 │           ├── pages/        # Halaman/layar utama dari fitur
-│           └── widgets/      # Widget yang spesifik untuk fitur ini
+│           ├── widgets/      # Widget yang spesifik untuk fitur ini
+│           └── utils/        # Utilities khusus fitur (hanya ada di order/)
 │
 ├── shared/                 # Widget yang dapat digunakan kembali
 │   └── widgets/            # Custom components (buttons, cards, dialogs, dll)
 │
-└── main.dart               # Entry point utama aplikasi dan setup routing
+└── main.dart               # Entry point utama aplikasi
 ```
+
+### 📱 Fitur Utama per Modul
+
+- **🏠 Home**: Dashboard dengan kategori (Donasi, Rental, Thrifting), rekomendasi personal, dan trending items
+- **🔍 Browse**: Pencarian cerdas dengan filter, voice search, dan AI suggestions  
+- **📂 Category Items**: Browse item berdasarkan kategori yang dipilih
+- **📄 Item Detail**: Detail lengkap item dengan galeri foto dan full-screen viewer
+- **📝 Request**: Form permintaan untuk ketiga kategori dengan widget khusus:
+  - `donation_request_sheet.dart` - Form donasi
+  - `rental_request_sheet.dart` - Form rental
+  - `thrifting_request_sheet.dart` - Form thrifting
+- **🛒 Order**: Sistem pemesanan lengkap dengan pembayaran QRIS untuk rental dan thrifting
+- **📋 History**: Riwayat semua permintaan dan transaksi dengan detail lengkap
+- **💬 Chat**: AI assistant dengan multiple chat sessions dan smart suggestions
+- **🔔 Notification**: Manajemen notifikasi in-app dan push notifications
+- **👤 Profile**: Edit profil, dashboard statistik, dan location picker dengan map
+- **🔧 Debug**: Tools untuk development dan debugging
 
 ## 🛠️ Teknologi & Library Utama
 
@@ -90,7 +132,6 @@ lib/
 - **Bahasa**: Dart
 - **Arsitektur**: Clean Architecture + BLoC Pattern
 - **Manajemen State**: `flutter_bloc`, `bloc`, `equatable`, `rxdart`
-- **Routing**: `go_router` (implied from structure)
 - **Dependency Injection**: `get_it`
 - **Networking**: `dio`, `retrofit`, `http`, `connectivity_plus`, `internet_connection_checker`
 - **Cookie & Session**: `cookie_jar`, `dio_cookie_manager`
@@ -106,6 +147,7 @@ lib/
   - `smooth_page_indicator` untuk onboarding
   - `flutter_staggered_grid_view` untuk grid layout
   - `photo_view` untuk full-screen image viewer
+- **Pembayaran & QR**: `qr_flutter` untuk generate QR code pembayaran
 - **Speech & Input**: `speech_to_text` untuk voice input
 - **Code Generation**: `build_runner`, `json_serializable`, `retrofit_generator`
 - **Functional Programming**: `dartz` untuk Either pattern
@@ -183,6 +225,22 @@ flutter run
 
 Aplikasi akan berjalan di emulator/simulator atau perangkat yang terhubung.
 
+## 🎯 Flow Aplikasi
+
+### Alur Pengguna Utama:
+1. **Onboarding** → **Splash Screen** → **Authentication**
+2. **Home Dashboard** → Pilih kategori (Donasi/Rental/Thrifting)
+3. **Browse Items** → **Item Detail** → **Create Request/Order**
+4. **Payment** (untuk Rental & Thrifting) → **Order Tracking**
+5. **History** untuk melihat semua transaksi
+6. **Chat AI** untuk bantuan dan rekomendasi
+7. **Profile Management** dan **Notifications**
+
+### Tipe Request:
+- **🎁 Donasi**: Gratis, hanya perlu approval dari mitra
+- **👔 Rental**: Sewa dengan durasi tertentu, pembayaran via QRIS
+- **🛍️ Thrifting**: Beli secondhand, pembayaran sekali via QRIS
+
 ## 🤝 Berkontribusi
 
 Kami menyambut kontribusi dari siapa saja!
@@ -198,9 +256,9 @@ Kami menyambut kontribusi dari siapa saja!
 Gunakan format _conventional commits_ untuk pesan commit yang rapi dan terstandar:
 
 ```
-feat: Menambahkan sistem chat dengan AI
+feat: Menambahkan kategori thrifting pada request
 fix: Memperbaiki bug pada notifikasi push
-docs: Memperbarui dokumentasi setup
+docs: Memperbarui dokumentasi setup dengan kategori baru
 refactor: Meningkatkan performa home page
 style: Merapikan format kode pada widget profile
 ```
@@ -217,4 +275,4 @@ Didistribusikan di bawah Lisensi MIT. Lihat file `LICENSE` untuk informasi lebih
 
 ---
 
-**SatuLemari** - "Satu Pakaian, Seribu Senyuman" 🌱👕
+**SatuLemari** - "Satu Pakaian, Seribu Senyuman" 🌱👕💚
