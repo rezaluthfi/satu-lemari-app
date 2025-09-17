@@ -76,6 +76,14 @@ import 'package:satulemari/features/request/domain/repositories/request_reposito
 import 'package:satulemari/features/request/domain/usecases/create_request_usecase.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 
+// Order
+import 'package:satulemari/features/order/data/datasources/order_remote_datasource.dart';
+import 'package:satulemari/features/order/domain/repositories/order_repository.dart';
+import 'package:satulemari/features/order/domain/repositories/order_repository_impl.dart';
+import 'package:satulemari/features/order/domain/usecases/create_order_usecase.dart';
+import 'package:satulemari/features/order/domain/usecases/get_order_detail_usecase.dart';
+import 'package:satulemari/features/order/presentation/bloc/order_detail_bloc.dart';
+
 // History
 import 'package:satulemari/features/history/data/datasources/history_remote_datasource.dart';
 import 'package:satulemari/features/history/domain/repositories/history_repository.dart';
@@ -216,6 +224,16 @@ Future<void> init() async {
       () => RequestRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
   sl.registerLazySingleton<RequestRemoteDataSource>(
       () => RequestRemoteDataSourceImpl(dio: sl()));
+
+  // Order
+  sl.registerFactory(
+      () => OrderDetailBloc(getOrderDetail: sl(), createOrder: sl()));
+  sl.registerLazySingleton(() => GetOrderDetailUseCase(sl()));
+  sl.registerLazySingleton(() => CreateOrderUseCase(sl()));
+  sl.registerLazySingleton<OrderRepository>(
+      () => OrderRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()));
+  sl.registerLazySingleton<OrderRemoteDataSource>(
+      () => OrderRemoteDataSourceImpl(dio: sl()));
 
   // History
   sl.registerLazySingleton(() => HistoryBloc(getMyRequests: sl()));

@@ -28,6 +28,8 @@ import 'package:satulemari/features/item_detail/presentation/pages/full_screen_i
 import 'package:satulemari/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:satulemari/features/history/presentation/pages/request_detail_page.dart';
 import 'package:satulemari/features/notification/presentation/pages/notification_page.dart';
+import 'package:satulemari/features/order/presentation/pages/create_order_page.dart';
+import 'package:satulemari/features/order/presentation/pages/order_detail_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,6 +110,10 @@ class MyApp extends StatelessWidget {
           '/request-detail': (context) => const RequestDetailPage(),
           '/notifications': (context) =>
               const ConnectivityWrapper(child: NotificationPage()),
+          '/create-order': (context) =>
+              const ConnectivityWrapper(child: CreateOrderPage()),
+          '/order-detail': (context) =>
+              const ConnectivityWrapper(child: OrderDetailPage()),
         },
       ),
     );
@@ -129,8 +135,10 @@ class AuthWrapper extends StatelessWidget {
           context.read<ProfileBloc>().add(FetchProfileData());
 
           // 2. HistoryBloc: Event untuk mengambil data donasi dan peminjaman
-          context.read<HistoryBloc>().add(const FetchHistory(type: 'donation'));
-          context.read<HistoryBloc>().add(const FetchHistory(type: 'rental'));
+          final historyBloc = context.read<HistoryBloc>();
+          historyBloc.add(const FetchHistory(type: 'donation'));
+          historyBloc.add(const FetchHistory(type: 'rental'));
+          historyBloc.add(const FetchHistory(type: 'thrifting'));
 
           // 3. HomeBloc: Event untuk mengambil semua data home
           context.read<HomeBloc>().add(FetchAllHomeData());

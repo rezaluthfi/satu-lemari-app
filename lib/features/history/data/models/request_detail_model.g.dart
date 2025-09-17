@@ -25,20 +25,6 @@ RequestDetailModel _$RequestDetailModelFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['return_date'] as String),
     );
 
-Map<String, dynamic> _$RequestDetailModelToJson(RequestDetailModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'type': instance.type,
-      'status': instance.status,
-      'rejection_reason': instance.rejectionReason,
-      'created_at': instance.createdAt.toIso8601String(),
-      'item': instance.item.toJson(),
-      'partner': instance.partner.toJson(),
-      'reason': instance.reason,
-      'pickup_date': instance.pickupDate?.toIso8601String(),
-      'return_date': instance.returnDate?.toIso8601String(),
-    };
-
 ItemInRequestModel _$ItemInRequestModelFromJson(Map<String, dynamic> json) =>
     ItemInRequestModel(
       id: json['id'] as String,
@@ -46,13 +32,6 @@ ItemInRequestModel _$ItemInRequestModelFromJson(Map<String, dynamic> json) =>
       images:
           (json['images'] as List<dynamic>).map((e) => e as String).toList(),
     );
-
-Map<String, dynamic> _$ItemInRequestModelToJson(ItemInRequestModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'images': instance.images,
-    };
 
 PartnerInRequestModel _$PartnerInRequestModelFromJson(
         Map<String, dynamic> json) =>
@@ -65,15 +44,3 @@ PartnerInRequestModel _$PartnerInRequestModelFromJson(
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
     );
-
-Map<String, dynamic> _$PartnerInRequestModelToJson(
-        PartnerInRequestModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'full_name': instance.fullName,
-      'username': instance.username,
-      'phone': instance.phone,
-      'address': instance.address,
-      'latitude': instance.latitude,
-      'longitude': instance.longitude,
-    };

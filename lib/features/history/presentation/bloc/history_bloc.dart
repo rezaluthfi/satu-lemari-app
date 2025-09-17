@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:satulemari/features/history/domain/entities/request_item.dart';
@@ -11,10 +12,65 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   final GetMyRequestsUseCase getMyRequests;
 
   HistoryBloc({required this.getMyRequests}) : super(const HistoryState()) {
+    on<FetchAllHistoryTypes>(_onFetchAllHistoryTypes);
     on<FetchHistory>(_onFetchHistory);
     on<HistoryReset>(_onHistoryReset);
     on<LoadMoreHistory>(_onLoadMoreHistory);
     on<RefreshHistory>(_onRefreshHistory);
+  }
+
+  Future<void> _onFetchAllHistoryTypes(
+      FetchAllHistoryTypes event, Emitter<HistoryState> emit) async {
+    // Set semua status ke loading secara bersamaan
+    emit(state.copyWith(
+      donationStatus: HistoryStatus.loading,
+      rentalStatus: HistoryStatus.loading,
+      thriftingStatus: HistoryStatus.loading,
+    ));
+
+    // Jalankan semua request API secara paralel
+    final results = await Future.wait([
+      getMyRequests(
+          const GetMyRequestsParams(type: 'donation', page: 1, limit: 10)),
+      getMyRequests(
+          const GetMyRequestsParams(type: 'rental', page: 1, limit: 10)),
+      getMyRequests(
+          const GetMyRequestsParams(type: 'thrifting', page: 1, limit: 10)),
+    ]);
+
+    // Pastikan BLoC belum ditutup
+    if (isClosed) return;
+
+    final donationResult = results[0];
+    final rentalResult = results[1];
+    final thriftingResult = results[2];
+
+    // Bangun state akhir dari semua hasil
+    emit(state.copyWith(
+      donationStatus:
+          donationResult.isRight() ? HistoryStatus.loaded : HistoryStatus.error,
+      donationRequests: donationResult.getOrElse(() => []),
+      donationError: donationResult.isLeft()
+          ? (donationResult as Left).value.message
+          : null,
+      donationHasReachedEnd:
+          donationResult.fold((l) => true, (r) => r.length < 10),
+      rentalStatus:
+          rentalResult.isRight() ? HistoryStatus.loaded : HistoryStatus.error,
+      rentalRequests: rentalResult.getOrElse(() => []),
+      rentalError:
+          rentalResult.isLeft() ? (rentalResult as Left).value.message : null,
+      rentalHasReachedEnd: rentalResult.fold((l) => true, (r) => r.length < 10),
+      thriftingStatus: thriftingResult.isRight()
+          ? HistoryStatus.loaded
+          : HistoryStatus.error,
+      thriftingRequests: thriftingResult.getOrElse(() => []),
+      thriftingError: thriftingResult.isLeft()
+          ? (thriftingResult as Left).value.message
+          : null,
+      thriftingHasReachedEnd:
+          thriftingResult.fold((l) => true, (r) => r.length < 10),
+    ));
   }
 
   void _onHistoryReset(HistoryReset event, Emitter<HistoryState> emit) {
@@ -42,6 +98,9 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       limit: 10,
     ));
 
+    // Tambahkan delay kecil untuk memastikan UI sempat menampilkan shimmer
+    await Future.delayed(const Duration(milliseconds: 300));
+
     result.fold(
       (failure) {
         switch (event.type) {
@@ -49,27 +108,18 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
             emit(state.copyWith(
               donationStatus: HistoryStatus.error,
               donationError: failure.message,
-              donationCurrentPage: 1,
-              donationHasReachedEnd: false,
-              donationIsLoadingMore: false,
             ));
             break;
           case 'rental':
             emit(state.copyWith(
               rentalStatus: HistoryStatus.error,
               rentalError: failure.message,
-              rentalCurrentPage: 1,
-              rentalHasReachedEnd: false,
-              rentalIsLoadingMore: false,
             ));
             break;
           case 'thrifting':
             emit(state.copyWith(
               thriftingStatus: HistoryStatus.error,
               thriftingError: failure.message,
-              thriftingCurrentPage: 1,
-              thriftingHasReachedEnd: false,
-              thriftingIsLoadingMore: false,
             ));
             break;
         }
@@ -82,7 +132,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
               donationRequests: data,
               donationCurrentPage: 1,
               donationHasReachedEnd: data.length < 10,
-              donationIsLoadingMore: false,
             ));
             break;
           case 'rental':
@@ -91,7 +140,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
               rentalRequests: data,
               rentalCurrentPage: 1,
               rentalHasReachedEnd: data.length < 10,
-              rentalIsLoadingMore: false,
             ));
             break;
           case 'thrifting':
@@ -100,7 +148,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
               thriftingRequests: data,
               thriftingCurrentPage: 1,
               thriftingHasReachedEnd: data.length < 10,
-              thriftingIsLoadingMore: false,
             ));
             break;
         }
@@ -199,33 +246,22 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       RefreshHistory event, Emitter<HistoryState> emit) async {
     final type = event.type;
 
+    // Kosongkan list dan set status ke loading
     switch (type) {
       case 'donation':
         emit(state.copyWith(
-          donationStatus: HistoryStatus.loading,
-          donationCurrentPage: 1,
-          donationHasReachedEnd: false,
-          donationIsLoadingMore: false,
-        ));
+            donationStatus: HistoryStatus.loading, donationRequests: []));
         break;
       case 'rental':
-        emit(state.copyWith(
-          rentalStatus: HistoryStatus.loading,
-          rentalCurrentPage: 1,
-          rentalHasReachedEnd: false,
-          rentalIsLoadingMore: false,
-        ));
+        emit(state
+            .copyWith(rentalStatus: HistoryStatus.loading, rentalRequests: []));
         break;
       case 'thrifting':
         emit(state.copyWith(
-          thriftingStatus: HistoryStatus.loading,
-          thriftingCurrentPage: 1,
-          thriftingHasReachedEnd: false,
-          thriftingIsLoadingMore: false,
-        ));
+            thriftingStatus: HistoryStatus.loading, thriftingRequests: []));
         break;
     }
 
-    await _onFetchHistory(FetchHistory(type: type), emit);
+    add(FetchHistory(type: type));
   }
 }

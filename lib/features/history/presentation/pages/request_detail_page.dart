@@ -5,12 +5,15 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/features/order/presentation/pages/create_order_page.dart';
 import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
 import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/history/presentation/bloc/request_detail_bloc.dart';
 import 'package:satulemari/features/history/presentation/widgets/request_detail_shimmer.dart';
+import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:satulemari/shared/widgets/custom_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class RequestDetailPage extends StatefulWidget {
@@ -155,7 +158,6 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
   }
 
   void _showDeleteDialog(BuildContext context, String requestId) {
-    // Ambil status dari state saat ini
     final currentState = context.read<RequestDetailBloc>().state;
     if (currentState is RequestDetailLoaded) {
       final status = currentState.detail.status.toLowerCase();
@@ -274,6 +276,27 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
           const SizedBox(height: 24),
           _buildStatusCard(context, detail),
           const SizedBox(height: 20),
+          if (detail.status.toLowerCase() == 'approved' &&
+              (detail.type == 'donation' || detail.type == 'rental'))
+            Padding(
+              padding: const EdgeInsets.only(top: 24.0),
+              child: CustomButton(
+                text: 'Lanjutkan ke Pengiriman',
+                width: double.infinity,
+                onPressed: () {
+                  final itemForOrder = ItemDetail.fromRequestDetail(detail);
+
+                  Navigator.pushNamed(
+                    context,
+                    '/create-order',
+                    arguments: CreateOrderPageArgs(
+                      item: itemForOrder,
+                      requestId: detail.id, // Kirim ID request
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
@@ -782,7 +805,7 @@ class _RequestDetailPageState extends State<RequestDetailPage> {
           icon: Icons.check_circle_rounded,
           color: AppColors.success,
           title: 'Permintaan Diterima',
-          subtitle: 'Silakan hubungi pemilik untuk proses selanjutnya',
+          subtitle: 'Silakan lanjutkan ke proses pengiriman & pembayaran',
           backgroundColor: AppColors.success.withOpacity(0.05),
         );
       case 'completed':

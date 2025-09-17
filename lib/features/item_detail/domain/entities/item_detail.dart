@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 
 class ItemDetail extends Equatable {
   final String id;
@@ -28,6 +29,35 @@ class ItemDetail extends Equatable {
     required this.category,
     this.price,
   });
+
+  factory ItemDetail.fromRequestDetail(RequestDetail requestDetail) {
+    return ItemDetail(
+      id: requestDetail.item.id,
+      name: requestDetail.item.name,
+      images: requestDetail.item.imageUrl != null
+          ? [requestDetail.item.imageUrl!]
+          : [],
+      type: requestDetail.type,
+      // Mengisi properti 'required' lainnya dengan nilai default atau dummy
+      description: '',
+      availableQuantity: 1, // Asumsikan kuantitas 1 saat membuat order
+      condition: '',
+      partner: Partner(
+        // Buat objek Partner dari PartnerInRequest
+        id: requestDetail.partner.id,
+        username: requestDetail.partner.name,
+        fullName: requestDetail.partner.name,
+        address: requestDetail.partner.address,
+        phone: requestDetail.partner.phone,
+      ),
+      category: const CategoryInfo(id: '', name: ''), // Kategori dummy
+      // Properti opsional bisa null
+      size: null,
+      color: null,
+      price:
+          null, // Harga mungkin tidak relevan saat membuat order dari request
+    );
+  }
 
   @override
   List<Object?> get props => [

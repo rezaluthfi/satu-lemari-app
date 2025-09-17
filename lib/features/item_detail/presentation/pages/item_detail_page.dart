@@ -9,6 +9,7 @@ import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart
 import 'package:satulemari/features/item_detail/presentation/bloc/item_detail_bloc.dart';
 import 'package:satulemari/features/item_detail/presentation/pages/full_screen_image_viewer.dart';
 import 'package:satulemari/features/item_detail/presentation/widgets/item_detail_shimmer.dart';
+import 'package:satulemari/features/order/presentation/pages/create_order_page.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:satulemari/features/request/presentation/bloc/request_bloc.dart';
 import 'package:satulemari/features/request/presentation/widgets/donation_request_sheet.dart';
@@ -240,11 +241,17 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       case 'thrifting':
         buttonText = "Beli Sekarang";
         buttonColor = AppColors.thrifting;
-        onPressed = () => _showRequestSheet(context, item, 'thrifting');
+
+        onPressed = () {
+          Navigator.pushNamed(
+            context,
+            '/create-order',
+            arguments: CreateOrderPageArgs(item: item), // Kirim data item
+          );
+        };
         break;
     }
 
-    // Timpa state tombol jika tidak aktif (stok habis, dll.)
     switch (buttonState) {
       case ItemDetailButtonState.outOfStock:
         buttonText = "Stok Habis";
@@ -268,7 +275,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
         break;
       case ItemDetailButtonState.active:
       default:
-        // Biarkan nilai dari switch pertama, tidak perlu diubah
         disabledReason = null;
         break;
     }
@@ -318,6 +324,16 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
 
   void _showRequestSheet(
       BuildContext pageContext, ItemDetail item, String type) {
+    if (type == 'thrifting') {
+      // Navigasi langsung ke halaman create-order
+      Navigator.pushNamed(
+        pageContext,
+        '/create-order',
+        arguments: CreateOrderPageArgs(item: item),
+      );
+      return;
+    }
+
     final profileBloc = BlocProvider.of<ProfileBloc>(pageContext);
 
     Widget requestSheetWidget;
@@ -328,17 +344,8 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
       case 'rental':
         requestSheetWidget = RentalRequestSheet(itemId: item.id);
         break;
-      case 'thrifting':
-        // Ganti dengan widget sheet thrifting Anda setelah dibuat
-        // requestSheetWidget = ThriftingPurchaseSheet(itemId: item.id);
-        requestSheetWidget = Container(
-          padding: const EdgeInsets.all(20),
-          child: const Text("Thrifting purchase flow coming soon!",
-              textAlign: TextAlign.center),
-        ); // Placeholder
-        break;
       default:
-        return; // Jangan lakukan apa-apa jika tipe tidak diketahui
+        return;
     }
 
     showModalBottomSheet(
@@ -367,7 +374,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
                   Navigator.of(pageContext).pushNamedAndRemoveUntil(
                     '/request-detail',
                     ModalRoute.withName('/main'),
-                    arguments: state.requestDetail.id,
+                    arguments: state.newRequestId,
                   );
                 } else if (state is RequestFailure) {
                   if (Navigator.of(modalContext).canPop()) {
@@ -484,7 +491,6 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
   }
 
   Widget _buildHeader(ItemDetail item) {
-    // Menggunakan switch-case untuk logika yang lebih aman dan jelas
     Color tagColor;
     String tagText;
 

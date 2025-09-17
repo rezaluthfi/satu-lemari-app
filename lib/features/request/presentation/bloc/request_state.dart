@@ -11,10 +11,10 @@ class RequestInitial extends RequestState {}
 class RequestInProgress extends RequestState {}
 
 class RequestSuccess extends RequestState {
-  final RequestDetail requestDetail;
-  const RequestSuccess(this.requestDetail);
+  final String newRequestId;
+  const RequestSuccess(this.newRequestId);
   @override
-  List<Object> get props => [requestDetail];
+  List<Object> get props => [newRequestId];
 }
 
 class RequestFailure extends RequestState {
