@@ -5,14 +5,14 @@ import 'package:satulemari/core/network/network_info.dart';
 import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
 import 'package:satulemari/features/order/data/datasources/order_remote_datasource.dart';
 import 'package:satulemari/features/order/data/models/create_order_request_model.dart';
+import 'package:satulemari/features/order/domain/entities/create_order_response.dart';
 import 'package:satulemari/features/order/domain/entities/order_detail.dart';
 import 'package:satulemari/features/order/domain/entities/order_item.dart';
 import 'package:satulemari/features/order/domain/repositories/order_repository.dart';
 
 class OrderRepositoryImpl implements OrderRepository {
   final OrderRemoteDataSource remoteDataSource;
-  final ItemDetailRemoteDataSource
-      itemDetailRemoteDataSource; // <-- DEPENDENCY BARU
+  final ItemDetailRemoteDataSource itemDetailRemoteDataSource;
   final NetworkInfo networkInfo;
 
   OrderRepositoryImpl({
@@ -22,12 +22,14 @@ class OrderRepositoryImpl implements OrderRepository {
   });
 
   @override
-  Future<Either<Failure, String>> createOrder(
+  Future<Either<Failure, CreateOrderResponseEntity>> createOrder(
       CreateOrderRequestModel request) async {
     if (await networkInfo.isConnected) {
       try {
+        // 1. Panggil remoteDataSource, yang sekarang mengembalikan CreateOrderResponseModel
         final responseModel = await remoteDataSource.createOrder(request);
-        return Right(responseModel.orderId);
+        // 2. Ubah model menjadi entity dan kembalikan
+        return Right(responseModel.toEntity());
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
@@ -56,26 +58,21 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<Either<Failure, List<OrderItem>>> getMyOrders() async {
     if (await networkInfo.isConnected) {
       try {
-        // 1. Fetch daftar order dasar
         final orderModels = await remoteDataSource.getMyOrders();
         if (orderModels.isEmpty) {
           return const Right([]);
         }
 
-        // 2. Kumpulkan semua item_id yang unik
         final itemIds =
             orderModels.map((order) => order.itemId).toSet().toList();
 
-        // 3. Fetch detail item untuk semua ID tersebut dalam satu panggilan
         final itemDetailModels =
             await itemDetailRemoteDataSource.getItemsByIds(itemIds);
 
-        // Buat map untuk pencarian cepat: 'itemId' -> Item
         final itemDetailsMap = {
           for (var item in itemDetailModels) item.id: item
         };
 
-        // 4. Gabungkan data
         final List<OrderItem> hydratedOrders = [];
         for (final orderModel in orderModels) {
           final matchingItem = itemDetailsMap[orderModel.itemId];
@@ -92,7 +89,6 @@ class OrderRepositoryImpl implements OrderRepository {
           ));
         }
 
-        // Urutkan berdasarkan tanggal terbaru
         hydratedOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         return Right(hydratedOrders);

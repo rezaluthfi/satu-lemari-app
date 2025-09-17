@@ -2,10 +2,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
 import 'package:satulemari/features/order/data/models/create_order_request_model.dart';
+import 'package:satulemari/features/order/domain/entities/create_order_response.dart';
 import 'package:satulemari/features/order/presentation/bloc/order_detail_bloc.dart';
 import 'package:satulemari/features/profile/domain/entities/profile.dart';
 import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
@@ -46,12 +48,14 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
 
   final _notesController = TextEditingController();
 
+  // Variabel state yang tidak dibutuhkan lagi karena kalkulasi dilakukan backend
+  // int _shippingFee = 15000;
+  // int _totalAmount = 0;
+
+  // Variabel ini tetap dibutuhkan untuk UI
   int? _itemPrice;
-  int _shippingFee = 15000;
-  int _totalAmount = 0;
   int _quantity = 1;
   String? _itemType;
-
   ItemDetail? _item;
 
   @override
@@ -68,7 +72,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
           if (_itemType == 'thrifting') {
             _paymentMethod = 'qris';
           }
-          _updateTotalAmount();
         });
       }
     });
@@ -80,20 +83,8 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
     super.dispose();
   }
 
-  void _updateTotalAmount() {
-    if (_itemPrice == null) return;
-    setState(() {
-      final subtotal = _itemPrice! * _quantity;
-      final currentShippingFee =
-          _shippingMethod == 'pickup_warehouse' ? 0 : _shippingFee;
-
-      if (_itemType == 'donation') {
-        _totalAmount = 0;
-      } else {
-        _totalAmount = subtotal + currentShippingFee;
-      }
-    });
-  }
+  // Method ini tidak dibutuhkan lagi
+  // void _updateTotalAmount() { ... }
 
   void _createOrder() {
     if (_item == null) return;
@@ -158,11 +149,20 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
           if (state is OrderCreateSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                  content: Text('Pesanan berhasil dibuat!'),
+                  content:
+                      Text('Pesanan berhasil dibuat! Lanjutkan pembayaran.'),
                   backgroundColor: AppColors.success),
             );
-            Navigator.pushReplacementNamed(context, '/order-detail',
-                arguments: state.newOrderId);
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              isDismissible: false,
+              enableDrag: false,
+              builder: (_) => PaymentSummarySheet(response: state.response),
+            ).then((_) {
+              Navigator.pushReplacementNamed(context, '/order-detail',
+                  arguments: state.response.orderId);
+            });
           }
           if (state is OrderDetailError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -303,10 +303,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           ),
                           onPressed: canDecrease
                               ? () {
-                                  setState(() {
-                                    _quantity--;
-                                    _updateTotalAmount();
-                                  });
+                                  setState(() => _quantity--);
                                 }
                               : null,
                           visualDensity: VisualDensity.compact,
@@ -326,10 +323,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                           ),
                           onPressed: canIncrease
                               ? () {
-                                  setState(() {
-                                    _quantity++;
-                                    _updateTotalAmount();
-                                  });
+                                  setState(() => _quantity++);
                                 }
                               : null,
                           visualDensity: VisualDensity.compact,
@@ -453,11 +447,9 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                 value: 'direct_cod',
                 groupValue: _shippingMethod,
                 onChanged: (value) {
-                  if (value != null)
-                    setState(() {
-                      _shippingMethod = value;
-                      _updateTotalAmount();
-                    });
+                  if (value != null) {
+                    setState(() => _shippingMethod = value);
+                  }
                 },
                 contentPadding: EdgeInsets.zero,
                 activeColor: AppColors.primary,
@@ -483,11 +475,9 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   onChanged: isRentalFlow
                       ? null
                       : (value) {
-                          if (value != null)
-                            setState(() {
-                              _shippingMethod = value;
-                              _updateTotalAmount();
-                            });
+                          if (value != null) {
+                            setState(() => _shippingMethod = value);
+                          }
                         },
                   contentPadding: EdgeInsets.zero,
                   activeColor: AppColors.primary,
@@ -514,11 +504,9 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   onChanged: isRentalFlow
                       ? null
                       : (value) {
-                          if (value != null)
-                            setState(() {
-                              _shippingMethod = value;
-                              _updateTotalAmount();
-                            });
+                          if (value != null) {
+                            setState(() => _shippingMethod = value);
+                          }
                         },
                   contentPadding: EdgeInsets.zero,
                   activeColor: AppColors.primary,
@@ -528,54 +516,6 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSellerChoiceSection() {
-    return Container(
-      margin: const EdgeInsets.only(top: 12.0),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 12.0),
-            child: Text(
-              'Opsi untuk Penjual:',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-          ),
-          RadioListTile<String>(
-            title: const Text('Penjual Antar Sendiri',
-                style: TextStyle(fontSize: 14)),
-            value: 'self_deliver',
-            groupValue: _sellerDeliveryChoice,
-            onChanged: (value) {
-              if (value != null) setState(() => _sellerDeliveryChoice = value);
-            },
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppColors.primary,
-          ),
-          RadioListTile<String>(
-            title: const Text('Agen Aplikasi yang Ambil',
-                style: TextStyle(fontSize: 14)),
-            value: 'agent_pickup',
-            groupValue: _sellerDeliveryChoice,
-            onChanged: (value) {
-              if (value != null) setState(() => _sellerDeliveryChoice = value);
-            },
-            dense: true,
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppColors.primary,
-          ),
-        ],
-      ),
     );
   }
 
@@ -601,32 +541,9 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
       return const SizedBox.shrink();
     }
 
-    if (_itemType == 'donation') {
-      return Container(
-        padding: const EdgeInsets.all(20)
-            .copyWith(bottom: MediaQuery.of(context).padding.bottom + 20),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -5))
-          ],
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: BlocBuilder<OrderDetailBloc, OrderDetailState>(
-          builder: (context, state) {
-            return CustomButton(
-              text: 'Konfirmasi Pengiriman Donasi',
-              isLoading: state is OrderDetailLoading,
-              onPressed: state is OrderDetailLoading ? null : _createOrder,
-              width: double.infinity,
-            );
-          },
-        ),
-      );
-    }
+    final buttonText = _itemType == 'donation'
+        ? 'Konfirmasi Pengiriman Donasi'
+        : 'Lanjutkan ke Pembayaran';
 
     return Container(
       padding: const EdgeInsets.all(20)
@@ -644,60 +561,126 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Subtotal Barang',
-                  style: TextStyle(color: AppColors.textSecondary)),
-              Text(_formatCurrency((_itemPrice ?? 0) * _quantity),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: AppColors.textPrimary)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Ongkos Kirim',
-                  style: TextStyle(color: AppColors.textSecondary)),
-              Text(
-                  _shippingMethod == 'pickup_warehouse'
-                      ? 'Rp0'
-                      : _formatCurrency(_shippingFee),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: AppColors.textPrimary)),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Total Pembayaran',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: AppColors.textPrimary)),
-              Text(_formatCurrency(_totalAmount),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: AppColors.primary)),
-            ],
-          ),
-          const SizedBox(height: 20),
+          if (_itemType != 'donation')
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                'Total harga akan ditampilkan di langkah selanjutnya.',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
           BlocBuilder<OrderDetailBloc, OrderDetailState>(
             builder: (context, state) {
               return CustomButton(
-                text: 'Buat Pesanan & Bayar',
+                text: buttonText,
                 isLoading: state is OrderDetailLoading,
                 onPressed: state is OrderDetailLoading ? null : _createOrder,
                 width: double.infinity,
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Widget BottomSheet tetap sama
+class PaymentSummarySheet extends StatelessWidget {
+  final CreateOrderResponseEntity response;
+
+  const PaymentSummarySheet({super.key, required this.response});
+
+  @override
+  Widget build(BuildContext context) {
+    final currencyFormat =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
+    return Container(
+      padding: const EdgeInsets.all(20).copyWith(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 50,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Lanjutkan Pembayaran',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            response.totalAmount > 0
+                ? 'Pindai QR Code untuk menyelesaikan pesanan'
+                : 'Pesanan donasi Anda telah dikonfirmasi.',
+            style: const TextStyle(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          if (response.qrisPayload != null && response.totalAmount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: QrImageView(
+                  data: response.qrisPayload!,
+                  version: QrVersions.auto,
+                  size: 220.0,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+          if (response.totalAmount > 0)
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.timer_outlined,
+                      color: AppColors.error, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Bayar sebelum: ${DateFormat('dd MMM yyyy, HH:mm').format(response.expiresAt.toLocal())}',
+                    style: const TextStyle(
+                        color: AppColors.error, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          const Divider(height: 32),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Total Pembayaran',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(
+                currencyFormat.format(response.totalAmount),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          CustomButton(
+            text: 'Lihat Detail Pesanan',
+            onPressed: () => Navigator.pop(context),
+            width: double.infinity,
           ),
         ],
       ),

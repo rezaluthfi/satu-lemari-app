@@ -1,19 +1,75 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:satulemari/features/order/data/models/qris_payment_model.dart';
+import 'package:satulemari/features/order/domain/entities/create_order_response.dart';
 import 'package:satulemari/features/order/domain/entities/order_detail.dart';
 
 part 'order_detail_model.g.dart';
 
 @JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
 class CreateOrderResponseModel {
-  @JsonKey(name: 'order_id')
   final String orderId;
-  final QrisPaymentModel? qris;
+  final DateTime expiresAt;
+  final int itemPrice;
+  final ShippingDetailsModel shippingDetails;
+  final int shippingFee;
+  final String status;
+  final int totalAmount;
+  final QrisInfoModel? qris;
 
-  CreateOrderResponseModel({required this.orderId, this.qris});
+  CreateOrderResponseModel({
+    required this.orderId,
+    required this.expiresAt,
+    required this.itemPrice,
+    required this.shippingDetails,
+    required this.shippingFee,
+    required this.status,
+    required this.totalAmount,
+    this.qris,
+  });
 
-  factory CreateOrderResponseModel.fromJson(Map<String, dynamic> json) =>
-      _$CreateOrderResponseModelFromJson(json);
+  factory CreateOrderResponseModel.fromJson(Map<String, dynamic> json) {
+    // Membaca dari root 'data' yang ada di respons JSON
+    return _$CreateOrderResponseModelFromJson(
+        json['data'] as Map<String, dynamic>);
+  }
+
+  CreateOrderResponseEntity toEntity() {
+    return CreateOrderResponseEntity(
+      orderId: orderId,
+      expiresAt: expiresAt,
+      itemPrice: itemPrice,
+      shippingFee: shippingFee,
+      status: status,
+      totalAmount: totalAmount,
+      qrisPayload: qris?.payload,
+    );
+  }
+}
+
+@JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
+class ShippingDetailsModel {
+  final int buyerFee;
+  final String method;
+  final int sellerFee;
+
+  ShippingDetailsModel({
+    required this.buyerFee,
+    required this.method,
+    required this.sellerFee,
+  });
+
+  factory ShippingDetailsModel.fromJson(Map<String, dynamic> json) =>
+      _$ShippingDetailsModelFromJson(json);
+}
+
+@JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
+class QrisInfoModel {
+  final String method;
+  final String payload;
+
+  QrisInfoModel({required this.method, required this.payload});
+
+  factory QrisInfoModel.fromJson(Map<String, dynamic> json) =>
+      _$QrisInfoModelFromJson(json);
 }
 
 @JsonSerializable(createToJson: false, explicitToJson: true)
@@ -68,7 +124,7 @@ class OrderDataModel {
     this.notes,
     required this.createdAt,
     required this.expiresAt,
-    required this.itemId, // <-- Diubah
+    required this.itemId,
   });
 
   factory OrderDataModel.fromJson(Map<String, dynamic> json) =>

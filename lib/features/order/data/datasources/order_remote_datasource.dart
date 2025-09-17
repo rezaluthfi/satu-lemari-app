@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:satulemari/core/constants/app_urls.dart';
 import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/features/order/data/models/cancel_order_response_model.dart';
@@ -52,15 +53,27 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   @override
   Future<List<OrderItemModel>> getMyOrders() async {
     try {
+      // Panggil endpoint tanpa query parameter untuk saat ini
       final response = await dio.get(AppUrls.orders);
-      final List<dynamic> data = response.data['data'] ?? [];
-      return data.map((json) => OrderItemModel.fromJson(json)).toList();
-    } on DioException catch (e) {
-      String message = 'Gagal mengambil riwayat pesanan';
-      if (e.response?.data != null && e.response!.data['error'] is Map) {
-        message = e.response!.data['error']['message'] ?? message;
+
+      final dynamic responseData = response.data['data'];
+      if (responseData is! List) {
+        debugPrint(
+            "[OrderDataSource] 'data' field is not a List. Returning empty list.");
+        return [];
       }
+
+      final List<dynamic> data = responseData;
+      return List<OrderItemModel>.from(
+          data.map((json) => OrderItemModel.fromJson(json)));
+    } on DioException catch (e) {
+      final message =
+          e.response?.data?['message'] ?? 'Gagal memuat riwayat pesanan';
       throw ServerException(message: message);
+    } catch (e, stacktrace) {
+      debugPrint("[OrderDataSource] Parsing error: $e");
+      debugPrint(stacktrace.toString());
+      throw ServerException(message: 'Gagal memproses data pesanan.');
     }
   }
 

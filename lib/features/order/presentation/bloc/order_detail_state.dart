@@ -32,11 +32,11 @@ class OrderDetailLoaded extends OrderDetailState {
 }
 
 class OrderCreateSuccess extends OrderDetailState {
-  final String newOrderId;
-  const OrderCreateSuccess(this.newOrderId);
+  final CreateOrderResponseEntity response;
+  const OrderCreateSuccess(this.response);
 
   @override
-  List<Object> get props => [newOrderId];
+  List<Object> get props => [response];
 }
 
 class OrderCancelSuccess extends OrderDetailState {}

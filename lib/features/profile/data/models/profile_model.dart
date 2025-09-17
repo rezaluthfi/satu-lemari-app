@@ -15,9 +15,9 @@ class ProfileModel {
   final String? description;
   final double? latitude;
   final double? longitude;
-  final int weeklyDonationQuota;
-  final int weeklyDonationUsed;
-  final String quotaResetDate;
+  final int? weeklyDonationQuota;
+  final int? weeklyDonationUsed;
+  final String? quotaResetDate;
 
   ProfileModel({
     required this.id,
@@ -31,9 +31,9 @@ class ProfileModel {
     this.description,
     this.latitude,
     this.longitude,
-    required this.weeklyDonationQuota,
-    required this.weeklyDonationUsed,
-    required this.quotaResetDate,
+    this.weeklyDonationQuota,
+    this.weeklyDonationUsed,
+    this.quotaResetDate,
   });
 
   factory ProfileModel.fromJson(Map<String, dynamic> json) =>

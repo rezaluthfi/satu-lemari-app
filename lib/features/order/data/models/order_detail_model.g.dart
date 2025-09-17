@@ -10,9 +10,30 @@ CreateOrderResponseModel _$CreateOrderResponseModelFromJson(
         Map<String, dynamic> json) =>
     CreateOrderResponseModel(
       orderId: json['order_id'] as String,
+      expiresAt: DateTime.parse(json['expires_at'] as String),
+      itemPrice: (json['item_price'] as num).toInt(),
+      shippingDetails: ShippingDetailsModel.fromJson(
+          json['shipping_details'] as Map<String, dynamic>),
+      shippingFee: (json['shipping_fee'] as num).toInt(),
+      status: json['status'] as String,
+      totalAmount: (json['total_amount'] as num).toInt(),
       qris: json['qris'] == null
           ? null
-          : QrisPaymentModel.fromJson(json['qris'] as Map<String, dynamic>),
+          : QrisInfoModel.fromJson(json['qris'] as Map<String, dynamic>),
+    );
+
+ShippingDetailsModel _$ShippingDetailsModelFromJson(
+        Map<String, dynamic> json) =>
+    ShippingDetailsModel(
+      buyerFee: (json['buyer_fee'] as num).toInt(),
+      method: json['method'] as String,
+      sellerFee: (json['seller_fee'] as num).toInt(),
+    );
+
+QrisInfoModel _$QrisInfoModelFromJson(Map<String, dynamic> json) =>
+    QrisInfoModel(
+      method: json['method'] as String,
+      payload: json['payload'] as String,
     );
 
 GetOrderDetailResponse _$GetOrderDetailResponseFromJson(
