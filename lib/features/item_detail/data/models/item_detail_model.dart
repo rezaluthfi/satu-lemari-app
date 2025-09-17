@@ -18,6 +18,7 @@ class ItemDetailModel {
 
   @JsonKey(defaultValue: [])
   final List<String> images;
+  final DateTime createdAt;
 
   ItemDetailModel({
     required this.id,
@@ -32,6 +33,7 @@ class ItemDetailModel {
     required this.images,
     this.partner,
     this.category,
+    required this.createdAt,
   });
 
   factory ItemDetailModel.fromJson(Map<String, dynamic> json) =>

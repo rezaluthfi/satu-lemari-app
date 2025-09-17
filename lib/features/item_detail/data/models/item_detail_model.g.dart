@@ -28,6 +28,7 @@ ItemDetailModel _$ItemDetailModelFromJson(Map<String, dynamic> json) =>
           ? null
           : CategoryInfoModel.fromJson(
               json['category'] as Map<String, dynamic>),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
 
 Map<String, dynamic> _$ItemDetailModelToJson(ItemDetailModel instance) =>
@@ -44,6 +45,7 @@ Map<String, dynamic> _$ItemDetailModelToJson(ItemDetailModel instance) =>
       'partner': instance.partner?.toJson(),
       'category': instance.category?.toJson(),
       'images': instance.images,
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
 PartnerModel _$PartnerModelFromJson(Map<String, dynamic> json) => PartnerModel(

@@ -44,6 +44,7 @@ class ItemDetailRepositoryImpl implements ItemDetailRepository {
       price: model.price,
       categoryName: model.category?.name ?? 'Lainnya',
       availableQuantity: model.availableQuantity,
+      createdAt: model.createdAt,
     );
   }
 

@@ -19,8 +19,7 @@ class BrowsePage extends StatefulWidget {
 }
 
 class _BrowsePageState extends State<BrowsePage>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  late TabController _tabController;
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -46,35 +45,7 @@ class _BrowsePageState extends State<BrowsePage>
     final browseBloc = context.read<BrowseBloc>();
     _searchController.text = browseBloc.state.query;
 
-    int getInitialIndex() {
-      switch (browseBloc.state.activeTab) {
-        case 'donation':
-          return 0;
-        case 'rental':
-          return 1;
-        case 'thrifting':
-          return 2;
-        default:
-          return 0;
-      }
-    }
-
-    _tabController = TabController(
-      initialIndex: getInitialIndex(),
-      length: 3, // <-- PERUBAHAN 1: Panjang TabController sekarang 3
-      vsync: this,
-    );
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        final types = ['donation', 'rental', 'thrifting'];
-        final selectedType = types[_tabController.index];
-        browseBloc.add(TabChanged(selectedType));
-      }
-    });
-
-    if (browseBloc.state.donationStatus == BrowseStatus.initial ||
-        browseBloc.state.rentalStatus == BrowseStatus.initial ||
-        browseBloc.state.thriftingStatus == BrowseStatus.initial) {
+    if (browseBloc.state.status == BrowseStatus.initial) {
       browseBloc.add(BrowseDataFetched());
     }
 
@@ -153,7 +124,6 @@ class _BrowsePageState extends State<BrowsePage>
   void dispose() {
     _speech.stop();
     _speech.cancel();
-    _tabController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _recognizedWordsNotifier.dispose();
@@ -237,7 +207,7 @@ class _BrowsePageState extends State<BrowsePage>
       builder: (_) {
         return FilterBottomSheet(
           categories: homeState.categories,
-          activeTab: browseState.activeTab,
+          activeTab: browseState.selectedType,
           activeCategoryId: browseState.categoryId,
           activeSize: browseState.size,
           activeSortBy: browseState.sortBy,
@@ -332,20 +302,16 @@ class _BrowsePageState extends State<BrowsePage>
                     children: [
                       _buildSearchTextField(),
                       _buildActiveFiltersSection(),
-                      _buildTabSection(),
+                      _buildFilterChips(),
                     ],
                   ),
                 ),
                 Container(height: 1, color: AppColors.divider.withOpacity(0.3)),
                 Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      ItemListView(type: 'donation'),
-                      ItemListView(type: 'rental'),
-                      // <-- PERUBAHAN 2: Menambahkan konten untuk tab ketiga
-                      ItemListView(type: 'thrifting'),
-                    ],
+                  child: BlocBuilder<BrowseBloc, BrowseState>(
+                    builder: (context, state) {
+                      return ItemListView(type: state.selectedType);
+                    },
                   ),
                 ),
               ],
@@ -367,10 +333,11 @@ class _BrowsePageState extends State<BrowsePage>
           prev.city != curr.city ||
           prev.minPrice != curr.minPrice ||
           prev.maxPrice != curr.maxPrice ||
-          prev.activeTab != curr.activeTab,
+          prev.selectedType != curr.selectedType,
       builder: (context, state) {
-        final showPriceRelatedFilters =
-            state.activeTab == 'rental' || state.activeTab == 'thrifting';
+        final showPriceRelatedFilters = state.selectedType == 'rental' ||
+            state.selectedType == 'thrifting' ||
+            state.selectedType == 'all';
         final hasPriceFilter = showPriceRelatedFilters &&
             (state.minPrice != null || state.maxPrice != null);
         final hasSortByPriceFilter =
@@ -658,7 +625,7 @@ class _BrowsePageState extends State<BrowsePage>
           prev.city != curr.city ||
           prev.minPrice != curr.minPrice ||
           prev.maxPrice != curr.maxPrice ||
-          prev.activeTab != curr.activeTab,
+          prev.selectedType != curr.selectedType,
       builder: (context, state) {
         final homeState = context.read<HomeBloc>().state;
         String? categoryName;
@@ -672,8 +639,9 @@ class _BrowsePageState extends State<BrowsePage>
             categoryName = null;
           }
         }
-        final showPriceRelatedFilters =
-            state.activeTab == 'rental' || state.activeTab == 'thrifting';
+        final showPriceRelatedFilters = state.selectedType == 'rental' ||
+            state.selectedType == 'thrifting' ||
+            state.selectedType == 'all';
         final hasPriceFilter = showPriceRelatedFilters &&
             (state.minPrice != null || state.maxPrice != null);
         final hasSortByPriceFilter =
@@ -803,7 +771,7 @@ class _BrowsePageState extends State<BrowsePage>
                         color: AppColors.error.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: AppColors.error.withOpacity(0.5), width: 1)),
+                            color: AppColors.error.withOpacity(0.3), width: 1)),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -827,75 +795,6 @@ class _BrowsePageState extends State<BrowsePage>
     );
   }
 
-  Widget _buildTabSection() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-      height: 48,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, child) {
-          return TabBar(
-            controller: _tabController,
-            indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: AppColors.primary),
-            labelColor: AppColors.textLight,
-            unselectedLabelColor: AppColors.textSecondary,
-            labelStyle:
-                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-            unselectedLabelStyle:
-                const TextStyle(fontWeight: FontWeight.w500, fontSize: 15),
-            dividerColor: Colors.transparent,
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicatorPadding: const EdgeInsets.all(2),
-            tabs: [
-              Tab(
-                child:
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.favorite_rounded,
-                      size: 18,
-                      color: _tabController.index == 0
-                          ? AppColors.textLight
-                          : AppColors.donation),
-                  const SizedBox(width: 8),
-                  const Text('Donasi'),
-                ]),
-              ),
-              Tab(
-                child:
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.shopping_bag_rounded,
-                      size: 18,
-                      color: _tabController.index == 1
-                          ? AppColors.textLight
-                          : AppColors.rental),
-                  const SizedBox(width: 8),
-                  const Text('Sewa'),
-                ]),
-              ),
-              Tab(
-                child:
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(Icons.sell_rounded,
-                      size: 18,
-                      color: _tabController.index == 2
-                          ? AppColors.textLight
-                          : AppColors.thrifting),
-                  const SizedBox(width: 8),
-                  const Text('Thrift'),
-                ]),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildFilterChip({
     required String label,
     required VoidCallback onDeleted,
@@ -909,7 +808,7 @@ class _BrowsePageState extends State<BrowsePage>
           color: AppColors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
           border:
-              Border.all(color: AppColors.primary.withOpacity(0.5), width: 1),
+              Border.all(color: AppColors.primary.withOpacity(0.3), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -930,6 +829,104 @@ class _BrowsePageState extends State<BrowsePage>
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    // Define filter type mappings with icons for better visual hierarchy
+    final Map<String, Map<String, dynamic>> filterTypes = {
+      'all': {
+        'label': 'Semua',
+        'icon': Icons.apps_rounded,
+        'color': AppColors.primary,
+      },
+      'donation': {
+        'label': 'Donasi',
+        'icon': Icons.favorite_rounded, // Konsisten dengan HistoryPage
+        'color': AppColors.donation,
+      },
+      'rental': {
+        'label': 'Sewa',
+        'icon': Icons.shopping_bag_rounded, // Konsisten dengan HistoryPage
+        'color': AppColors.rental,
+      },
+      'thrifting': {
+        'label': 'Thrift',
+        'icon': Icons.local_offer_rounded, // Icon kupon/tag untuk thrift
+        'color': AppColors.thrifting,
+      },
+    };
+
+    return BlocBuilder<BrowseBloc, BrowseState>(
+      buildWhen: (prev, curr) => prev.selectedType != curr.selectedType,
+      builder: (context, state) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(2),
+            child: Row(
+              children: filterTypes.entries.map((entry) {
+                final typeKey = entry.key;
+                final typeData = entry.value;
+                final isSelected = state.selectedType == typeKey;
+                final color = typeData['color'] as Color;
+
+                return GestureDetector(
+                  onTap: () {
+                    context.read<BrowseBloc>().add(FilterTypeSelected(typeKey));
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? color : Colors.transparent,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: color.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          typeData['icon'] as IconData,
+                          size: 18,
+                          color: isSelected ? AppColors.textLight : color,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          typeData['label'] as String,
+                          style: TextStyle(
+                            color: isSelected
+                                ? AppColors.textLight
+                                : AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

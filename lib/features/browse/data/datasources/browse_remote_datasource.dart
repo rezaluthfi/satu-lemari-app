@@ -8,7 +8,7 @@ import 'package:satulemari/features/category_items/data/models/item_model.dart';
 
 abstract class BrowseRemoteDataSource {
   Future<List<ItemModel>> searchItems({
-    required String type,
+    String? type,
     String? query,
     String? categoryId,
     String? size,
@@ -34,7 +34,7 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
 
   @override
   Future<List<ItemModel>> searchItems({
-    required String type,
+    String? type,
     String? query,
     String? categoryId,
     String? size,
@@ -49,34 +49,54 @@ class BrowseRemoteDataSourceImpl implements BrowseRemoteDataSource {
     int limit = 10,
   }) async {
     try {
-      // Membuat semua pengecekan parameter konsisten dan robust
+      // 1. Mulai dengan map yang berisi parameter wajib
       final Map<String, dynamic> queryParams = {
-        'type': type,
         'page': page,
         'limit': limit,
       };
-      if (query != null && query.isNotEmpty) queryParams['q'] = query;
+
+      // 2. Tambahkan parameter lain secara kondisional jika nilainya valid
+      if (type != null && type.isNotEmpty) {
+        queryParams['type'] = type;
+      }
+      if (query != null && query.isNotEmpty) {
+        queryParams['q'] = query;
+      }
       if (categoryId != null && categoryId.isNotEmpty) {
         queryParams['category_id'] = categoryId;
       }
-      if (size != null && size.isNotEmpty) queryParams['size'] = size;
-      if (color != null && color.isNotEmpty) queryParams['color'] = color;
+      if (size != null && size.isNotEmpty) {
+        queryParams['size'] = size;
+      }
+      if (color != null && color.isNotEmpty) {
+        queryParams['color'] = color;
+      }
       if (condition != null && condition.isNotEmpty) {
         queryParams['condition'] = condition;
       }
-      if (sortBy != null && sortBy.isNotEmpty) queryParams['sort_by'] = sortBy;
+      if (sortBy != null && sortBy.isNotEmpty) {
+        queryParams['sort_by'] = sortBy;
+      }
       if (sortOrder != null && sortOrder.isNotEmpty) {
         queryParams['sort_order'] = sortOrder;
       }
-      if (city != null && city.isNotEmpty) queryParams['city'] = city;
-      if (minPrice != null) queryParams['min_price'] = minPrice;
-      if (maxPrice != null) queryParams['max_price'] = maxPrice;
+      if (city != null && city.isNotEmpty) {
+        queryParams['city'] = city;
+      }
+      if (minPrice != null) {
+        queryParams['min_price'] = minPrice;
+      }
+      if (maxPrice != null) {
+        queryParams['max_price'] = maxPrice;
+      }
 
+      // 3. Panggil API dengan query parameters yang sudah bersih
       final response = await dio.get(
         AppUrls.items,
         queryParameters: queryParams,
       );
 
+      // --- Sisa kode tetap sama ---
       final dynamic responseData = response.data['data'];
       final List<dynamic> itemList = responseData is List
           ? responseData
