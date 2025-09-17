@@ -12,9 +12,9 @@ class Profile extends Equatable {
   final String? description;
   final double? latitude;
   final double? longitude;
-  final int weeklyDonationQuota;
-  final int weeklyDonationUsed;
-  final String quotaResetDate;
+  final int? weeklyDonationQuota;
+  final int? weeklyDonationUsed;
+  final String? quotaResetDate;
 
   const Profile({
     required this.id,
@@ -28,9 +28,9 @@ class Profile extends Equatable {
     this.description,
     this.latitude,
     this.longitude,
-    required this.weeklyDonationQuota,
-    required this.weeklyDonationUsed,
-    required this.quotaResetDate,
+    this.weeklyDonationQuota,
+    this.weeklyDonationUsed,
+    this.quotaResetDate,
   });
 
   @override

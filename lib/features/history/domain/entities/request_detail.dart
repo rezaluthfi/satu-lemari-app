@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 class RequestDetail extends Equatable {
   final String id;
@@ -41,6 +42,7 @@ class RequestDetail extends Equatable {
       ];
 }
 
+@JsonSerializable(createFactory: false, createToJson: false)
 class ItemInRequest extends Equatable {
   final String id;
   final String name;

@@ -51,38 +51,11 @@ class HistoryRepositoryImpl implements HistoryRepository {
     if (await networkInfo.isConnected) {
       try {
         final model = await remoteDataSource.getRequestDetail(id);
-        final entity = RequestDetail(
-          id: model.id,
-          type: model.type,
-          status: model.status,
-          rejectionReason: model.rejectionReason,
-          createdAt: model.createdAt,
-          item: ItemInRequest(
-            id: model.item.id,
-            name: model.item.name,
-            imageUrl:
-                model.item.images.isNotEmpty ? model.item.images.first : null,
-          ),
-          partner: PartnerInRequest(
-            id: model.partner.id,
-            name: model.partner.fullName ?? model.partner.username,
-            phone: model.partner.phone,
-            address: model.partner.address,
-            latitude: model.partner.latitude,
-            longitude: model.partner.longitude,
-          ),
-          reason: model.reason,
-          pickupDate: model.pickupDate,
-          returnDate: model.returnDate,
-        );
-        return Right(entity);
-      }
-      // Tangkap NotFoundException secara spesifik
-      on NotFoundException catch (e) {
+        // Panggil .toEntity() untuk konversi yang aman
+        return Right(model.toEntity());
+      } on NotFoundException catch (e) {
         return Left(NotFoundFailure(e.message));
-      }
-      // Tangkap ServerException lainnya
-      on ServerException catch (e) {
+      } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       }
     } else {

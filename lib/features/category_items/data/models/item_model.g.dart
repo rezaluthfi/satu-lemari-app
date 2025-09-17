@@ -23,6 +23,7 @@ ItemModel _$ItemModelFromJson(Map<String, dynamic> json) => ItemModel(
           [],
       categoryName:
           _categoryNameFromJson(json['category'] as Map<String, dynamic>?),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
 
 Map<String, dynamic> _$ItemModelToJson(ItemModel instance) => <String, dynamic>{
@@ -36,6 +37,7 @@ Map<String, dynamic> _$ItemModelToJson(ItemModel instance) => <String, dynamic>{
       'available_quantity': instance.availableQuantity,
       'price': instance.price,
       'images': instance.images,
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
 const _$ItemTypeEnumMap = {

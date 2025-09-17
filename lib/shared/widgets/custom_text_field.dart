@@ -13,7 +13,7 @@ class CustomTextField extends StatefulWidget {
   final void Function(String)? onChanged;
   final void Function()? onTap;
   final bool readOnly;
-  final int? minLines; // Tambahkan parameter minLines
+  final int? minLines;
   final int? maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
@@ -47,18 +47,22 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasLabel = widget.label.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
+        if (hasLabel) ...[
+          Text(
+            widget.label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textPrimary,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
         TextFormField(
           controller: widget.controller,
           obscureText: widget.obscureText ? _isObscured : false,

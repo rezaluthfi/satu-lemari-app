@@ -10,7 +10,7 @@ import 'package:satulemari/shared/widgets/network_error_widget.dart';
 import 'package:satulemari/shared/widgets/product_card.dart';
 
 class ItemListView extends StatefulWidget {
-  final String type; // 'donation', 'rental', or 'thrifting'
+  final String type; // 'all', 'donation', 'rental', or 'thrifting'
   const ItemListView({super.key, required this.type});
 
   @override
@@ -19,7 +19,6 @@ class ItemListView extends StatefulWidget {
 
 class _ItemListViewState extends State<ItemListView> {
   late ScrollController _scrollController;
-  bool _isLoadingMore = false;
 
   @override
   void initState() {
@@ -36,14 +35,9 @@ class _ItemListViewState extends State<ItemListView> {
   }
 
   void _onScroll() {
-    if (_isBottom && !_isLoadingMore) {
-      _isLoadingMore = true;
+    final state = context.read<BrowseBloc>().state;
+    if (_isBottom && !state.isLoadingMore && !state.hasReachedEnd) {
       context.read<BrowseBloc>().add(LoadMoreItems(widget.type));
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _isLoadingMore = false;
-        }
-      });
     }
   }
 
@@ -51,16 +45,12 @@ class _ItemListViewState extends State<ItemListView> {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
+    // Trigger load more sedikit lebih awal untuk pengalaman yang lebih mulus
     return currentScroll >= (maxScroll * 0.9);
   }
 
   void _retrySearch(BuildContext context) {
-    final currentQuery = context.read<BrowseBloc>().state.query;
-    if (currentQuery.isNotEmpty) {
-      context.read<BrowseBloc>().add(SearchTermChanged(currentQuery));
-    } else {
-      context.read<BrowseBloc>().add(BrowseDataFetched());
-    }
+    context.read<BrowseBloc>().add(BrowseDataFetched());
   }
 
   void _resetSearch(BuildContext context) {
@@ -68,6 +58,7 @@ class _ItemListViewState extends State<ItemListView> {
   }
 
   Future<void> _onRefresh() async {
+    // Refresh selalu mengambil semua data dari awal
     context.read<BrowseBloc>().add(RefreshItems(widget.type));
   }
 
@@ -75,50 +66,47 @@ class _ItemListViewState extends State<ItemListView> {
   Widget build(BuildContext context) {
     return BlocBuilder<BrowseBloc, BrowseState>(
       builder: (context, state) {
-        // <-- PERUBAHAN UTAMA: Menggunakan switch-case untuk mengambil data yang benar
-        BrowseStatus status;
-        List<Item> items;
-        bool isLoadingMore;
-        String? error;
-
+        // Logika baru untuk memilih data yang akan ditampilkan
+        List<Item> itemsToDisplay;
         switch (widget.type) {
           case 'donation':
-            status = state.donationStatus;
-            items = state.donationItems;
-            isLoadingMore = state.donationIsLoadingMore;
-            error = state.donationError;
+            itemsToDisplay = state.donationItems;
             break;
           case 'rental':
-            status = state.rentalStatus;
-            items = state.rentalItems;
-            isLoadingMore = state.rentalIsLoadingMore;
-            error = state.rentalError;
+            itemsToDisplay = state.rentalItems;
             break;
           case 'thrifting':
-            status = state.thriftingStatus;
-            items = state.thriftingItems;
-            isLoadingMore = state.thriftingIsLoadingMore;
-            error = state.thriftingError;
+            itemsToDisplay = state.thriftingItems;
             break;
+          case 'all':
           default:
-            // Fallback jika tipe tidak dikenal, untuk menghindari crash
-            return const Center(child: Text("Tipe tidak valid."));
+            // Gabungkan semua list untuk tampilan 'Semua'
+            itemsToDisplay = [
+              ...state.donationItems,
+              ...state.rentalItems,
+              ...state.thriftingItems,
+            ];
+            // KODE YANG DIPERBAIKI: Mengurutkan list gabungan
+            itemsToDisplay.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            break;
         }
 
-        if (status == BrowseStatus.loading || status == BrowseStatus.initial) {
+        // Handle status loading awal (saat aplikasi pertama kali dibuka/setelah search)
+        if (state.status == BrowseStatus.loading) {
           return const SingleChildScrollView(
             physics: NeverScrollableScrollPhysics(),
             child: PersonalizedGridShimmer(),
           );
         }
 
-        if (status == BrowseStatus.error) {
+        // Handle error global
+        if (state.status == BrowseStatus.error) {
           return CustomScrollView(
             slivers: [
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: NetworkErrorWidget(
-                  message: error ?? 'Terjadi kesalahan tidak diketahui.',
+                  message: state.error ?? 'Terjadi kesalahan tidak diketahui.',
                   onRetry: () => _retrySearch(context),
                 ),
               ),
@@ -126,7 +114,8 @@ class _ItemListViewState extends State<ItemListView> {
           );
         }
 
-        if (status == BrowseStatus.success && items.isEmpty) {
+        // Handle kondisi kosong setelah data berhasil diambil
+        if (state.status == BrowseStatus.success && itemsToDisplay.isEmpty) {
           return CustomScrollView(
             slivers: [
               SliverFillRemaining(
@@ -144,6 +133,7 @@ class _ItemListViewState extends State<ItemListView> {
           );
         }
 
+        // Tampilkan grid jika ada item
         return RefreshIndicator(
           onRefresh: _onRefresh,
           color: AppColors.primary,
@@ -156,17 +146,18 @@ class _ItemListViewState extends State<ItemListView> {
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childCount: items.length,
+                  childCount: itemsToDisplay.length,
                   itemBuilder: (context, index) {
-                    final item = items[index];
+                    final item = itemsToDisplay[index];
                     return ProductCard(item: item);
                   },
                 ),
               ),
-              if (isLoadingMore)
+              // Tampilkan loading indicator di bawah saat load more
+              if (state.isLoadingMore)
                 const SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.all(16.0),
+                    padding: EdgeInsets.symmetric(vertical: 24.0),
                     child: Center(
                       child: CircularProgressIndicator(
                         color: AppColors.primary,

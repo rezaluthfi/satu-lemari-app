@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 class DashboardStats extends Equatable {
   final int totalDonations;
   final int totalRentals;
+  final int totalThrifting;
   final int activeItems;
   final int pendingRequests;
   final int completedRequests;
@@ -12,6 +13,7 @@ class DashboardStats extends Equatable {
   const DashboardStats({
     required this.totalDonations,
     required this.totalRentals,
+    required this.totalThrifting,
     required this.activeItems,
     required this.pendingRequests,
     required this.completedRequests,
@@ -23,6 +25,7 @@ class DashboardStats extends Equatable {
   List<Object?> get props => [
         totalDonations,
         totalRentals,
+        totalThrifting,
         activeItems,
         pendingRequests,
         completedRequests,

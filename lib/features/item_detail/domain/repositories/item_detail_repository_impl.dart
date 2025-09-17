@@ -3,7 +3,7 @@ import 'package:satulemari/core/errors/exceptions.dart';
 import 'package:satulemari/core/errors/failures.dart';
 import 'package:satulemari/core/network/network_info.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
-import 'package:satulemari/features/home/domain/entities/recommendation.dart'; // Mengambil ItemType
+import 'package:satulemari/features/home/domain/entities/recommendation.dart';
 import 'package:satulemari/features/item_detail/data/datasources/item_detail_remote_datasource.dart';
 import 'package:satulemari/features/item_detail/data/models/item_detail_model.dart';
 import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
@@ -19,23 +19,32 @@ class ItemDetailRepositoryImpl implements ItemDetailRepository {
   });
 
   Item _mapItemDetailModelToItem(ItemDetailModel model) {
-    ItemType type = ItemType.unknown;
-    if (model.type?.toLowerCase() == 'donation') {
-      type = ItemType.donation;
-    } else if (model.type?.toLowerCase() == 'rental') {
-      type = ItemType.rental;
+    ItemType type;
+    switch (model.type?.toLowerCase()) {
+      case 'donation':
+        type = ItemType.donation;
+        break;
+      case 'rental':
+        type = ItemType.rental;
+        break;
+      case 'thrifting':
+        type = ItemType.thrifting;
+        break;
+      default:
+        type = ItemType.unknown;
     }
 
     return Item(
       id: model.id,
-      name: model.name ?? 'Nama Tidak Tersedia', // Fallback
+      name: model.name ?? 'Nama Tidak Tersedia',
       imageUrl: model.images.isNotEmpty ? model.images.first : null,
       type: type,
       size: model.size,
       condition: model.condition,
       price: model.price,
-      categoryName: model.category?.name ?? 'Lainnya', // Fallback
+      categoryName: model.category?.name ?? 'Lainnya',
       availableQuantity: model.availableQuantity,
+      createdAt: model.createdAt,
     );
   }
 
@@ -45,7 +54,6 @@ class ItemDetailRepositoryImpl implements ItemDetailRepository {
       try {
         final model = await remoteDataSource.getItemById(id);
 
-        // Validasi data penting sebelum mapping
         if (model.name == null ||
             model.type == null ||
             model.condition == null ||

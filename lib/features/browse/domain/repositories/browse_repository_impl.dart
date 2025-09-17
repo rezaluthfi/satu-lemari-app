@@ -28,8 +28,6 @@ class BrowseRepositoryImpl implements BrowseRepository {
   });
 
   Item _mapItemModelToItemEntity(ItemModel model) {
-    // Menggunakan categoryName dari model jika ada (hasil dari @JsonKey fromJson)
-    // atau fallback ke cache jika tidak ada.
     final categoryName = model.categoryName ??
         (model.categoryId != null
             ? categoryCache.getCategoryNameById(model.categoryId!)
@@ -40,13 +38,14 @@ class BrowseRepositoryImpl implements BrowseRepository {
       name: model.name ?? 'Tanpa Nama',
       description: model.description,
       imageUrl: model.images.isNotEmpty ? model.images.first : null,
-      // Langsung gunakan nilai enum dari model. Tidak ada lagi konversi manual.
       type: model.type ?? ItemType.unknown,
       size: model.size,
       condition: model.condition,
       availableQuantity: model.availableQuantity,
       price: model.price,
       categoryName: categoryName,
+      // --- TAMBAHKAN BARIS INI ---
+      createdAt: model.createdAt,
     );
   }
 
@@ -175,6 +174,7 @@ class BrowseRepositoryImpl implements BrowseRepository {
             availableQuantity: detailModel.availableQuantity,
             price: detailModel.price,
             categoryName: detailModel.category?.name,
+            createdAt: detailModel.createdAt,
           );
         }).toList();
 

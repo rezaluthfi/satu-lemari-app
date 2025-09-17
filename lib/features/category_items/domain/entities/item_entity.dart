@@ -12,6 +12,7 @@ class Item extends Equatable {
   final int? availableQuantity;
   final double? price;
   final String? categoryName;
+  final DateTime createdAt;
 
   const Item({
     required this.id,
@@ -24,6 +25,7 @@ class Item extends Equatable {
     this.availableQuantity,
     this.price,
     this.categoryName,
+    required this.createdAt,
   });
 
   @override
@@ -38,5 +40,6 @@ class Item extends Equatable {
         availableQuantity,
         price,
         categoryName,
+        createdAt,
       ];
 }

@@ -16,7 +16,7 @@ class SearchItemsUseCase implements UseCase<List<Item>, SearchItemsParams> {
 }
 
 class SearchItemsParams extends Equatable {
-  final String type; // 'donation' or 'rental'
+  final String? type;
   final String? query;
   final String? categoryId;
   final String? size;
@@ -31,7 +31,7 @@ class SearchItemsParams extends Equatable {
   final int limit;
 
   const SearchItemsParams({
-    required this.type,
+    this.type,
     this.query,
     this.categoryId,
     this.size,
@@ -46,10 +46,8 @@ class SearchItemsParams extends Equatable {
     this.limit = 10,
   });
 
-  /// Calculate offset from page and limit
   int get offset => (page - 1) * limit;
 
-  /// Create a copy with new pagination parameters
   SearchItemsParams copyWithPagination({int? page, int? limit}) {
     return SearchItemsParams(
       type: type,

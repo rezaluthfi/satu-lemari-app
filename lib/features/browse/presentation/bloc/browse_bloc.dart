@@ -4,6 +4,7 @@ import 'package:satulemari/features/browse/domain/usecases/analyze_intent_usecas
 import 'package:satulemari/features/browse/domain/usecases/get_ai_suggestions_usecase.dart';
 import 'package:satulemari/features/browse/domain/usecases/search_items_usecase.dart';
 import 'package:satulemari/features/category_items/domain/entities/item_entity.dart';
+import 'package:satulemari/features/home/domain/entities/recommendation.dart'; // Impor untuk enum ItemType
 import 'package:rxdart/rxdart.dart';
 
 part 'browse_event.dart';
@@ -66,14 +67,15 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     });
     on<BrowseDataFetched>(_onBrowseDataFetched,
         transformer: (events, mapper) => events.switchMap(mapper));
-    on<TabChanged>(_onTabChanged);
+    on<FilterTypeSelected>(_onFilterTypeSelected);
     on<FilterApplied>(_onFilterApplied,
         transformer: (events, mapper) => events.switchMap(mapper));
     on<ResetFilters>(_onResetFilters,
         transformer: (events, mapper) => events.switchMap(mapper));
     on<SearchTermChanged>(_onSearchTermChanged,
         transformer: (events, mapper) => events.switchMap(mapper));
-    on<SearchCleared>(_onSearchCleared);
+    on<SearchCleared>(_onSearchCleared,
+        transformer: (events, mapper) => events.switchMap(mapper));
     on<IntentAnalysisAndSearchRequested>(_onIntentAnalysisAndSearchRequested,
         transformer: (events, mapper) => events.switchMap(mapper));
     on<SuggestionsRequested>(
@@ -87,46 +89,39 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     on<RefreshItems>(_onRefreshItems);
   }
 
-  @override
-  Future<void> close() {
-    return super.close();
-  }
-
-  Future<void> _onTabChanged(
-      TabChanged event, Emitter<BrowseState> emit) async {
-    final newTab = event.type;
-    if (state.activeTab == newTab) return;
+  Future<void> _onFilterTypeSelected(
+      FilterTypeSelected event, Emitter<BrowseState> emit) async {
+    final newType = event.type;
+    if (state.selectedType == newType) return;
 
     final bool hadPriceFilter = state.minPrice != null ||
         state.maxPrice != null ||
         state.sortBy == 'price';
 
-    if (newTab == 'donation' && hadPriceFilter) {
+    if (newType == 'donation' && hadPriceFilter) {
       emit(state.copyWith(
-        activeTab: newTab,
+        selectedType: newType,
         notification: PriceFilterIgnoredNotification(),
       ));
     } else {
-      emit(state.copyWith(activeTab: newTab));
+      emit(state.copyWith(selectedType: newType));
     }
   }
 
   Future<void> _onSearchCleared(
       SearchCleared event, Emitter<BrowseState> emit) async {
     final cleanState = BrowseState.initial().copyWith(
-      activeTab: state.activeTab,
-      isFromSpeechToText: false,
-      donationStatus: BrowseStatus.loading,
-      rentalStatus: BrowseStatus.loading,
-      thriftingStatus: BrowseStatus.loading,
+      selectedType: 'all',
+      status: BrowseStatus.loading,
     );
     emit(cleanState);
-    await _performSearchForAllTabs(emit, cleanState);
+    await _performSearch(emit, cleanState);
   }
 
   Future<void> _onFilterApplied(
       FilterApplied event, Emitter<BrowseState> emit) async {
     final newState = state.copyWith(
+      selectedType: 'all',
       categoryId: event.categoryId,
       size: event.size,
       sortBy: event.sortBy,
@@ -134,28 +129,22 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
       city: event.city,
       minPrice: event.minPrice,
       maxPrice: event.maxPrice,
-      lastPerformedQuery: state.lastPerformedQuery,
       isFromSpeechToText: false,
-      donationStatus: BrowseStatus.loading,
-      rentalStatus: BrowseStatus.loading,
-      thriftingStatus: BrowseStatus.loading,
+      status: BrowseStatus.loading,
     );
     emit(newState);
-    await _performSearchForAllTabs(emit, newState);
+    await _performSearch(emit, newState);
   }
 
   Future<void> _onSearchTermChanged(
       SearchTermChanged event, Emitter<BrowseState> emit) async {
     final newState = BrowseState.initial().copyWith(
-        activeTab: state.activeTab,
+        selectedType: 'all',
         query: event.query,
         lastPerformedQuery: event.query,
-        isFromSpeechToText: false,
-        donationStatus: BrowseStatus.loading,
-        rentalStatus: BrowseStatus.loading,
-        thriftingStatus: BrowseStatus.loading);
+        status: BrowseStatus.loading);
     emit(newState);
-    await _performSearchForAllTabs(emit, newState);
+    await _performSearch(emit, newState);
   }
 
   Future<void> _onIntentAnalysisAndSearchRequested(
@@ -165,9 +154,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
     emit(state.copyWith(
       query: event.query,
       suggestionStatus: SuggestionStatus.loading,
-      donationStatus: BrowseStatus.loading,
-      rentalStatus: BrowseStatus.loading,
-      thriftingStatus: BrowseStatus.loading,
+      status: BrowseStatus.loading,
     ));
 
     add(SuggestionsRequested(event.query));
@@ -179,7 +166,7 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
         final stateWithFallbackSearch = state.copyWith(
           lastPerformedQuery: event.query,
         );
-        await _performSearchForAllTabs(emit, stateWithFallbackSearch);
+        await _performSearch(emit, stateWithFallbackSearch);
       },
       (intentAnalysis) async {
         final filters = intentAnalysis.filters;
@@ -192,9 +179,10 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
           condition: filters.condition,
           maxPrice: filters.maxPrice?.toDouble(),
           isFromSpeechToText: true,
+          selectedType: 'all',
         );
         emit(stateWithAiFilters);
-        await _performSearchForAllTabs(emit, stateWithAiFilters);
+        await _performSearch(emit, stateWithAiFilters);
       },
     );
   }
@@ -202,163 +190,80 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
   Future<void> _onResetFilters(
       ResetFilters event, Emitter<BrowseState> emit) async {
     final cleanState = BrowseState.initial().copyWith(
-        activeTab: state.activeTab,
-        isFromSpeechToText: false,
-        donationStatus: BrowseStatus.loading,
-        rentalStatus: BrowseStatus.loading,
-        thriftingStatus: BrowseStatus.loading);
+      selectedType: 'all',
+      status: BrowseStatus.loading,
+    );
     emit(cleanState);
-    await _performSearchForAllTabs(emit, cleanState);
+    await _performSearch(emit, cleanState);
   }
 
-  Future<void> _performSearchForAllTabs(
-      Emitter<BrowseState> emit, BrowseState currentState) async {
-    await Future.wait([
-      _performSearch(emit, currentState, 'donation'),
-      _performSearch(emit, currentState, 'rental'),
-      _performSearch(emit, currentState, 'thrifting'),
-    ]);
+  Future<void> _onBrowseDataFetched(
+      BrowseDataFetched event, Emitter<BrowseState> emit) async {
+    emit(state.copyWith(status: BrowseStatus.loading));
+    await _performSearch(emit, state);
   }
 
-  Future<void> _performSearch(Emitter<BrowseState> emit,
-      BrowseState currentState, String targetTab) async {
+  Future<void> _performSearch(
+      Emitter<BrowseState> emit, BrowseState currentState,
+      {bool isLoadMore = false}) async {
+    final pageToFetch = isLoadMore ? currentState.currentPage + 1 : 1;
     final queryForSearch = currentState.lastPerformedQuery.isNotEmpty
         ? currentState.lastPerformedQuery
         : currentState.query;
 
-    switch (targetTab) {
-      case 'donation':
-        emit(currentState.copyWith(donationStatus: BrowseStatus.loading));
-        break;
-      case 'rental':
-        emit(currentState.copyWith(rentalStatus: BrowseStatus.loading));
-        break;
-      case 'thrifting':
-        emit(currentState.copyWith(thriftingStatus: BrowseStatus.loading));
-        break;
-    }
-
     final params = SearchItemsParams(
-      type: targetTab,
+      type: null, // Always fetch all types from API
       query: queryForSearch,
       categoryId: currentState.categoryId,
       size: currentState.size,
       color: currentState.color,
       condition: currentState.condition,
-      sortBy: (targetTab == 'donation' && currentState.sortBy == 'price')
-          ? null
-          : currentState.sortBy,
-      sortOrder: (targetTab == 'donation' && currentState.sortBy == 'price')
-          ? null
-          : currentState.sortOrder,
+      sortBy: currentState.sortBy,
+      sortOrder: currentState.sortOrder,
       city: currentState.city,
-      minPrice: targetTab == 'donation' ? null : currentState.minPrice,
-      maxPrice: targetTab == 'donation' ? null : currentState.maxPrice,
-      page: 1,
+      minPrice: currentState.minPrice,
+      maxPrice: currentState.maxPrice,
+      page: pageToFetch,
       limit: 10,
-    );
-
-    final searchSnapshot = SearchParamsSnapshot(
-      query: queryForSearch,
-      categoryId: params.categoryId,
-      size: params.size,
-      color: params.color,
-      condition: params.condition,
-      sortBy: params.sortBy,
-      sortOrder: params.sortOrder,
-      city: params.city,
-      minPrice: params.minPrice,
-      maxPrice: params.maxPrice,
     );
 
     final result = await searchItems(params);
 
     result.fold(
       (failure) {
-        final latestBlocState = state;
-        switch (targetTab) {
-          case 'donation':
-            emit(latestBlocState.copyWith(
-              donationStatus: BrowseStatus.error,
-              donationError: failure.message,
-              donationItems: [],
-              lastDonationSearchParams: searchSnapshot,
-              donationCurrentPage: 1,
-              donationHasReachedEnd: false,
-              donationIsLoadingMore: false,
-            ));
-            break;
-          case 'rental':
-            emit(latestBlocState.copyWith(
-              rentalStatus: BrowseStatus.error,
-              rentalError: failure.message,
-              rentalItems: [],
-              lastRentalSearchParams: searchSnapshot,
-              rentalCurrentPage: 1,
-              rentalHasReachedEnd: false,
-              rentalIsLoadingMore: false,
-            ));
-            break;
-          case 'thrifting':
-            emit(latestBlocState.copyWith(
-              thriftingStatus: BrowseStatus.error,
-              thriftingError: failure.message,
-              thriftingItems: [],
-              lastThriftingSearchParams: searchSnapshot,
-              thriftingCurrentPage: 1,
-              thriftingHasReachedEnd: false,
-              thriftingIsLoadingMore: false,
-            ));
-            break;
-        }
+        emit(currentState.copyWith(
+          status: BrowseStatus.error,
+          error: failure.message,
+          isLoadingMore: false,
+        ));
       },
-      (items) {
-        final latestBlocState = state;
-        switch (targetTab) {
-          case 'donation':
-            emit(latestBlocState.copyWith(
-              donationStatus: BrowseStatus.success,
-              donationItems: items,
-              lastDonationSearchParams: searchSnapshot,
-              donationCurrentPage: 1,
-              donationHasReachedEnd: items.length < 10,
-              donationIsLoadingMore: false,
-            ));
-            break;
-          case 'rental':
-            emit(latestBlocState.copyWith(
-              rentalStatus: BrowseStatus.success,
-              rentalItems: items,
-              lastRentalSearchParams: searchSnapshot,
-              rentalCurrentPage: 1,
-              rentalHasReachedEnd: items.length < 10,
-              rentalIsLoadingMore: false,
-            ));
-            break;
-          case 'thrifting':
-            emit(latestBlocState.copyWith(
-              thriftingStatus: BrowseStatus.success,
-              thriftingItems: items,
-              lastThriftingSearchParams: searchSnapshot,
-              thriftingCurrentPage: 1,
-              thriftingHasReachedEnd: items.length < 10,
-              thriftingIsLoadingMore: false,
-            ));
-            break;
-        }
-      },
-    );
-  }
+      (newItems) {
+        // Pisahkan item berdasarkan enum ItemType
+        final newDonationItems =
+            newItems.where((i) => i.type == ItemType.donation).toList();
+        final newRentalItems =
+            newItems.where((i) => i.type == ItemType.rental).toList();
+        final newThriftingItems =
+            newItems.where((i) => i.type == ItemType.thrifting).toList();
 
-  Future<void> _onBrowseDataFetched(
-      BrowseDataFetched event, Emitter<BrowseState> emit) async {
-    final loadingState = state.copyWith(
-      donationStatus: BrowseStatus.loading,
-      rentalStatus: BrowseStatus.loading,
-      thriftingStatus: BrowseStatus.loading,
+        emit(currentState.copyWith(
+          status: BrowseStatus.success,
+          donationItems: isLoadMore
+              ? (List.of(currentState.donationItems)..addAll(newDonationItems))
+              : newDonationItems,
+          rentalItems: isLoadMore
+              ? (List.of(currentState.rentalItems)..addAll(newRentalItems))
+              : newRentalItems,
+          thriftingItems: isLoadMore
+              ? (List.of(currentState.thriftingItems)
+                ..addAll(newThriftingItems))
+              : newThriftingItems,
+          currentPage: pageToFetch,
+          hasReachedEnd: newItems.length < 10,
+          isLoadingMore: false,
+        ));
+      },
     );
-    emit(loadingState);
-    await _performSearchForAllTabs(emit, loadingState);
   }
 
   Future<void> _onSuggestionsRequested(
@@ -382,148 +287,14 @@ class BrowseBloc extends Bloc<BrowseEvent, BrowseState> {
 
   Future<void> _onLoadMoreItems(
       LoadMoreItems event, Emitter<BrowseState> emit) async {
-    final targetTab = event.type;
-    int currentPage;
-    SearchParamsSnapshot? lastParams;
-
-    switch (targetTab) {
-      case 'donation':
-        if (state.donationIsLoadingMore || state.donationHasReachedEnd) return;
-        currentPage = state.donationCurrentPage;
-        lastParams = state.lastDonationSearchParams;
-        emit(state.copyWith(donationIsLoadingMore: true));
-        break;
-      case 'rental':
-        if (state.rentalIsLoadingMore || state.rentalHasReachedEnd) return;
-        currentPage = state.rentalCurrentPage;
-        lastParams = state.lastRentalSearchParams;
-        emit(state.copyWith(rentalIsLoadingMore: true));
-        break;
-      case 'thrifting':
-        if (state.thriftingIsLoadingMore || state.thriftingHasReachedEnd)
-          return;
-        currentPage = state.thriftingCurrentPage;
-        lastParams = state.lastThriftingSearchParams;
-        emit(state.copyWith(thriftingIsLoadingMore: true));
-        break;
-      default:
-        return;
-    }
-
-    if (lastParams == null) {
-      switch (targetTab) {
-        case 'donation':
-          emit(state.copyWith(donationIsLoadingMore: false));
-          break;
-        case 'rental':
-          emit(state.copyWith(rentalIsLoadingMore: false));
-          break;
-        case 'thrifting':
-          emit(state.copyWith(thriftingIsLoadingMore: false));
-          break;
-      }
-      return;
-    }
-
-    final nextPage = currentPage + 1;
-
-    final params = SearchItemsParams(
-      type: targetTab,
-      query: lastParams.query,
-      categoryId: lastParams.categoryId,
-      size: lastParams.size,
-      color: lastParams.color,
-      condition: lastParams.condition,
-      sortBy: lastParams.sortBy,
-      sortOrder: lastParams.sortOrder,
-      city: lastParams.city,
-      minPrice: lastParams.minPrice,
-      maxPrice: lastParams.maxPrice,
-      page: nextPage,
-      limit: 10,
-    );
-
-    final result = await searchItems(params);
-    result.fold(
-      (failure) {
-        switch (targetTab) {
-          case 'donation':
-            emit(state.copyWith(donationIsLoadingMore: false));
-            break;
-          case 'rental':
-            emit(state.copyWith(rentalIsLoadingMore: false));
-            break;
-          case 'thrifting':
-            emit(state.copyWith(thriftingIsLoadingMore: false));
-            break;
-        }
-        print('Load more failed for $targetTab: ${failure.message}');
-      },
-      (newItems) {
-        switch (targetTab) {
-          case 'donation':
-            final updatedItems = [...state.donationItems, ...newItems];
-            emit(state.copyWith(
-              donationItems: updatedItems,
-              donationIsLoadingMore: false,
-              donationCurrentPage: nextPage,
-              donationHasReachedEnd: newItems.length < 10,
-            ));
-            break;
-          case 'rental':
-            final updatedItems = [...state.rentalItems, ...newItems];
-            emit(state.copyWith(
-              rentalItems: updatedItems,
-              rentalIsLoadingMore: false,
-              rentalCurrentPage: nextPage,
-              rentalHasReachedEnd: newItems.length < 10,
-            ));
-            break;
-          case 'thrifting':
-            final updatedItems = [...state.thriftingItems, ...newItems];
-            emit(state.copyWith(
-              thriftingItems: updatedItems,
-              thriftingIsLoadingMore: false,
-              thriftingCurrentPage: nextPage,
-              thriftingHasReachedEnd: newItems.length < 10,
-            ));
-            break;
-        }
-      },
-    );
+    if (state.isLoadingMore || state.hasReachedEnd) return;
+    emit(state.copyWith(isLoadingMore: true));
+    await _performSearch(emit, state, isLoadMore: true);
   }
 
   Future<void> _onRefreshItems(
       RefreshItems event, Emitter<BrowseState> emit) async {
-    final targetTab = event.type;
-
-    switch (targetTab) {
-      case 'donation':
-        emit(state.copyWith(
-          donationStatus: BrowseStatus.loading,
-          donationCurrentPage: 1,
-          donationHasReachedEnd: false,
-          donationIsLoadingMore: false,
-        ));
-        break;
-      case 'rental':
-        emit(state.copyWith(
-          rentalStatus: BrowseStatus.loading,
-          rentalCurrentPage: 1,
-          rentalHasReachedEnd: false,
-          rentalIsLoadingMore: false,
-        ));
-        break;
-      case 'thrifting':
-        emit(state.copyWith(
-          thriftingStatus: BrowseStatus.loading,
-          thriftingCurrentPage: 1,
-          thriftingHasReachedEnd: false,
-          thriftingIsLoadingMore: false,
-        ));
-        break;
-    }
-
-    await _performSearch(emit, state, targetTab);
+    emit(state.copyWith(status: BrowseStatus.loading));
+    await _performSearch(emit, state);
   }
 }

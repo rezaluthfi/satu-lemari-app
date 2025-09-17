@@ -3,29 +3,18 @@ part of 'history_bloc.dart';
 abstract class HistoryEvent extends Equatable {
   const HistoryEvent();
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
-class FetchHistory extends HistoryEvent {
-  final String type; // 'donation' or 'rental'
-  const FetchHistory({required this.type});
-  @override
-  List<Object> get props => [type];
-}
+class FetchAllHistory extends HistoryEvent {}
 
-// --- TAMBAHKAN KELAS INI ---
 class HistoryReset extends HistoryEvent {}
 
+class RefreshHistory extends HistoryEvent {}
+
 class LoadMoreHistory extends HistoryEvent {
-  final String type; // 'donation' or 'rental'
+  final String type; // 'requests' or 'orders'
   const LoadMoreHistory({required this.type});
   @override
-  List<Object> get props => [type];
-}
-
-class RefreshHistory extends HistoryEvent {
-  final String type; // 'donation' or 'rental'
-  const RefreshHistory({required this.type});
-  @override
-  List<Object> get props => [type];
+  List<Object?> get props => [type];
 }

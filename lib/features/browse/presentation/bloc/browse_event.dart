@@ -24,10 +24,10 @@ class SuggestionsRequested extends BrowseEvent {
 
 class BrowseDataFetched extends BrowseEvent {}
 
-class TabChanged extends BrowseEvent {
-  final String type;
+class FilterTypeSelected extends BrowseEvent {
+  final String type; // 'all', 'donation', 'rental', 'thrifting'
 
-  const TabChanged(this.type);
+  const FilterTypeSelected(this.type);
 
   @override
   List<Object?> get props => [type];
@@ -79,7 +79,7 @@ class IntentAnalysisAndSearchRequested extends BrowseEvent {
 class NotificationCleared extends BrowseEvent {}
 
 class LoadMoreItems extends BrowseEvent {
-  final String type; // 'donation' or 'rental'
+  final String type; // 'all', 'donation', 'rental', 'thrifting'
   const LoadMoreItems(this.type);
 
   @override
@@ -87,7 +87,7 @@ class LoadMoreItems extends BrowseEvent {
 }
 
 class RefreshItems extends BrowseEvent {
-  final String type; // 'donation' or 'rental'
+  final String type; // 'all', 'donation', 'rental', 'thrifting'
   const RefreshItems(this.type);
 
   @override

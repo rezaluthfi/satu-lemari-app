@@ -183,7 +183,7 @@ class _BottomInfo extends StatelessWidget {
             padding: EdgeInsets.only(bottom: isCarousel ? 6.0 : 8.0),
             child: Text(
               NumberFormat.currency(
-                      locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+                      locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
                   .format(item.price),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

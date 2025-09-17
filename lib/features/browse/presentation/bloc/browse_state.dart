@@ -13,33 +13,22 @@ enum BrowseStatus { initial, loading, success, error }
 enum SuggestionStatus { initial, loading, success, error }
 
 class BrowseState extends Equatable {
-  // Status umum untuk feedback UI
+  // Status umum untuk feedback UI, terutama untuk fetch awal
   final BrowseStatus status;
 
-  // Data dan status terpisah untuk setiap tab
-  final BrowseStatus donationStatus;
+  // Data dan status terpisah untuk setiap kategori item
   final List<Item> donationItems;
-  final String? donationError;
-  final bool donationIsLoadingMore;
-  final bool donationHasReachedEnd;
-  final int donationCurrentPage;
-
-  final BrowseStatus rentalStatus;
   final List<Item> rentalItems;
-  final String? rentalError;
-  final bool rentalIsLoadingMore;
-  final bool rentalHasReachedEnd;
-  final int rentalCurrentPage;
-
-  final BrowseStatus thriftingStatus;
   final List<Item> thriftingItems;
-  final String? thriftingError;
-  final bool thriftingIsLoadingMore;
-  final bool thriftingHasReachedEnd;
-  final int thriftingCurrentPage;
+  final String? error; // Satu error message untuk semua
 
-  // Tab yang sedang aktif
-  final String activeTab; // 'donation', 'rental', or 'thrifting'
+  // Status untuk pagination (jika diperlukan di masa depan)
+  final bool isLoadingMore;
+  final bool hasReachedEnd;
+  final int currentPage;
+
+  // Filter tipe yang sedang aktif
+  final String selectedType; // 'all', 'donation', 'rental', 'thrifting'
 
   // Properti untuk AI Suggestions
   final SuggestionStatus suggestionStatus;
@@ -59,12 +48,10 @@ class BrowseState extends Equatable {
   final double? minPrice;
   final double? maxPrice;
 
-  // Menyimpan parameter pencarian terakhir untuk setiap tab
-  final SearchParamsSnapshot? lastDonationSearchParams;
-  final SearchParamsSnapshot? lastRentalSearchParams;
-  final SearchParamsSnapshot? lastThriftingSearchParams;
+  // Menyimpan parameter pencarian terakhir
+  final SearchParamsSnapshot? lastSearchParams;
 
-  // Properti notifikasi baru
+  // Properti notifikasi
   final BrowseNotification? notification;
 
   // Flag untuk melacak apakah filter saat ini berasal dari speech-to-text
@@ -72,25 +59,14 @@ class BrowseState extends Equatable {
 
   const BrowseState({
     this.status = BrowseStatus.initial,
-    this.donationStatus = BrowseStatus.initial,
     this.donationItems = const [],
-    this.donationError,
-    this.donationIsLoadingMore = false,
-    this.donationHasReachedEnd = false,
-    this.donationCurrentPage = 1,
-    this.rentalStatus = BrowseStatus.initial,
     this.rentalItems = const [],
-    this.rentalError,
-    this.rentalIsLoadingMore = false,
-    this.rentalHasReachedEnd = false,
-    this.rentalCurrentPage = 1,
-    this.thriftingStatus = BrowseStatus.initial,
     this.thriftingItems = const [],
-    this.thriftingError,
-    this.thriftingIsLoadingMore = false,
-    this.thriftingHasReachedEnd = false,
-    this.thriftingCurrentPage = 1,
-    this.activeTab = 'donation',
+    this.error,
+    this.isLoadingMore = false,
+    this.hasReachedEnd = false,
+    this.currentPage = 1,
+    this.selectedType = 'all',
     this.suggestionStatus = SuggestionStatus.initial,
     this.suggestions = const [],
     this.suggestionError,
@@ -105,9 +81,7 @@ class BrowseState extends Equatable {
     this.city,
     this.minPrice,
     this.maxPrice,
-    this.lastDonationSearchParams,
-    this.lastRentalSearchParams,
-    this.lastThriftingSearchParams, // <-- TAMBAHAN
+    this.lastSearchParams,
     this.notification,
     this.isFromSpeechToText = false,
   });
@@ -118,25 +92,14 @@ class BrowseState extends Equatable {
 
   BrowseState copyWith({
     BrowseStatus? status,
-    BrowseStatus? donationStatus,
     List<Item>? donationItems,
-    String? donationError,
-    bool? donationIsLoadingMore,
-    bool? donationHasReachedEnd,
-    int? donationCurrentPage,
-    BrowseStatus? rentalStatus,
     List<Item>? rentalItems,
-    String? rentalError,
-    bool? rentalIsLoadingMore,
-    bool? rentalHasReachedEnd,
-    int? rentalCurrentPage,
-    BrowseStatus? thriftingStatus,
     List<Item>? thriftingItems,
-    String? thriftingError,
-    bool? thriftingIsLoadingMore,
-    bool? thriftingHasReachedEnd,
-    int? thriftingCurrentPage,
-    String? activeTab,
+    String? error,
+    bool? isLoadingMore,
+    bool? hasReachedEnd,
+    int? currentPage,
+    String? selectedType,
     SuggestionStatus? suggestionStatus,
     List<String>? suggestions,
     String? suggestionError,
@@ -151,37 +114,20 @@ class BrowseState extends Equatable {
     Object? city = _notProvided,
     Object? minPrice = _notProvided,
     Object? maxPrice = _notProvided,
-    SearchParamsSnapshot? lastDonationSearchParams,
-    SearchParamsSnapshot? lastRentalSearchParams,
-    SearchParamsSnapshot? lastThriftingSearchParams,
+    SearchParamsSnapshot? lastSearchParams,
     Object? notification = _notProvided,
     bool? isFromSpeechToText,
   }) {
     return BrowseState(
       status: status ?? this.status,
-      donationStatus: donationStatus ?? this.donationStatus,
       donationItems: donationItems ?? this.donationItems,
-      donationError: donationError ?? this.donationError,
-      donationIsLoadingMore:
-          donationIsLoadingMore ?? this.donationIsLoadingMore,
-      donationHasReachedEnd:
-          donationHasReachedEnd ?? this.donationHasReachedEnd,
-      donationCurrentPage: donationCurrentPage ?? this.donationCurrentPage,
-      rentalStatus: rentalStatus ?? this.rentalStatus,
       rentalItems: rentalItems ?? this.rentalItems,
-      rentalError: rentalError ?? this.rentalError,
-      rentalIsLoadingMore: rentalIsLoadingMore ?? this.rentalIsLoadingMore,
-      rentalHasReachedEnd: rentalHasReachedEnd ?? this.rentalHasReachedEnd,
-      rentalCurrentPage: rentalCurrentPage ?? this.rentalCurrentPage,
-      thriftingStatus: thriftingStatus ?? this.thriftingStatus,
       thriftingItems: thriftingItems ?? this.thriftingItems,
-      thriftingError: thriftingError ?? this.thriftingError,
-      thriftingIsLoadingMore:
-          thriftingIsLoadingMore ?? this.thriftingIsLoadingMore,
-      thriftingHasReachedEnd:
-          thriftingHasReachedEnd ?? this.thriftingHasReachedEnd,
-      thriftingCurrentPage: thriftingCurrentPage ?? this.thriftingCurrentPage,
-      activeTab: activeTab ?? this.activeTab,
+      error: error ?? this.error,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasReachedEnd: hasReachedEnd ?? this.hasReachedEnd,
+      currentPage: currentPage ?? this.currentPage,
+      selectedType: selectedType ?? this.selectedType,
       suggestionStatus: suggestionStatus ?? this.suggestionStatus,
       suggestions: suggestions ?? this.suggestions,
       suggestionError: suggestionError ?? this.suggestionError,
@@ -196,12 +142,7 @@ class BrowseState extends Equatable {
       city: _copyWith(city, this.city),
       minPrice: _copyWith(minPrice, this.minPrice),
       maxPrice: _copyWith(maxPrice, this.maxPrice),
-      lastDonationSearchParams:
-          lastDonationSearchParams ?? this.lastDonationSearchParams,
-      lastRentalSearchParams:
-          lastRentalSearchParams ?? this.lastRentalSearchParams,
-      lastThriftingSearchParams:
-          lastThriftingSearchParams ?? this.lastThriftingSearchParams,
+      lastSearchParams: lastSearchParams ?? this.lastSearchParams,
       notification: _copyWith(notification, this.notification),
       isFromSpeechToText: isFromSpeechToText ?? this.isFromSpeechToText,
     );
@@ -214,25 +155,14 @@ class BrowseState extends Equatable {
   @override
   List<Object?> get props => [
         status,
-        donationStatus,
         donationItems,
-        donationError,
-        donationIsLoadingMore,
-        donationHasReachedEnd,
-        donationCurrentPage,
-        rentalStatus,
         rentalItems,
-        rentalError,
-        rentalIsLoadingMore,
-        rentalHasReachedEnd,
-        rentalCurrentPage,
-        thriftingStatus,
         thriftingItems,
-        thriftingError,
-        thriftingIsLoadingMore,
-        thriftingHasReachedEnd,
-        thriftingCurrentPage,
-        activeTab,
+        error,
+        isLoadingMore,
+        hasReachedEnd,
+        currentPage,
+        selectedType,
         suggestionStatus,
         suggestions,
         suggestionError,
@@ -247,9 +177,7 @@ class BrowseState extends Equatable {
         city,
         minPrice,
         maxPrice,
-        lastDonationSearchParams,
-        lastRentalSearchParams,
-        lastThriftingSearchParams,
+        lastSearchParams,
         notification,
         isFromSpeechToText,
       ];

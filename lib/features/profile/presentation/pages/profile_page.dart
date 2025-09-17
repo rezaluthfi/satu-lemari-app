@@ -31,7 +31,6 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    // Trigger fetch data ketika widget pertama kali di-init
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _fetchProfileDataIfNeeded();
@@ -42,7 +41,6 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Trigger fetch when dependencies change (e.g., when page becomes visible)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _fetchProfileDataIfNeeded();
@@ -58,7 +56,6 @@ class _ProfilePageState extends State<ProfilePage>
         "[PROFILE_PAGE_LOG] Current ProfileState: ${profileState.runtimeType}");
     print("[PROFILE_PAGE_LOG] Current AuthState: ${authState.runtimeType}");
 
-    // Fetch jika user authenticated/registered dan profile belum loaded
     if ((authState is Authenticated || authState is RegistrationSuccess) &&
         (profileState is ProfileInitial || profileState is ProfileError)) {
       print("[PROFILE_PAGE_LOG] Triggering FetchProfileData");
@@ -68,22 +65,19 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: MultiBlocListener(
         listeners: [
-          // Listen to AuthBloc changes
           BlocListener<AuthBloc, AuthState>(
             listener: (context, authState) {
               print(
                   "[PROFILE_PAGE_LOG] AuthBloc state changed: ${authState.runtimeType}");
 
-              // Handle both Authenticated and RegistrationSuccess states
               if (authState is Authenticated ||
                   authState is RegistrationSuccess) {
-                // Ketika user berhasil login atau register, fetch profile data
                 final profileState = context.read<ProfileBloc>().state;
                 if (profileState is ProfileInitial ||
                     profileState is ProfileError) {
@@ -92,14 +86,12 @@ class _ProfilePageState extends State<ProfilePage>
                   context.read<ProfileBloc>().add(FetchProfileData());
                 }
               } else if (authState is Unauthenticated) {
-                // Reset profile ketika logout
                 print(
                     "[PROFILE_PAGE_LOG] User unauthenticated, resetting profile");
                 context.read<ProfileBloc>().add(ProfileReset());
               }
             },
           ),
-          // Listen to ProfileBloc changes
           BlocListener<ProfileBloc, ProfileState>(
             listener: (context, state) {
               print(
@@ -125,12 +117,10 @@ class _ProfilePageState extends State<ProfilePage>
         ],
         child: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, authState) {
-            // Tampilkan shimmer saat proses logout sedang berlangsung
             if (authState is AuthLoading) {
               return const ProfileShimmer();
             }
 
-            // Jika user tidak authenticated/registered, jangan tampilkan apapun
             if (authState is! Authenticated &&
                 authState is! RegistrationSuccess) {
               return const Center(
@@ -145,14 +135,12 @@ class _ProfilePageState extends State<ProfilePage>
                 print(
                     "[PROFILE_PAGE_LOG] Building with ProfileState: ${profileState.runtimeType}");
 
-                // Kondisi untuk menampilkan shimmer - termasuk untuk auth loading dan account delete
                 if (profileState is ProfileInitial ||
                     profileState is ProfileLoading ||
                     profileState is AccountDeleteInProgress) {
                   return const ProfileShimmer();
                 }
 
-                // Kondisi untuk menampilkan konten
                 if (profileState is ProfileLoaded ||
                     profileState is ProfileUpdateSuccess ||
                     profileState is ProfileUpdateInProgress ||
@@ -230,7 +218,6 @@ class _ProfilePageState extends State<ProfilePage>
                   );
                 }
 
-                // Fallback - trigger fetch jika state tidak dikenal
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) {
                     print(
@@ -506,6 +493,15 @@ class _ProfilePageState extends State<ProfilePage>
                 AppColors.rental,
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                'Thrift',
+                stats.totalThrifting.toString(),
+                Icons.sell_outlined,
+                AppColors.thrifting,
+              ),
+            ),
           ],
         ),
       ],
@@ -549,9 +545,16 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Widget _buildDonationQuotaCard(Profile profile) {
-    double progress = (profile.weeklyDonationQuota > 0)
-        ? profile.weeklyDonationUsed / profile.weeklyDonationQuota
-        : 0;
+    // Memberikan nilai default 0 jika data dari API null
+    final weeklyUsed = profile.weeklyDonationUsed ?? 0;
+    final weeklyQuota = profile.weeklyDonationQuota ?? 0;
+
+    double progress = (weeklyQuota > 0) ? weeklyUsed / weeklyQuota : 0;
+
+    // Memastikan progress tidak melebihi 1.0 (100%)
+    if (progress > 1.0) {
+      progress = 1.0;
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -606,7 +609,7 @@ class _ProfilePageState extends State<ProfilePage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${profile.weeklyDonationUsed}/${profile.weeklyDonationQuota} donasi',
+                '$weeklyUsed/$weeklyQuota donasi',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -625,7 +628,9 @@ class _ProfilePageState extends State<ProfilePage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Reset pada: ${DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.parse(profile.quotaResetDate))}',
+            profile.quotaResetDate != null && profile.quotaResetDate!.isNotEmpty
+                ? 'Reset pada: ${DateFormat('dd MMMM yyyy', 'id_ID').format(DateTime.parse(profile.quotaResetDate!))}'
+                : 'Tanggal reset tidak tersedia',
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.textSecondary,

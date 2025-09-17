@@ -1,8 +1,22 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 
 part 'request_detail_model.g.dart';
 
-@JsonSerializable(fieldRename: FieldRename.snake)
+// Helper functions (jika belum ada, tambahkan)
+String? _imageUrlFromImagesList(List<dynamic>? images) {
+  if (images != null && images.isNotEmpty && images.first is String) {
+    return images.first;
+  }
+  return null;
+}
+
+String _nameFromPartnerJson(Map<String, dynamic> json) {
+  return (json['full_name'] as String?) ?? (json['username'] as String);
+}
+
+@JsonSerializable(
+    fieldRename: FieldRename.snake, createToJson: false, explicitToJson: true)
 class RequestDetailModel {
   final String id;
   final String type;
@@ -11,7 +25,6 @@ class RequestDetailModel {
   final DateTime createdAt;
   final ItemInRequestModel item;
   final PartnerInRequestModel partner;
-
   final String? reason;
   final DateTime? pickupDate;
   final DateTime? returnDate;
@@ -29,12 +42,32 @@ class RequestDetailModel {
     this.returnDate,
   });
 
-  factory RequestDetailModel.fromJson(Map<String, dynamic> json) =>
-      _$RequestDetailModelFromJson(json);
-  Map<String, dynamic> toJson() => _$RequestDetailModelToJson(this);
+  factory RequestDetailModel.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('item') && json['item'] is Map<String, dynamic>) {
+      if (json['item'].containsKey('partner')) {
+        json['partner'] = json['item']['partner'];
+      }
+    }
+    return _$RequestDetailModelFromJson(json);
+  }
+
+  RequestDetail toEntity() {
+    return RequestDetail(
+      id: id,
+      type: type,
+      status: status,
+      rejectionReason: rejectionReason,
+      createdAt: createdAt,
+      item: item.toEntity(),
+      partner: partner.toEntity(),
+      reason: reason,
+      pickupDate: pickupDate,
+      returnDate: returnDate,
+    );
+  }
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake)
+@JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
 class ItemInRequestModel {
   final String id;
   final String name;
@@ -45,10 +78,17 @@ class ItemInRequestModel {
 
   factory ItemInRequestModel.fromJson(Map<String, dynamic> json) =>
       _$ItemInRequestModelFromJson(json);
-  Map<String, dynamic> toJson() => _$ItemInRequestModelToJson(this);
+
+  ItemInRequest toEntity() {
+    return ItemInRequest(
+      id: id,
+      name: name,
+      imageUrl: images.isNotEmpty ? images.first : null,
+    );
+  }
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake)
+@JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
 class PartnerInRequestModel {
   final String id;
   final String? fullName;
@@ -70,5 +110,15 @@ class PartnerInRequestModel {
 
   factory PartnerInRequestModel.fromJson(Map<String, dynamic> json) =>
       _$PartnerInRequestModelFromJson(json);
-  Map<String, dynamic> toJson() => _$PartnerInRequestModelToJson(this);
+
+  PartnerInRequest toEntity() {
+    return PartnerInRequest(
+      id: id,
+      name: fullName ?? username,
+      phone: phone,
+      address: address,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
 }

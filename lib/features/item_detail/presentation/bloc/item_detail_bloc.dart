@@ -41,34 +41,42 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
       debugPrint("[ItemDetailBloc] 1. Fetching item detail...");
       final itemResult = await getItemById(GetItemByIdParams(id: event.id));
 
+      if (isClosed) return;
+
       await itemResult.fold(
         (failure) async {
           debugPrint(
               "[ItemDetailBloc] X. FAILED to fetch item detail: ${failure.message}");
-          emit(ItemDetailError(
-              'Gagal memuat detail barang: ${failure.message}'));
+          if (!isClosed) {
+            emit(ItemDetailError(
+                'Gagal memuat detail barang: ${failure.message}'));
+          }
         },
         (item) async {
           debugPrint(
               "[ItemDetailBloc] 2. SUCCESS fetching item detail. Name: ${item.name}");
 
-          emit(ItemDetailLoaded(item,
-              buttonState: ItemDetailButtonState.active));
+          if (!isClosed) {
+            emit(ItemDetailLoaded(item,
+                buttonState: ItemDetailButtonState.active));
 
-          // Panggil similar items segera
-          add(FetchSimilarItems(item.id));
+            // Panggil similar items segera
+            add(FetchSimilarItems(item.id));
 
-          _processSecondaryData(item);
+            // Panggil proses data sekunder
+            _processSecondaryData(item);
+          }
         },
       );
     } catch (e, stacktrace) {
       debugPrint("[ItemDetailBloc] FATAL ERROR in _onFetchItemDetail: $e");
       debugPrint(stacktrace.toString());
-      emit(ItemDetailError('Terjadi kesalahan tidak terduga: $e'));
+      if (!isClosed) {
+        emit(ItemDetailError('Terjadi kesalahan tidak terduga: $e'));
+      }
     }
   }
 
-  // Proses data sekunder secara terpisah
   void _processSecondaryData(ItemDetail item) async {
     try {
       debugPrint(
@@ -79,13 +87,16 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
         getDashboardStats(NoParams()),
       ]);
 
+      if (isClosed) {
+        debugPrint(
+            "[ItemDetailBloc] BLoC closed, stopping secondary data processing.");
+        return;
+      }
+
       debugPrint("[ItemDetailBloc] 4. All secondary data fetched.");
-      // Pastikan state saat ini masih Loaded sebelum melanjutkan
       if (state is! ItemDetailLoaded) return;
 
       final currentState = state as ItemDetailLoaded;
-
-      // Pastikan item ID masih sama, untuk menghindari update halaman yang salah
       if (currentState.item.id != item.id) return;
 
       final donationRequestsResult =
@@ -118,8 +129,10 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
 
       debugPrint(
           "[ItemDetailBloc] 6. Emitting updated ItemDetailLoaded with final button state: $buttonState");
-      // Emit state baru dengan buttonState yang sudah diperbarui
-      emit(currentState.copyWith(buttonState: buttonState));
+      // Cek sekali lagi sebelum emit
+      if (!isClosed) {
+        emit(currentState.copyWith(buttonState: buttonState));
+      }
     } catch (e, stacktrace) {
       debugPrint("[ItemDetailBloc] FATAL ERROR in _processSecondaryData: $e");
       debugPrint(stacktrace.toString());
@@ -138,20 +151,27 @@ class ItemDetailBloc extends Bloc<ItemDetailEvent, ItemDetailState> {
     final result =
         await getSimilarItems(GetSimilarItemsParams(itemId: event.itemId));
 
+    if (isClosed) return;
+
+    // Pastikan state masih ItemDetailLoaded setelah await
     if (state is ItemDetailLoaded) {
       final latestState = state as ItemDetailLoaded;
       result.fold(
         (failure) {
-          emit(latestState.copyWith(
-            similarItemsStatus: SimilarItemsStatus.error,
-            similarItemsError: failure.message,
-          ));
+          if (!isClosed) {
+            emit(latestState.copyWith(
+              similarItemsStatus: SimilarItemsStatus.error,
+              similarItemsError: failure.message,
+            ));
+          }
         },
         (items) {
-          emit(latestState.copyWith(
-            similarItemsStatus: SimilarItemsStatus.loaded,
-            similarItems: items,
-          ));
+          if (!isClosed) {
+            emit(latestState.copyWith(
+              similarItemsStatus: SimilarItemsStatus.loaded,
+              similarItems: items,
+            ));
+          }
         },
       );
     }

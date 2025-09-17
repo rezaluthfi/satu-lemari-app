@@ -6,101 +6,24 @@ import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/features/history/domain/entities/request_item.dart';
 import 'package:satulemari/features/history/presentation/bloc/history_bloc.dart';
 
-class RequestListView extends StatefulWidget {
+class RequestListView extends StatelessWidget {
   final String type;
   final List<RequestItem> requests;
 
-  const RequestListView(
-      {super.key, required this.type, required this.requests});
-
-  @override
-  State<RequestListView> createState() => _RequestListViewState();
-}
-
-class _RequestListViewState extends State<RequestListView> {
-  late ScrollController _scrollController;
-  bool _isLoadingMore = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_isBottom && !_isLoadingMore) {
-      _isLoadingMore = true;
-      context.read<HistoryBloc>().add(LoadMoreHistory(type: widget.type));
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _isLoadingMore = false;
-        }
-      });
-    }
-  }
-
-  bool get _isBottom {
-    if (!_scrollController.hasClients) return false;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.9);
-  }
+  const RequestListView({
+    super.key,
+    required this.type,
+    required this.requests,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<HistoryBloc, HistoryState>(
-      builder: (context, state) {
-        bool isLoadingMore;
-        switch (widget.type) {
-          case 'donation':
-            isLoadingMore = state.donationIsLoadingMore;
-            break;
-          case 'rental':
-            isLoadingMore = state.rentalIsLoadingMore;
-            break;
-          case 'thrifting':
-            isLoadingMore = state.thriftingIsLoadingMore;
-            break;
-          default:
-            isLoadingMore = false;
-        }
-
-        return CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final request = widget.requests[index];
-                    return _buildRequestCard(context, request);
-                  },
-                  childCount: widget.requests.length,
-                ),
-              ),
-            ),
-            if (isLoadingMore)
-              const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      itemCount: requests.length,
+      itemBuilder: (context, index) {
+        final request = requests[index];
+        return _buildRequestCard(context, request);
       },
     );
   }
@@ -125,10 +48,8 @@ class _RequestListViewState extends State<RequestListView> {
             Navigator.pushNamed(context, '/request-detail',
                     arguments: request.id)
                 .then((result) {
-              if (result == true && mounted) {
-                context
-                    .read<HistoryBloc>()
-                    .add(RefreshHistory(type: widget.type));
+              if (result == true && context.mounted) {
+                context.read<HistoryBloc>().add(RefreshHistory());
               }
             });
           },
@@ -149,8 +70,6 @@ class _RequestListViewState extends State<RequestListView> {
                     ),
                     child: CachedNetworkImage(
                       imageUrl: request.imageUrl ?? '',
-                      width: 64,
-                      height: 64,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
                         color: AppColors.surfaceVariant,
@@ -268,7 +187,7 @@ class _RequestListViewState extends State<RequestListView> {
           label: 'Ditolak',
           backgroundColor: AppColors.error.withOpacity(0.1),
         );
-      default: // pending
+      default:
         return StatusInfo(
           icon: Icons.schedule_rounded,
           color: AppColors.warning,

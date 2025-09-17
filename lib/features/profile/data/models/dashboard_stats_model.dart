@@ -1,13 +1,12 @@
-// --- TAMBAHKAN DUA BARIS IMPORT INI ---
 import 'package:json_annotation/json_annotation.dart';
 
 part 'dashboard_stats_model.g.dart';
-// ---
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class DashboardStatsModel {
   final int totalDonations;
   final int totalRentals;
+  final int totalThrifting;
   final int activeItems;
   final int pendingRequests;
   final int completedRequests;
@@ -17,6 +16,7 @@ class DashboardStatsModel {
   DashboardStatsModel({
     required this.totalDonations,
     required this.totalRentals,
+    required this.totalThrifting,
     required this.activeItems,
     required this.pendingRequests,
     required this.completedRequests,

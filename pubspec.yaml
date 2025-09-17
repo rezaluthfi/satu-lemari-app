@@ -8,76 +8,62 @@ environment:
   sdk: ">=3.4.1 <4.0.0"
 
 dependencies:
+  bloc: ^9.0.0
+  cached_network_image: ^3.4.1
+  connectivity_plus: ^6.1.4
+  cookie_jar: ^4.0.8
+  cupertino_icons: ^1.0.8
+  dartz: ^0.10.1
+  dio: ^5.8.0+1
+  dio_cookie_manager: ^3.2.0
+  equatable: ^2.0.7
+  firebase_auth: ^5.6.2
+  firebase_core: ^3.15.1
+  firebase_messaging: ^15.2.9
   flutter:
     sdk: flutter
-
-  # --- State Management ---
-  bloc: ^9.0.0
   flutter_bloc: ^9.1.1
-  equatable: ^2.0.7
-  rxdart: ^0.28.0
-
-  # --- Network & API ---
-  dio: ^5.8.0+1
+  flutter_dotenv: ^5.2.1
+  flutter_local_notifications: ^19.3.1
+  flutter_map: ^7.0.2
+  flutter_staggered_grid_view: ^0.7.0
+  geocoding: ^3.0.0
+  geolocator: ^10.1.0
+  get_it: ^8.0.3
+  google_sign_in: ^6.2.2
   http: ^1.4.0
   http_parser: ^4.0.2
-  connectivity_plus: ^6.1.4
-  internet_connection_checker: ^3.0.1
-  cookie_jar: ^4.0.8
-  dio_cookie_manager: ^3.2.0
-  retrofit: ^4.5.0
-
-  # --- Data & Utilities ---
-  dartz: ^0.10.1
-  get_it: ^8.0.3
-  json_annotation: ^4.9.0
-  shared_preferences: ^2.5.3
-  intl: ^0.20.2
-  uuid: ^4.5.1
-  tuple: ^2.0.2
-  mime: ^2.0.0
-  flutter_dotenv: ^5.2.1
-
-  # --- UI & UX ---
-  cupertino_icons: ^1.0.8
-  cached_network_image: ^3.4.1
-  shimmer: ^3.0.0
-  flutter_staggered_grid_view: ^0.7.0
-  smooth_page_indicator: ^1.2.1
-  photo_view: ^0.15.0
-
-  # --- Firebase & Auth ---
-  firebase_core: ^3.15.1
-  firebase_auth: ^5.6.2
-  firebase_messaging: ^15.2.9
-  google_sign_in: ^6.2.2
-
-  # --- Device & Permissions ---
-  image_picker: ^1.1.2
   image_cropper: ^9.1.0
-  geolocator: ^10.1.0
-  geocoding: ^3.0.0
-  url_launcher: ^6.3.1
-  flutter_local_notifications: ^19.3.1
-  speech_to_text: ^7.3.0
-
-  # --- Map ---
-  flutter_map: ^7.0.2
+  image_picker: ^1.1.2
+  internet_connection_checker: ^3.0.1
+  intl: ^0.20.2
+  json_annotation: ^4.9.0
   latlong2: ^0.9.1
+  mime: ^2.0.0
+  photo_view: ^0.15.0
+  qr_flutter: ^4.1.0
+  retrofit: ^4.5.0
+  rxdart: ^0.28.0
+  shared_preferences: ^2.5.3
+  shimmer: ^3.0.0
+  smooth_page_indicator: ^1.2.1
+  speech_to_text: ^7.3.0
+  tuple: ^2.0.2
+  url_launcher: ^6.3.1
+  uuid: ^4.5.1
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-
-  flutter_lints: ^4.0.0
-
   # --- Code Generation ---
   build_runner: ^2.4.13
-  json_serializable: ^6.9.0
-  retrofit_generator: ^9.1.5
 
   # --- App Icon ---
   flutter_launcher_icons: ^0.14.4
+
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  json_serializable: ^6.9.0
+  retrofit_generator: ^9.1.5
 
 dependency_overrides:
   geolocator_android: 4.6.1

@@ -1,6 +1,5 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:satulemari/features/history/domain/entities/request_detail.dart';
 import 'package:satulemari/features/request/data/models/create_request_model.dart';
 import 'package:satulemari/features/request/domain/usecases/create_request_usecase.dart';
 
@@ -17,7 +16,7 @@ class RequestBloc extends Bloc<RequestEvent, RequestState> {
           await createRequest(CreateRequestParams(request: event.request));
       result.fold(
         (failure) => emit(RequestFailure(failure.message)),
-        (detail) => emit(RequestSuccess(detail)),
+        (newRequestId) => emit(RequestSuccess(newRequestId)),
       );
     });
   }

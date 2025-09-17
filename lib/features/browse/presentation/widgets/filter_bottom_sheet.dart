@@ -364,16 +364,14 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
         Row(
           children: [
             Expanded(
-                child:
-                    _buildTextField(_minPriceController, 'Harga Min', "Rp ")),
+                child: _buildTextField(_minPriceController, 'Harga Min', "Rp")),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
               child:
                   Text('-', style: TextStyle(color: AppColors.textSecondary)),
             ),
             Expanded(
-                child:
-                    _buildTextField(_maxPriceController, 'Harga Max', "Rp ")),
+                child: _buildTextField(_maxPriceController, 'Harga Max', "Rp")),
           ],
         ),
         if (_priceValidationError != null)

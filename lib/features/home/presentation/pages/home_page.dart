@@ -417,15 +417,13 @@ class _HomePageState extends State<HomePage>
                         ),
                       );
                       if (mounted) {
+                        // Tetap refresh stats notifikasi
                         context
                             .read<NotificationBloc>()
                             .add(FetchNotificationStats());
-                        context
-                            .read<HistoryBloc>()
-                            .add(const FetchHistory(type: 'donation'));
-                        context
-                            .read<HistoryBloc>()
-                            .add(const FetchHistory(type: 'rental'));
+
+                        // Panggil RefreshHistory untuk me-refresh semua riwayat
+                        context.read<HistoryBloc>().add(RefreshHistory());
                       }
                     },
                     icon: const Icon(
