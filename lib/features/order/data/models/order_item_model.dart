@@ -1,18 +1,23 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:satulemari/features/order/domain/entities/order_item.dart';
 
 part 'order_item_model.g.dart';
 
 @JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
-class OrderItemModel extends OrderItem {
-  const OrderItemModel({
-    required super.id,
-    required super.status,
-    required super.type,
-    required super.totalAmount,
-    required super.createdAt,
-    required super.itemName,
-    super.itemImageUrl,
+class OrderItemModel {
+  final String id;
+  final String status;
+  final String type;
+  final int totalAmount;
+  final DateTime createdAt;
+  final String itemId;
+
+  OrderItemModel({
+    required this.id,
+    required this.status,
+    required this.type,
+    required this.totalAmount,
+    required this.createdAt,
+    required this.itemId,
   });
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) =>

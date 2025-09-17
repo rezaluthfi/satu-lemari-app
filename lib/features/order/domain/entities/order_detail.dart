@@ -1,6 +1,7 @@
-// Entity utama yang akan digunakan di UI
 import 'package:equatable/equatable.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+@JsonSerializable(createFactory: false, createToJson: false)
 class OrderDetail extends Equatable {
   final String id;
   final String status;
@@ -12,6 +13,7 @@ class OrderDetail extends Equatable {
   final DateTime createdAt;
   final DateTime expiresAt;
   final PaymentDetail payment;
+  final String itemId;
 
   const OrderDetail({
     required this.id,
@@ -24,12 +26,14 @@ class OrderDetail extends Equatable {
     required this.createdAt,
     required this.expiresAt,
     required this.payment,
+    required this.itemId,
   });
 
   @override
-  List<Object?> get props => [id, status];
+  List<Object?> get props => [id, status, itemId, payment];
 }
 
+@JsonSerializable(createFactory: false, createToJson: false)
 class PaymentDetail extends Equatable {
   final String id;
   final String status;
@@ -46,5 +50,5 @@ class PaymentDetail extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, status];
+  List<Object?> get props => [id, status, qrisPayload, paidAt];
 }

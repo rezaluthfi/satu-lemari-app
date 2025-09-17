@@ -22,3 +22,11 @@ class CreateOrderButtonPressed extends OrderDetailEvent {
   @override
   List<Object> get props => [request];
 }
+
+class CancelOrderButtonPressed extends OrderDetailEvent {
+  final String orderId;
+  const CancelOrderButtonPressed(this.orderId);
+
+  @override
+  List<Object> get props => [orderId];
+}

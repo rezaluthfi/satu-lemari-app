@@ -16,7 +16,7 @@ class CreateOrderResponseModel {
       _$CreateOrderResponseModelFromJson(json);
 }
 
-@JsonSerializable(createToJson: false)
+@JsonSerializable(createToJson: false, explicitToJson: true)
 class GetOrderDetailResponse {
   @JsonKey(name: 'order')
   final OrderDataModel order;
@@ -40,11 +40,11 @@ class GetOrderDetailResponse {
       createdAt: order.createdAt,
       expiresAt: order.expiresAt,
       payment: payment.toEntity(),
+      itemId: order.itemId,
     );
   }
 }
 
-// --- Sub-Model untuk Data Order ---
 @JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
 class OrderDataModel {
   final String id;
@@ -56,23 +56,25 @@ class OrderDataModel {
   final String? notes;
   final DateTime createdAt;
   final DateTime expiresAt;
+  final String itemId;
 
-  OrderDataModel(
-      {required this.id,
-      required this.status,
-      required this.shippingMethod,
-      required this.itemPrice,
-      required this.shippingFee,
-      required this.totalAmount,
-      this.notes,
-      required this.createdAt,
-      required this.expiresAt});
+  OrderDataModel({
+    required this.id,
+    required this.status,
+    required this.shippingMethod,
+    required this.itemPrice,
+    required this.shippingFee,
+    required this.totalAmount,
+    this.notes,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.itemId, // <-- Diubah
+  });
 
   factory OrderDataModel.fromJson(Map<String, dynamic> json) =>
       _$OrderDataModelFromJson(json);
 }
 
-// --- Sub-Model untuk Data Payment ---
 @JsonSerializable(fieldRename: FieldRename.snake, createToJson: false)
 class PaymentDataModel {
   final String id;

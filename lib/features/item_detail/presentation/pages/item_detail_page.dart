@@ -558,7 +558,7 @@ class _ItemDetailPageState extends State<ItemDetailPage> {
     if ((isRental || isThrifting) && item.price != null && item.price! > 0) {
       final formattedPrice = NumberFormat.currency(
         locale: 'id_ID',
-        symbol: 'Rp ',
+        symbol: 'Rp',
         decimalDigits: 0,
       ).format(item.price);
 

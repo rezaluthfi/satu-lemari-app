@@ -13,6 +13,5 @@ OrderItemModel _$OrderItemModelFromJson(Map<String, dynamic> json) =>
       type: json['type'] as String,
       totalAmount: (json['total_amount'] as num).toInt(),
       createdAt: DateTime.parse(json['created_at'] as String),
-      itemName: json['item_name'] as String,
-      itemImageUrl: json['item_image_url'] as String?,
+      itemId: json['item_id'] as String,
     );

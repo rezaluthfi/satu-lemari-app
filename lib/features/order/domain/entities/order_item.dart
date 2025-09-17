@@ -1,12 +1,13 @@
 import 'package:equatable/equatable.dart';
 
-// Entity sederhana untuk ditampilkan di daftar riwayat
+// Entity untuk item di daftar riwayat pesanan
 class OrderItem extends Equatable {
   final String id;
   final String status;
-  final String type; // 'thrifting', 'donation', 'rental'
+  final String type;
   final int totalAmount;
   final DateTime createdAt;
+
   final String itemName;
   final String? itemImageUrl;
 
@@ -21,5 +22,5 @@ class OrderItem extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, status];
+  List<Object?> get props => [id, status, type];
 }

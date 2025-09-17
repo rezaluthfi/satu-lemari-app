@@ -34,6 +34,7 @@ OrderDataModel _$OrderDataModelFromJson(Map<String, dynamic> json) =>
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       expiresAt: DateTime.parse(json['expires_at'] as String),
+      itemId: json['item_id'] as String,
     );
 
 PaymentDataModel _$PaymentDataModelFromJson(Map<String, dynamic> json) =>

@@ -135,10 +135,7 @@ class AuthWrapper extends StatelessWidget {
           context.read<ProfileBloc>().add(FetchProfileData());
 
           // 2. HistoryBloc: Event untuk mengambil data donasi dan peminjaman
-          final historyBloc = context.read<HistoryBloc>();
-          historyBloc.add(const FetchHistory(type: 'donation'));
-          historyBloc.add(const FetchHistory(type: 'rental'));
-          historyBloc.add(const FetchHistory(type: 'thrifting'));
+          context.read<HistoryBloc>().add(FetchAllHistory());
 
           // 3. HomeBloc: Event untuk mengambil semua data home
           context.read<HomeBloc>().add(FetchAllHomeData());

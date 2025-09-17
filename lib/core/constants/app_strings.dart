@@ -5,7 +5,7 @@ class AppStrings {
   static const String appVersion = '1.0.0';
 
   // Splash Screen
-  static const String splashTagline = 'Donasi • Rental • Sustainable';
+  static const String splashTagline = 'Donasi • Rental • Thrifting';
 
   // Onboarding
   static const String skip = 'Lewati';

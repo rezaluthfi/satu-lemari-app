@@ -19,13 +19,11 @@ class RequestListView extends StatefulWidget {
 
 class _RequestListViewState extends State<RequestListView> {
   late ScrollController _scrollController;
-  bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
+    _scrollController = ScrollController()..addListener(_onScroll);
   }
 
   @override
@@ -36,14 +34,8 @@ class _RequestListViewState extends State<RequestListView> {
   }
 
   void _onScroll() {
-    if (_isBottom && !_isLoadingMore) {
-      _isLoadingMore = true;
-      context.read<HistoryBloc>().add(LoadMoreHistory(type: widget.type));
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _isLoadingMore = false;
-        }
-      });
+    if (_isBottom) {
+      context.read<HistoryBloc>().add(const LoadMoreHistory(type: 'requests'));
     }
   }
 
@@ -58,21 +50,6 @@ class _RequestListViewState extends State<RequestListView> {
   Widget build(BuildContext context) {
     return BlocBuilder<HistoryBloc, HistoryState>(
       builder: (context, state) {
-        bool isLoadingMore;
-        switch (widget.type) {
-          case 'donation':
-            isLoadingMore = state.donationIsLoadingMore;
-            break;
-          case 'rental':
-            isLoadingMore = state.rentalIsLoadingMore;
-            break;
-          case 'thrifting':
-            isLoadingMore = state.thriftingIsLoadingMore;
-            break;
-          default:
-            isLoadingMore = false;
-        }
-
         return CustomScrollView(
           controller: _scrollController,
           slivers: [
@@ -88,15 +65,13 @@ class _RequestListViewState extends State<RequestListView> {
                 ),
               ),
             ),
-            if (isLoadingMore)
+            if (state.requestsIsLoadingMore)
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
                   child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primary,
-                    ),
-                  ),
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary)),
                 ),
               ),
           ],
@@ -125,10 +100,8 @@ class _RequestListViewState extends State<RequestListView> {
             Navigator.pushNamed(context, '/request-detail',
                     arguments: request.id)
                 .then((result) {
-              if (result == true && mounted) {
-                context
-                    .read<HistoryBloc>()
-                    .add(RefreshHistory(type: widget.type));
+              if (result == true && context.mounted) {
+                context.read<HistoryBloc>().add(RefreshHistory());
               }
             });
           },
@@ -149,8 +122,6 @@ class _RequestListViewState extends State<RequestListView> {
                     ),
                     child: CachedNetworkImage(
                       imageUrl: request.imageUrl ?? '',
-                      width: 64,
-                      height: 64,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
                         color: AppColors.surfaceVariant,
@@ -268,7 +239,7 @@ class _RequestListViewState extends State<RequestListView> {
           label: 'Ditolak',
           backgroundColor: AppColors.error.withOpacity(0.1),
         );
-      default: // pending
+      default:
         return StatusInfo(
           icon: Icons.schedule_rounded,
           color: AppColors.warning,

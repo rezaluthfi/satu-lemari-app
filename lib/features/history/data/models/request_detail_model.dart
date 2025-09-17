@@ -3,6 +3,18 @@ import 'package:satulemari/features/history/domain/entities/request_detail.dart'
 
 part 'request_detail_model.g.dart';
 
+// Helper functions (jika belum ada, tambahkan)
+String? _imageUrlFromImagesList(List<dynamic>? images) {
+  if (images != null && images.isNotEmpty && images.first is String) {
+    return images.first;
+  }
+  return null;
+}
+
+String _nameFromPartnerJson(Map<String, dynamic> json) {
+  return (json['full_name'] as String?) ?? (json['username'] as String);
+}
+
 @JsonSerializable(
     fieldRename: FieldRename.snake, createToJson: false, explicitToJson: true)
 class RequestDetailModel {
@@ -31,9 +43,7 @@ class RequestDetailModel {
   });
 
   factory RequestDetailModel.fromJson(Map<String, dynamic> json) {
-    // Periksa apakah 'item' ada dan merupakan Map
     if (json.containsKey('item') && json['item'] is Map<String, dynamic>) {
-      // Jika 'partner' ada di dalam 'item', pindahkan ke level atas agar bisa di-parse
       if (json['item'].containsKey('partner')) {
         json['partner'] = json['item']['partner'];
       }
@@ -41,7 +51,6 @@ class RequestDetailModel {
     return _$RequestDetailModelFromJson(json);
   }
 
-  // Method untuk konversi dari Model ke Entity
   RequestDetail toEntity() {
     return RequestDetail(
       id: id,

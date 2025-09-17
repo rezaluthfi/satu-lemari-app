@@ -1,12 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:satulemari/core/constants/app_colors.dart';
 import 'package:satulemari/core/di/injection.dart';
+import 'package:satulemari/features/item_detail/domain/entities/item_detail.dart';
+import 'package:satulemari/features/item_detail/presentation/pages/item_detail_page.dart';
 import 'package:satulemari/features/order/domain/entities/order_detail.dart';
 import 'package:satulemari/features/order/presentation/bloc/order_detail_bloc.dart';
 import 'package:satulemari/features/history/presentation/widgets/request_detail_shimmer.dart';
+import 'package:satulemari/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:satulemari/shared/widgets/confirmation_dialog.dart';
+import 'package:satulemari/shared/widgets/custom_button.dart';
+import 'package:satulemari/features/order/presentation/utils/status_helper.dart';
 
 class OrderDetailPage extends StatelessWidget {
   const OrderDetailPage({super.key});
@@ -26,29 +33,53 @@ class OrderDetailPage extends StatelessWidget {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        body: BlocBuilder<OrderDetailBloc, OrderDetailState>(
-          builder: (context, state) {
-            if (state is OrderDetailLoading || state is OrderDetailInitial) {
-              return const RequestDetailShimmer();
+        body: BlocListener<OrderDetailBloc, OrderDetailState>(
+          listener: (context, state) {
+            if (state is OrderCancelSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Pesanan berhasil dibatalkan.'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
             }
-            if (state is OrderDetailError) {
-              return _buildErrorState(state.message);
+            if (state is OrderCancelFailure) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: AppColors.error,
+                ),
+              );
             }
-            if (state is OrderDetailNotFound) {
-              return _buildErrorState("Pesanan tidak ditemukan.");
-            }
-            if (state is OrderDetailLoaded) {
-              return _buildContent(context, state.detail);
-            }
-            return const Center(
-                child: Text('Terjadi kesalahan tidak diketahui.'));
           },
+          child: BlocBuilder<OrderDetailBloc, OrderDetailState>(
+            builder: (context, state) {
+              if (state is OrderDetailLoading || state is OrderDetailInitial) {
+                return const RequestDetailShimmer();
+              }
+              if (state is OrderDetailError) {
+                return _buildErrorState(state.message);
+              }
+              if (state is OrderDetailNotFound) {
+                return _buildErrorState("Pesanan tidak ditemukan.");
+              }
+              if (state is OrderDetailLoaded) {
+                // Kirim kedua data (detail order dan detail item) ke method build
+                return _buildContent(context, state.detail, state.itemDetail);
+              }
+              return const Center(
+                  child: Text('Terjadi kesalahan tidak diketahui.'));
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, OrderDetail detail) {
+  Widget _buildContent(
+      BuildContext context, OrderDetail detail, ItemDetail? itemDetail) {
+    final bool canCancel = detail.status.toLowerCase() == 'awaiting_payment';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -59,10 +90,37 @@ class OrderDetailPage extends StatelessWidget {
             _buildQrisSection(context, detail),
             const SizedBox(height: 24),
           ],
-          // Item card sekarang opsional di detail order, jadi kita hilangkan
+          // Tampilkan item card hanya jika detail item sudah berhasil di-load
+          if (itemDetail != null) ...[
+            _buildItemCard(context, itemDetail),
+            const SizedBox(height: 24),
+          ],
           _buildPaymentDetailsCard(context, detail),
           const SizedBox(height: 24),
           _buildStatusCard(context, detail),
+          const SizedBox(height: 24),
+          if (canCancel)
+            CustomButton(
+              text: 'Batalkan Pesanan',
+              onPressed: () {
+                ConfirmationDialog.show(
+                  context: context,
+                  title: 'Batalkan Pesanan?',
+                  content:
+                      'Apakah Anda yakin ingin membatalkan pesanan ini? Tindakan ini tidak dapat diurungkan.',
+                  confirmText: 'Ya, Batalkan',
+                  onConfirm: () {
+                    context
+                        .read<OrderDetailBloc>()
+                        .add(CancelOrderButtonPressed(detail.id));
+                  },
+                );
+              },
+              type: ButtonType.outline,
+              borderColor: AppColors.error,
+              textColor: AppColors.error,
+              width: double.infinity,
+            ),
         ],
       ),
     );
@@ -95,7 +153,7 @@ class OrderDetailPage extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Text(
+              Text(
                 'Pindai QR Code di bawah ini untuk menyelesaikan pembayaran Anda',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary),
@@ -131,11 +189,107 @@ class OrderDetailPage extends StatelessWidget {
     );
   }
 
+  Widget _buildItemCard(BuildContext context, ItemDetail item) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Barang Dipesan'),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border:
+                Border.all(color: AppColors.divider.withOpacity(0.3), width: 1),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: BlocProvider.of<ProfileBloc>(context),
+                      child: const ItemDetailPage(),
+                    ),
+                    settings: RouteSettings(arguments: item.id),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: CachedNetworkImage(
+                          imageUrl:
+                              item.images.isNotEmpty ? item.images.first : '',
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) =>
+                              Container(color: AppColors.surfaceVariant),
+                          errorWidget: (context, url, error) => const Icon(
+                              Icons.inventory_2_outlined,
+                              color: AppColors.textHint,
+                              size: 24),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          const Row(
+                            children: [
+                              Text(
+                                'Lihat detail barang',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward_ios_rounded,
+                                  size: 12, color: AppColors.primary),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPaymentDetailsCard(BuildContext context, OrderDetail detail) {
     String formattedDate = DateFormat('dd MMMM yyyy, HH:mm', 'id_ID')
         .format(detail.createdAt.toLocal());
 
-    // Helper function untuk mengubah nama metode pengiriman
     String getFormattedShippingMethod(String rawMethod) {
       switch (rawMethod) {
         case 'direct_cod':
@@ -145,7 +299,7 @@ class OrderDetailPage extends StatelessWidget {
         case 'pickup_warehouse':
           return 'Ambil Sendiri (Pickup)';
         default:
-          return rawMethod; // Fallback jika ada metode baru
+          return rawMethod;
       }
     }
 
@@ -175,7 +329,6 @@ class OrderDetailPage extends StatelessWidget {
                   label: 'Tanggal Pesanan',
                   value: formattedDate),
               _buildDivider(),
-              // Gunakan helper function di sini
               _buildInfoRow(
                   icon: Icons.local_shipping_outlined,
                   label: 'Metode Pengiriman',
@@ -203,7 +356,7 @@ class OrderDetailPage extends StatelessWidget {
 
   Widget _buildCostSummary(OrderDetail detail) {
     final currencyFormat =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -256,8 +409,7 @@ class OrderDetailPage extends StatelessWidget {
   }
 
   Widget _buildStatusCard(BuildContext context, OrderDetail detail) {
-    final statusInfo = _getStatusInfo(detail.status);
-
+    final statusInfo = StatusInfo.fromStatus(detail.status);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,43 +508,6 @@ class OrderDetailPage extends StatelessWidget {
     );
   }
 
-  StatusInfo _getStatusInfo(String status) {
-    switch (status.toLowerCase()) {
-      case 'paid':
-        return StatusInfo(
-          icon: Icons.check_circle_rounded,
-          color: AppColors.success,
-          title: 'Pembayaran Berhasil',
-          subtitle: 'Pesanan Anda sedang disiapkan oleh penjual.',
-          backgroundColor: AppColors.success.withOpacity(0.05),
-        );
-      case 'expired':
-        return StatusInfo(
-          icon: Icons.cancel_rounded,
-          color: AppColors.error,
-          title: 'Pesanan Dibatalkan',
-          subtitle: 'Waktu pembayaran telah habis.',
-          backgroundColor: AppColors.error.withOpacity(0.05),
-        );
-      case 'awaiting_payment':
-        return StatusInfo(
-          icon: Icons.schedule_rounded,
-          color: AppColors.warning,
-          title: 'Menunggu Pembayaran',
-          subtitle: 'Selesaikan pembayaran sebelum waktu habis.',
-          backgroundColor: AppColors.warning.withOpacity(0.05),
-        );
-      default:
-        return StatusInfo(
-          icon: Icons.help_outline_rounded,
-          color: AppColors.textSecondary,
-          title: 'Status Tidak Dikenal',
-          subtitle: 'Status pesanan: ${status.capitalize()}',
-          backgroundColor: AppColors.surfaceVariant,
-        );
-    }
-  }
-
   Widget _buildErrorState(String message) {
     return Center(
       child: Padding(
@@ -413,28 +528,5 @@ class OrderDetailPage extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class StatusInfo {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final Color backgroundColor;
-
-  StatusInfo({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.backgroundColor,
-  });
-}
-
-extension StringExtension on String {
-  String capitalize() {
-    if (isEmpty) return this;
-    return "${this[0].toUpperCase()}${substring(1).replaceAll('_', ' ')}";
   }
 }

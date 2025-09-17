@@ -134,7 +134,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
 
   String _formatCurrency(int amount) {
     return NumberFormat.currency(
-            locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+            locale: 'id_ID', symbol: 'Rp', decimalDigits: 0)
         .format(amount);
   }
 
@@ -436,6 +436,9 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
   }
 
   Widget _buildShippingMethodCard() {
+    // Tentukan apakah kita berada di alur rental
+    final bool isRentalFlow = _itemType == 'rental';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -444,17 +447,17 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
         _buildCard(
           child: Column(
             children: [
+              // Opsi 1: Diantar Penjual (COD)
               RadioListTile<String>(
                 title: const Text('Diantar Penjual (COD)',
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text(
                   'Koordinasi langsung dengan pemilik barang',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
                 value: 'direct_cod',
                 groupValue: _shippingMethod,
+                // Selalu aktif
                 onChanged: (value) {
                   if (value != null)
                     setState(() {
@@ -466,49 +469,77 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                 activeColor: AppColors.primary,
               ),
               const Divider(height: 1),
-              RadioListTile<String>(
-                title: const Text('Agen Aplikasi',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text(
-                  'Pengiriman diurus oleh agen SatuLemari',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
+
+              // Opsi 2: Agen Aplikasi
+              Opacity(
+                // Buat terlihat "mati" jika ini alur rental
+                opacity: isRentalFlow ? 0.5 : 1.0,
+                child: RadioListTile<String>(
+                  title: const Text('Agen Aplikasi',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    isRentalFlow
+                        ? 'Tidak tersedia untuk penyewaan'
+                        : 'Pengiriman diurus oleh agen SatuLemari',
+                    style: TextStyle(
+                      color: isRentalFlow
+                          ? AppColors.error
+                          : AppColors.textSecondary,
+                    ),
                   ),
+                  value: 'app_agent',
+                  groupValue: _shippingMethod,
+                  // Nonaktifkan jika ini alur rental
+                  onChanged: isRentalFlow
+                      ? null
+                      : (value) {
+                          if (value != null)
+                            setState(() {
+                              _shippingMethod = value;
+                              _updateTotalAmount();
+                            });
+                        },
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: AppColors.primary,
                 ),
-                value: 'app_agent',
-                groupValue: _shippingMethod,
-                onChanged: (value) {
-                  if (value != null)
-                    setState(() {
-                      _shippingMethod = value;
-                      _updateTotalAmount();
-                    });
-                },
-                contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.primary,
               ),
               const Divider(height: 1),
-              RadioListTile<String>(
-                title: const Text('Ambil Sendiri (Pickup)',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text(
-                  'Ambil barang di lokasi yang ditentukan',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
+
+              // Opsi 3: Ambil Sendiri (Pickup)
+              Opacity(
+                // Buat terlihat "mati" jika ini alur rental
+                opacity: isRentalFlow ? 0.5 : 1.0,
+                child: RadioListTile<String>(
+                  title: const Text('Ambil Sendiri (Pickup)',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    isRentalFlow
+                        ? 'Tidak tersedia untuk penyewaan'
+                        : 'Ambil barang di lokasi yang ditentukan',
+                    style: TextStyle(
+                      color: isRentalFlow
+                          ? AppColors.error
+                          : AppColors.textSecondary,
+                    ),
                   ),
+                  value: 'pickup_warehouse',
+                  groupValue: _shippingMethod,
+                  // Nonaktifkan jika ini alur rental
+                  onChanged: isRentalFlow
+                      ? null
+                      : (value) {
+                          if (value != null)
+                            setState(() {
+                              _shippingMethod = value;
+                              _updateTotalAmount();
+                            });
+                        },
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: AppColors.primary,
                 ),
-                value: 'pickup_warehouse',
-                groupValue: _shippingMethod,
-                onChanged: (value) {
-                  if (value != null)
-                    setState(() {
-                      _shippingMethod = value;
-                      _updateTotalAmount();
-                    });
-                },
-                contentPadding: EdgeInsets.zero,
-                activeColor: AppColors.primary,
               ),
+
+              // Opsi untuk penjual tetap muncul jika 'pickup_warehouse' dipilih (tidak akan terjadi di alur rental)
               if (_shippingMethod == 'pickup_warehouse')
                 _buildSellerChoiceSection(),
             ],
@@ -651,7 +682,7 @@ class _CreateOrderViewState extends State<_CreateOrderView> {
                   style: TextStyle(color: AppColors.textSecondary)),
               Text(
                   _shippingMethod == 'pickup_warehouse'
-                      ? 'Rp 0'
+                      ? 'Rp0'
                       : _formatCurrency(_shippingFee),
                   style: const TextStyle(
                       fontWeight: FontWeight.w600,
